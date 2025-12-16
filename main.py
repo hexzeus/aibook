@@ -67,6 +67,10 @@ class ExportBookRequest(BaseModel):
     book_id: str
 
 
+class CompleteBookRequest(BaseModel):
+    book_id: str
+
+
 # Routes
 @app.get("/")
 async def root():
@@ -525,6 +529,148 @@ async def export_book(
         raise HTTPException(
             status_code=500,
             detail=f"Export failed: {str(e)}"
+        )
+
+
+@app.post("/api/books/complete")
+async def complete_book(
+    request: CompleteBookRequest,
+    authorization: str = Header(...)
+):
+    """
+    Mark a book as completed and generate an AI-powered SVG cover
+
+    This endpoint:
+    1. Validates the book is fully generated
+    2. Generates a professional SVG book cover using AI
+    3. Marks the book as completed
+    4. Saves the cover SVG
+    """
+
+    license_key = authorization.replace("Bearer ", "").strip()
+
+    if not license_key:
+        raise HTTPException(status_code=401, detail="License key required")
+
+    # Validate license
+    is_valid, error, product_id = await gumroad.verify_license(license_key)
+
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error)
+
+    try:
+        # Get book from database
+        book = book_store.get_book(license_key, request.book_id)
+
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+
+        # Check if book has all pages
+        current_pages = len(book['pages'])
+        if current_pages < book['target_pages']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Book is not complete. {current_pages}/{book['target_pages']} pages generated."
+            )
+
+        # Generate SVG cover using AI
+        generator = BookGenerator(api_key=None)
+
+        cover_svg = await generator.generate_book_cover_svg(
+            book_title=book['title'],
+            book_themes=book['structure'].get('themes', ['general']),
+            book_tone=book['structure'].get('tone', 'engaging'),
+            book_type=book.get('book_type', 'general')
+        )
+
+        # Mark book as completed and save cover
+        success = book_store.complete_book(license_key, request.book_id, cover_svg)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Failed to complete book")
+
+        return {
+            "success": True,
+            "message": "Book completed successfully with AI-generated cover!",
+            "cover_svg": cover_svg
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Book completion failed: {str(e)}"
+        )
+
+
+@app.get("/api/books/completed")
+async def list_completed_books(
+    authorization: str = Header(...),
+    limit: int = 50,
+    offset: int = 0
+):
+    """List all completed books for the authenticated user"""
+
+    license_key = authorization.replace("Bearer ", "").strip()
+
+    if not license_key:
+        raise HTTPException(status_code=401, detail="License key required")
+
+    # Validate license
+    is_valid, error, product_id = await gumroad.verify_license(license_key)
+
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error)
+
+    try:
+        books = book_store.list_completed_books(license_key, limit=limit, offset=offset)
+
+        return {
+            "success": True,
+            "books": books,
+            "total": len(books)
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list completed books: {str(e)}"
+        )
+
+
+@app.get("/api/books/in-progress")
+async def list_in_progress_books(
+    authorization: str = Header(...),
+    limit: int = 50,
+    offset: int = 0
+):
+    """List all in-progress (not completed) books for the authenticated user"""
+
+    license_key = authorization.replace("Bearer ", "").strip()
+
+    if not license_key:
+        raise HTTPException(status_code=401, detail="License key required")
+
+    # Validate license
+    is_valid, error, product_id = await gumroad.verify_license(license_key)
+
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error)
+
+    try:
+        books = book_store.list_in_progress_books(license_key, limit=limit, offset=offset)
+
+        return {
+            "success": True,
+            "books": books,
+            "total": len(books)
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list in-progress books: {str(e)}"
         )
 
 

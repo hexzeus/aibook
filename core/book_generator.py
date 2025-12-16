@@ -451,6 +451,103 @@ Reference Level: Mainstream published books that succeed commercially and critic
 
         return base + type_specific.get(book_type, type_specific["general"])
 
+    async def generate_book_cover_svg(
+        self,
+        book_title: str,
+        book_themes: list,
+        book_tone: str,
+        book_type: str = "general"
+    ) -> str:
+        """
+        Generate a professional SVG book cover using AI
+
+        Args:
+            book_title: The title of the book
+            book_themes: List of themes in the book
+            book_tone: The tone/style of the book
+            book_type: Type of book (kids, adult, educational, general)
+
+        Returns:
+            SVG code as a string
+        """
+
+        system_prompt = """You are an AWARD-WINNING graphic designer specializing in book cover design. You create stunning, professional SVG book covers that would sell on Amazon, Etsy, and bookstores.
+
+DESIGN PRINCIPLES:
+- Professional typography with hierarchy
+- Elegant color schemes that match the book's mood
+- Balanced composition with negative space
+- Market-ready design that attracts readers
+- SVG code that is clean, valid, and renders perfectly"""
+
+        user_prompt = f"""Design a PROFESSIONAL book cover in SVG format for this book:
+
+BOOK DETAILS:
+Title: {book_title}
+Themes: {', '.join(book_themes)}
+Tone: {book_tone}
+Type: {book_type}
+
+DESIGN REQUIREMENTS:
+
+📐 DIMENSIONS:
+- Width: 800px
+- Height: 1200px (standard book cover ratio)
+- Professional margins and spacing
+
+🎨 VISUAL ELEMENTS:
+- Eye-catching title typography (large, bold, readable)
+- Elegant background (gradient, pattern, or solid with texture)
+- Optional subtitle area
+- Thematic visual elements that reflect the book's content
+- Professional color palette (3-5 colors maximum)
+
+✨ STYLE GUIDELINES:
+{"- Kid-friendly with bright colors, playful fonts, and whimsical illustrations" if book_type == "kids" else ""}
+{"- Sophisticated adult design with elegant typography and mature aesthetic" if book_type == "adult" else ""}
+{"- Clean educational design with clear hierarchy and professional look" if book_type == "educational" else ""}
+{"- Versatile general market design that appeals broadly" if book_type == "general" else ""}
+
+🎯 TYPOGRAPHY:
+- Title should be the dominant element
+- Use web-safe fonts (Arial, Helvetica, Times, Georgia, or similar)
+- Excellent contrast for readability
+- Proper text alignment and spacing
+
+DELIVER:
+Output ONLY the complete SVG code. No markdown fences, no explanations. Just the raw SVG starting with <svg> and ending with </svg>.
+
+The cover should look like it was designed by a professional for a published book."""
+
+        response = await self.claude.generate(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=3000,
+            temperature=0.8
+        )
+
+        # Extract SVG from response (in case it's wrapped)
+        svg_code = response.strip()
+
+        # Remove markdown fences if present
+        if "```svg" in svg_code:
+            start = svg_code.find("```svg") + 6
+            end = svg_code.find("```", start)
+            svg_code = svg_code[start:end].strip()
+        elif "```" in svg_code:
+            start = svg_code.find("```") + 3
+            end = svg_code.find("```", start)
+            svg_code = svg_code[start:end].strip()
+
+        # Ensure it starts with <svg
+        if not svg_code.startswith("<svg"):
+            # Try to find the SVG tag
+            svg_start = svg_code.find("<svg")
+            if svg_start != -1:
+                svg_code = svg_code[svg_start:]
+
+        return svg_code
+
     def _build_page_context(self, previous_pages: list, max_pages: int = 3) -> str:
         """Build context string from previous pages"""
 

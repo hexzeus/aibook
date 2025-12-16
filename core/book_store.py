@@ -28,8 +28,11 @@ class BookStore:
                 target_pages INTEGER,
                 book_type TEXT,
                 structure TEXT,
+                is_completed INTEGER DEFAULT 0,
+                cover_svg TEXT,
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                completed_at TEXT
             )
         """)
 
@@ -288,6 +291,118 @@ class BookStore:
         conn.close()
 
         return True
+
+    def complete_book(self, license_key: str, book_id: str, cover_svg: str) -> bool:
+        """Mark a book as completed and save the cover SVG"""
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Verify ownership
+        cursor.execute(
+            "SELECT book_id FROM books WHERE book_id = ? AND license_key = ?",
+            (book_id, license_key)
+        )
+
+        if not cursor.fetchone():
+            conn.close()
+            return False
+
+        now = datetime.utcnow().isoformat()
+
+        cursor.execute("""
+            UPDATE books
+            SET is_completed = 1,
+                cover_svg = ?,
+                completed_at = ?,
+                updated_at = ?
+            WHERE book_id = ?
+        """, (cover_svg, now, now, book_id))
+
+        conn.commit()
+        conn.close()
+
+        return True
+
+    def list_completed_books(
+        self,
+        license_key: str,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict]:
+        """List completed books for a license key"""
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT b.*, COUNT(p.page_id) as page_count
+            FROM books b
+            LEFT JOIN pages p ON b.book_id = p.book_id
+            WHERE b.license_key = ? AND b.is_completed = 1
+            GROUP BY b.book_id
+            ORDER BY b.completed_at DESC
+            LIMIT ? OFFSET ?
+        """, (license_key, limit, offset))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [
+            {
+                'book_id': row['book_id'],
+                'title': row['title'],
+                'description': row['description'],
+                'target_pages': row['target_pages'],
+                'book_type': row['book_type'],
+                'page_count': row['page_count'],
+                'cover_svg': row['cover_svg'],
+                'completed_at': row['completed_at'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
+            }
+            for row in rows
+        ]
+
+    def list_in_progress_books(
+        self,
+        license_key: str,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict]:
+        """List in-progress (not completed) books for a license key"""
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT b.*, COUNT(p.page_id) as page_count
+            FROM books b
+            LEFT JOIN pages p ON b.book_id = p.book_id
+            WHERE b.license_key = ? AND b.is_completed = 0
+            GROUP BY b.book_id
+            ORDER BY b.updated_at DESC
+            LIMIT ? OFFSET ?
+        """, (license_key, limit, offset))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [
+            {
+                'book_id': row['book_id'],
+                'title': row['title'],
+                'description': row['description'],
+                'target_pages': row['target_pages'],
+                'book_type': row['book_type'],
+                'page_count': row['page_count'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at']
+            }
+            for row in rows
+        ]
 
     def count_books(self, license_key: str) -> int:
         """Count total books for a license key"""
