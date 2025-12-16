@@ -170,7 +170,7 @@
 
         /* Container */
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
@@ -185,26 +185,25 @@
         }
 
         .auth-card {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 16px;
             box-shadow: var(--shadow-lg);
             padding: 3rem;
             max-width: 500px;
             width: 100%;
             text-align: center;
+            border: 1px solid var(--border);
         }
 
         .auth-card h1 {
             font-size: 2rem;
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--text-primary);
+            font-weight: 700;
         }
 
         .auth-card p {
-            color: var(--gray);
+            color: var(--text-secondary);
             margin-bottom: 2rem;
         }
 
@@ -216,8 +215,9 @@
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--dark);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
         }
 
         .form-group input,
@@ -225,10 +225,12 @@
         .form-group select {
             width: 100%;
             padding: 0.75rem;
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 1rem;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
 
         .form-group input:focus,
@@ -236,12 +238,14 @@
         .form-group select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: var(--bg-primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
+            font-family: inherit;
         }
 
         .btn {
@@ -297,10 +301,11 @@
             display: flex;
             gap: 1rem;
             margin-bottom: 2rem;
-            background: white;
+            background: var(--bg-primary);
             padding: 1rem;
             border-radius: 12px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
         }
 
         .tab {
@@ -308,15 +313,20 @@
             padding: 1rem;
             border: none;
             background: transparent;
-            color: var(--gray);
+            color: var(--text-secondary);
             cursor: pointer;
             border-radius: 8px;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
         }
 
         .tab.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: var(--primary);
             color: white;
         }
 
@@ -331,16 +341,18 @@
 
         /* Create Book Section */
         .create-book-card {
-            background: white;
-            border-radius: 16px;
+            background: var(--bg-primary);
+            border-radius: 12px;
             padding: 2rem;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-md);
             margin-bottom: 2rem;
+            border: 1px solid var(--border);
         }
 
         .create-book-card h2 {
             margin-bottom: 1.5rem;
-            color: var(--dark);
+            color: var(--text-primary);
+            font-weight: 700;
         }
 
         .form-row {
@@ -357,27 +369,30 @@
         }
 
         .book-card {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-md);
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
         }
 
         .book-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
         }
 
         .book-card h3 {
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
             font-size: 1.25rem;
+            font-weight: 700;
         }
 
         .book-card p {
-            color: var(--gray);
+            color: var(--text-secondary);
             font-size: 0.875rem;
             margin-bottom: 1rem;
         }
@@ -397,10 +412,10 @@
         }
 
         .book-type-badge {
-            background: var(--light-gray);
-            color: var(--gray);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
             padding: 0.25rem 0.75rem;
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 0.75rem;
             font-weight: 600;
         }
@@ -663,20 +678,23 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            backdrop-filter: blur(4px);
         }
 
         .spinner-content {
-            background: white;
+            background: var(--bg-primary);
             padding: 2rem;
             border-radius: 12px;
             text-align: center;
             max-width: 400px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
         }
 
         .spinner-large {
             width: 50px;
             height: 50px;
-            border: 4px solid var(--light-gray);
+            border: 4px solid var(--border);
             border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s ease-in-out infinite;
@@ -684,12 +702,12 @@
         }
 
         .spinner-content h3 {
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
 
         .spinner-content p {
-            color: var(--gray);
+            color: var(--text-secondary);
             font-size: 0.875rem;
         }
 
@@ -704,28 +722,28 @@
         }
 
         .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
         }
 
         .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
         }
 
         .alert-info {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #93c5fd;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
         }
 
         /* Empty State */
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
-            color: var(--gray);
+            color: var(--text-tertiary);
         }
 
         .empty-state-icon {
@@ -735,7 +753,7 @@
         }
 
         .empty-state h3 {
-            color: var(--dark);
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
 
@@ -751,6 +769,7 @@
             z-index: 9999;
             align-items: center;
             justify-content: center;
+            backdrop-filter: blur(4px);
         }
 
         .modal.active {
@@ -758,13 +777,15 @@
         }
 
         .modal-content {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 16px;
             padding: 2rem;
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
         }
 
         .modal-header {
