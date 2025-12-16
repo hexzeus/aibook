@@ -94,6 +94,42 @@ async def health_check():
     }
 
 
+@app.get("/debug/database")
+async def debug_database():
+    """Debug endpoint to check database state"""
+    import sqlite3
+
+    db_path = os.getenv("DATABASE_PATH", "./aibook.db")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Check table structure
+    cursor.execute("PRAGMA table_info(books)")
+    columns = [{"name": col[1], "type": col[2]} for col in cursor.fetchall()]
+
+    # Count total books
+    cursor.execute("SELECT COUNT(*) FROM books")
+    total_books = cursor.fetchone()[0]
+
+    # Count books by is_completed value
+    cursor.execute("SELECT is_completed, COUNT(*) FROM books GROUP BY is_completed")
+    by_status = dict(cursor.fetchall())
+
+    # Get sample book
+    cursor.execute("SELECT book_id, title, is_completed, created_at FROM books LIMIT 1")
+    sample = cursor.fetchone()
+
+    conn.close()
+
+    return {
+        "database_path": db_path,
+        "columns": columns,
+        "total_books": total_books,
+        "books_by_status": by_status,
+        "sample_book": sample if sample else None
+    }
+
+
 @app.get("/api/usage")
 async def get_usage(authorization: str = Header(...)):
     """Get usage statistics for a license key"""
