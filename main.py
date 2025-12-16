@@ -707,7 +707,12 @@ async def list_in_progress_books(
         raise HTTPException(status_code=401, detail=error)
 
     try:
+        print(f"DEBUG: Calling list_in_progress_books with license_key={license_key[:8]}...")
         books = book_store.list_in_progress_books(license_key, limit=limit, offset=offset)
+        print(f"DEBUG: Got {len(books)} books")
+
+        if not books:
+            print(f"DEBUG: No books found, returning empty list (this is valid, not an error)")
 
         return {
             "success": True,
