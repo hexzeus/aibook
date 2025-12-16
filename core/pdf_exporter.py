@@ -40,13 +40,14 @@ class PDFExporter:
         pdf = FPDF()
         pdf.set_auto_page_break(auto=False)
 
-        # Add title page
-        self._create_title_page(pdf, book_data)
-
-        # Add content pages
+        # Get pages
         pages = book_data.get('pages', [])
 
-        # Skip first page if it's a title page
+        # Add title page (with first page content if it's a title page)
+        first_page = pages[0] if pages and pages[0].get('is_title_page') else None
+        self._create_title_page(pdf, book_data, first_page)
+
+        # Add content pages (skip first page if it was included in title page)
         start_idx = 1 if pages and pages[0].get('is_title_page') else 0
 
         for page in pages[start_idx:]:
@@ -60,13 +61,13 @@ class PDFExporter:
 
         return buffer
 
-    def _create_title_page(self, pdf: FPDF, book_data: Dict):
-        """Create title page"""
+    def _create_title_page(self, pdf: FPDF, book_data: Dict, first_page_content: Dict = None):
+        """Create title page with optional intro content"""
 
         pdf.add_page()
 
         # Add spacing from top
-        pdf.ln(80)
+        pdf.ln(60)
 
         # Book title
         title = self._clean_text(book_data.get('title', 'Untitled Book'))
@@ -83,7 +84,22 @@ class PDFExporter:
             pdf.set_font('Arial', '', 18)
             pdf.set_text_color(74, 74, 74)
             pdf.multi_cell(0, 10, subtitle, align='C')
-            pdf.ln(20)
+
+        pdf.ln(30)
+
+        # Add first page content if it's a title page
+        if first_page_content:
+            content = self._clean_text(first_page_content.get('content', ''))
+            pdf.set_font('Arial', '', 12)
+            pdf.set_text_color(44, 62, 80)
+
+            # Split content into paragraphs
+            paragraphs = content.split('\n\n')
+            for para in paragraphs:
+                para = para.strip()
+                if para and not para.startswith('#'):  # Skip title headers
+                    pdf.multi_cell(0, 7, para, align='J')
+                    pdf.ln(5)
 
     def _create_content_page(self, pdf: FPDF, page_data: Dict):
         """Create content page"""
