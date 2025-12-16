@@ -191,8 +191,9 @@ async def create_book(
             is_title_page=first_page.get('is_title_page', False)
         )
 
-        # Increment usage
+        # Increment usage (book + first page)
         usage_tracker.increment_book(license_key)
+        usage_tracker.increment_page(license_key)  # Count the first page too!
 
         # Get complete book data
         book = book_store.get_book(license_key, book_id)

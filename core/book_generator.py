@@ -16,7 +16,7 @@ class BookGenerator:
         book_type: str = "general"
     ) -> Dict:
         """
-        Generate initial book structure and outline
+        Generate initial book structure and outline with award-winning architecture
 
         Args:
             description: User's description of the book
@@ -29,33 +29,53 @@ class BookGenerator:
 
         system_prompt = self._get_structure_system_prompt(book_type)
 
-        user_prompt = f"""Create a comprehensive book structure for the following:
+        user_prompt = f"""You are crafting the structural foundation for a professionally published book that will compete with bestsellers. This is not just content generation—this is ARCHITECTURAL MASTERY.
 
-Description: {description}
-Target Pages: {target_pages}
-Book Type: {book_type}
+BOOK CONCEPT: {description}
+TARGET LENGTH: {target_pages} pages
+FORMAT: {book_type}
 
-Generate a complete book outline with:
-1. A compelling title
-2. Chapter/page structure that fits exactly {target_pages} pages
-3. Brief summary of what each page should cover
-4. Key themes and narrative arc
+YOUR MISSION:
+Create a meticulously architected book structure that demonstrates:
 
-Return as JSON with this exact structure:
+✨ NARRATIVE EXCELLENCE
+- Compelling story arc or information flow that builds momentum
+- Strategic pacing that keeps readers engaged page-to-page
+- Emotional or intellectual hooks at key transition points
+- Natural climax and resolution structure
+
+✨ PROFESSIONAL PUBLISHING STANDARDS
+- Chapter/section divisions that feel intentional, not arbitrary
+- Page allocation that matches content weight and importance
+- Clear thematic through-lines that unify the work
+- Market-ready title and subtitle that would perform on Amazon/Etsy
+
+✨ READER PSYCHOLOGY
+- Opening hook that makes skipping the book impossible
+- Middle content that delivers consistent value and satisfaction
+- Ending that provides closure and leaves lasting impact
+- Strategic variety to prevent monotony
+
+DELIVER THIS EXACT JSON STRUCTURE:
 {{
-    "title": "Book Title Here",
-    "subtitle": "Optional Subtitle",
+    "title": "[Publisher-quality title that's memorable and marketable]",
+    "subtitle": "[Optional subtitle that clarifies value proposition]",
     "target_pages": {target_pages},
     "outline": [
         {{
             "page_number": 1,
-            "section": "Introduction/Chapter Name",
-            "content_brief": "What this page covers"
+            "section": "[Evocative chapter/section name]",
+            "content_brief": "[Specific content focus with purpose and reader benefit]"
         }}
+        // ... exactly {target_pages} page entries
     ],
-    "themes": ["theme1", "theme2"],
-    "tone": "description of tone and style"
-}}"""
+    "themes": ["[Deep thematic elements that elevate the work]"],
+    "tone": "[Precise description of voice, style, and emotional register]",
+    "target_audience": "[Specific reader demographic and psychographic]",
+    "unique_angle": "[What makes this book irreplaceable and different]"
+}}
+
+CRITICAL: Every page must serve a PURPOSE. Every transition must feel INEVITABLE. The structure should read like it was designed by a publishing house's editorial board, not generated randomly."""
 
         response = await self.claude.generate(
             system_prompt=system_prompt,
@@ -102,7 +122,7 @@ Return as JSON with this exact structure:
         description: str
     ) -> Dict:
         """
-        Generate the first page (title page and introduction)
+        Generate the first page with award-winning opening that hooks readers immediately
 
         Args:
             book_structure: The book structure from generate_book_structure
@@ -112,31 +132,69 @@ Return as JSON with this exact structure:
             Dict containing page number and content
         """
 
-        system_prompt = f"""You are a professional book writer creating engaging content.
+        system_prompt = f"""You are an AWARD-WINNING author whose first pages have launched bestsellers. You understand that the opening page is where books are bought or abandoned.
 
-Book Title: {book_structure['title']}
+BOOK IDENTITY:
+Title: {book_structure['title']}
 Themes: {', '.join(book_structure['themes'])}
 Tone: {book_structure['tone']}
+Unique Angle: {book_structure.get('unique_angle', 'Distinctive perspective')}
 
-Write compelling, well-structured content that draws readers in from the very first page.
-Use proper formatting, engaging language, and maintain consistency with the book's themes."""
+PROFESSIONAL STANDARDS:
+- Every sentence must earn its place
+- Hook readers within the first paragraph
+- Establish voice, world, and stakes immediately
+- Create a reading experience that feels PUBLISHED, not generated
+- Use vivid, specific language that creates imagery
+- Vary sentence structure for natural rhythm
+- Build momentum that makes the next page irresistible"""
 
         first_page_outline = book_structure['outline'][0]
 
-        user_prompt = f"""Write the first page of the book based on this outline:
+        user_prompt = f"""You're writing the OPENING PAGE of a professionally published book. This page will determine if readers continue or close the book forever.
 
+STRUCTURAL BLUEPRINT:
 Page {first_page_outline['page_number']}: {first_page_outline['section']}
-Content Focus: {first_page_outline['content_brief']}
+Mission: {first_page_outline['content_brief']}
 
-Original Book Concept: {description}
+Original Vision: {description}
 
-Create an engaging opening that includes:
-- The book title prominently displayed
-- An introduction that hooks the reader
-- Sets the tone and theme
-- Flows naturally into the story/content
+CRAFT A MASTERFUL OPENING:
 
-Write the complete content for this page. Make it compelling and professional."""
+📖 TITLE PRESENTATION
+- Display the book title with elegant formatting (use # for main title)
+- If there's a subtitle, include it (use ## for subtitle)
+- Create visual hierarchy that feels professional
+
+🎯 THE HOOK (First Paragraph)
+This paragraph must be IRRESISTIBLE. Use one of these proven techniques:
+- Intriguing question that demands an answer
+- Vivid scene that drops readers into action
+- Surprising statement that challenges assumptions
+- Emotional moment that creates instant connection
+- Mystery that begs to be solved
+
+✨ TONE & ATMOSPHERE
+- Establish the book's unique voice within 3 sentences
+- Use sensory details that make the content VIVID
+- Create rhythm through varied sentence lengths
+- Show, don't tell wherever possible
+
+🔗 FORWARD MOMENTUM
+- End with a transition that makes Page 2 inevitable
+- Plant questions or curiosity gaps
+- Create anticipation for what's coming
+
+WRITING QUALITY STANDARDS:
+❌ NO generic openings like "Welcome to..." or "In this book..."
+❌ NO telling readers what they'll learn (show through story/example)
+❌ NO robotic AI language patterns or corporate speak
+✅ YES to specific, concrete details instead of abstractions
+✅ YES to personality and distinctive voice
+✅ YES to professional formatting with proper markdown
+✅ YES to prose that would pass a publisher's editorial review
+
+Write the complete first page NOW. Make it unforgettable."""
 
         content = await self.claude.generate(
             system_prompt=system_prompt,
@@ -160,7 +218,7 @@ Write the complete content for this page. Make it compelling and professional.""
         user_input: Optional[str] = None
     ) -> Dict:
         """
-        Generate the next page in the book
+        Generate the next page with autopublisher polish and professional flow
 
         Args:
             book_structure: The book structure
@@ -180,28 +238,79 @@ Write the complete content for this page. Make it compelling and professional.""
         # Build context from previous pages
         context = self._build_page_context(previous_pages, max_pages=3)
 
-        system_prompt = f"""You are a professional book writer creating engaging content.
+        system_prompt = f"""You are an AWARD-WINNING author and PROFESSIONAL EDITOR combined. Every page you write goes through an internal "autopublisher" quality filter.
 
-Book Title: {book_structure['title']}
+BOOK DNA:
+Title: {book_structure['title']}
 Themes: {', '.join(book_structure['themes'])}
 Tone: {book_structure['tone']}
+Unique Angle: {book_structure.get('unique_angle', 'Distinctive perspective')}
 
-Maintain consistency with previous pages while advancing the narrative/information.
-Use proper transitions and keep the reader engaged."""
+AUTOPUBLISHER STANDARDS:
+✅ CONTINUITY: Seamlessly continue from previous pages (don't restart or repeat)
+✅ PROGRESSION: Advance the narrative/information meaningfully
+✅ TRANSITIONS: Start with elegant connection to previous page
+✅ VARIETY: Vary sentence structure, paragraph length, pacing
+✅ VOICE: Maintain consistent authorial voice throughout
+✅ ENGAGEMENT: Every paragraph must add value or advance the story
+✅ FORMATTING: Professional markdown (headings, emphasis, structure)
+✅ POLISH: Remove AI-isms, repetition, generic phrases
+✅ PACING: Know when to slow down for detail, speed up for momentum
 
-        user_prompt = f"""Write page {page_outline['page_number']} of the book.
+This page must feel like it was written by the SAME AUTHOR who wrote the previous pages, then EDITED BY A PROFESSIONAL for publication."""
 
+        user_prompt = f"""Write Page {page_outline['page_number']} as part of this professionally published book.
+
+📄 PAGE MISSION:
 Section: {page_outline['section']}
-Content Focus: {page_outline['content_brief']}
+Goal: {page_outline['content_brief']}
 
-Previous Pages Context:
+📚 STORY SO FAR:
 {context}
-"""
+
+🎯 AUTOPUBLISHER CHECKLIST FOR THIS PAGE:
+
+1. SEAMLESS OPENING
+- Start with a natural transition from the last page (subtle callback or flow)
+- NO jarring restarts or "Now let's talk about..."
+- Continue the momentum established
+
+2. CORE CONTENT DELIVERY
+- Fulfill the page's mission ({page_outline['content_brief']})
+- Use specific examples, vivid details, or concrete scenes
+- Advance character development OR information architecture
+- Maintain emotional/intellectual engagement
+
+3. STRUCTURAL VARIETY
+- Mix paragraph lengths (short for impact, longer for immersion)
+- Vary sentence structure (simple, compound, complex)
+- Use formatting strategically (## for subheadings, ** for emphasis)
+- Consider bullet points ONLY if listing specific items naturally
+
+4. VOICE & QUALITY
+- Sound like a REAL AUTHOR, not an AI
+- Eliminate phrases like "it's important to note" or "remember that"
+- Use active voice predominantly
+- Show through examples rather than explaining
+
+5. PAGE ENDING
+- Create a natural stopping point that invites turning to next page
+- Plant a question, create anticipation, or hint at what's coming
+- NO abrupt endings or meta-commentary"""
 
         if user_input:
-            user_prompt += f"\nUser Guidance for This Page: {user_input}\n"
+            user_prompt += f"""
 
-        user_prompt += "\nWrite the complete, engaging content for this page. Ensure it flows naturally from previous content."
+🎨 USER CREATIVE DIRECTION:
+{user_input}
+(Incorporate this guidance while maintaining professional quality)
+"""
+
+        user_prompt += f"""
+
+Now write Page {page_outline['page_number']} with AUTOPUBLISHER EXCELLENCE.
+
+Remember: This will be sold on marketplaces like Amazon and Etsy. It must compete with traditionally published books. Make every word count."""
 
         content = await self.claude.generate(
             system_prompt=system_prompt,
@@ -279,15 +388,65 @@ Previous Pages Context:
             }
 
     def _get_structure_system_prompt(self, book_type: str) -> str:
-        """Get system prompt based on book type"""
+        """Get award-winning system prompt based on book type"""
 
-        base = "You are an expert book planner and outline creator."
+        base = """You are a MASTER BOOK ARCHITECT who has structured dozens of bestselling books. Your outlines have launched careers and won awards. You understand story/information architecture at the deepest level."""
 
         type_specific = {
-            "kids": " Specialize in children's books with age-appropriate content, engaging narratives, and educational value.",
-            "adult": " Specialize in adult fiction and non-fiction with sophisticated themes and complex narratives.",
-            "educational": " Specialize in educational content that teaches effectively while remaining engaging.",
-            "general": " Create well-structured, engaging books for a general audience."
+            "kids": """
+
+CHILDREN'S BOOK SPECIALIZATION:
+- Age-appropriate language that respects young intelligence
+- Rhythm and repetition that aids memory and engagement
+- Visual story beats that translate well to illustration
+- Emotional resonance that teaches without preaching
+- Page turns that create anticipation ("What happens next?")
+- Educational value woven into entertainment seamlessly
+- Character voices that children want to read aloud
+- Endings that satisfy while encouraging rereading
+
+Reference Level: Eric Carle, Dr. Seuss, Mo Willems excellence""",
+
+            "adult": """
+
+ADULT BOOK SPECIALIZATION:
+- Sophisticated thematic layering with depth
+- Complex character psychology and development arcs
+- Nuanced exploration of ideas without oversimplification
+- Pacing that respects reader intelligence
+- Prose that balances accessibility with literary quality
+- Emotional authenticity that resonates with adult experiences
+- Cultural/historical/philosophical depth when relevant
+- Endings that provide catharsis while inviting reflection
+
+Reference Level: Published literary fiction or high-quality non-fiction""",
+
+            "educational": """
+
+EDUCATIONAL BOOK SPECIALIZATION:
+- Clear learning objectives disguised as engaging content
+- Scaffolded information that builds systematically
+- Multiple explanation approaches for different learning styles
+- Real-world applications and concrete examples
+- Retention strategies built into narrative structure
+- Balance between challenge and accessibility
+- Actionable takeaways at natural intervals
+- Ending that creates competence and confidence
+
+Reference Level: Malcolm Gladwell, James Clear, Carol Dweck quality""",
+
+            "general": """
+
+GENERAL AUDIENCE SPECIALIZATION:
+- Broad accessibility without dumbing down
+- Universal themes that cross demographics
+- Engaging narrative or information flow for varied readers
+- Professional craft that holds up to critical reading
+- Market awareness (what sells on Amazon/Etsy/bookstores)
+- Voice that feels authentic and human
+- Structure that serves both casual and serious readers
+
+Reference Level: Mainstream published books that succeed commercially and critically"""
         }
 
         return base + type_specific.get(book_type, type_specific["general"])
