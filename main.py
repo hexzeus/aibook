@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import datetime
 import os
 import json
 import uuid
@@ -43,12 +44,16 @@ usage_tracker = UsageTracker()
 book_store = BookStore()
 
 # Print startup message to confirm deployment version
-print("=" * 80)
-print("🚀 AI BOOK GENERATOR API STARTING")
-print(f"📦 Deployment Version: debug-logging-v2")
-print(f"🐛 Debug Logging: ENABLED")
-print(f"💾 Database Path: {os.getenv('DATABASE_PATH', './aibook.db')}")
-print("=" * 80)
+print("=" * 80, flush=True)
+print("🚀 AI BOOK GENERATOR API STARTING - NEW VERSION WITH DEBUG", flush=True)
+print(f"📦 Deployment Version: debug-logging-v3-WITH-FLUSH", flush=True)
+print(f"🐛 Debug Logging: ENABLED AND FLUSHED", flush=True)
+print(f"💾 Database Path: {os.getenv('DATABASE_PATH', './aibook.db')}", flush=True)
+print(f"⏰ Startup Time: {datetime.utcnow().isoformat()}", flush=True)
+print("=" * 80, flush=True)
+print("", flush=True)
+print("IF YOU SEE THIS MESSAGE, THE NEW CODE IS RUNNING!", flush=True)
+print("", flush=True)
 
 
 # Request models
@@ -99,8 +104,9 @@ async def health_check():
         "gumroad_configured": bool(os.getenv("GUMROAD_PRODUCT_ID")),
         "database": "connected",
         "version": "1.0.0",
-        "deployment_version": "debug-logging-v2",  # Updated to track deployment
-        "debug_enabled": True  # Confirms debug logging is in this version
+        "deployment_version": "debug-logging-v3-WITH-FLUSH",  # Updated to track deployment
+        "debug_enabled": True,  # Confirms debug logging is in this version
+        "current_time": datetime.utcnow().isoformat()
     }
 
 
