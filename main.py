@@ -42,6 +42,14 @@ gumroad = GumroadValidator()
 usage_tracker = UsageTracker()
 book_store = BookStore()
 
+# Print startup message to confirm deployment version
+print("=" * 80)
+print("🚀 AI BOOK GENERATOR API STARTING")
+print(f"📦 Deployment Version: debug-logging-v2")
+print(f"🐛 Debug Logging: ENABLED")
+print(f"💾 Database Path: {os.getenv('DATABASE_PATH', './aibook.db')}")
+print("=" * 80)
+
 
 # Request models
 class CreateBookRequest(BaseModel):
@@ -90,7 +98,9 @@ async def health_check():
         "anthropic_configured": bool(ANTHROPIC_KEY),
         "gumroad_configured": bool(os.getenv("GUMROAD_PRODUCT_ID")),
         "database": "connected",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "deployment_version": "debug-logging-v2",  # Updated to track deployment
+        "debug_enabled": True  # Confirms debug logging is in this version
     }
 
 
