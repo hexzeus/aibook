@@ -103,7 +103,7 @@ class PDFExporter:
         pdf.rect(0, 289, 210, 8, 'F')
 
     def _create_content_page(self, pdf: FPDF, page_data: Dict):
-        """Create beautifully formatted content page"""
+        """Create beautifully formatted content page - each page fits perfectly"""
 
         pdf.add_page()
 
@@ -136,15 +136,32 @@ class PDFExporter:
         # Split content into paragraphs
         paragraphs = content.split('\n\n')
 
+        # Maximum Y position before footer (leave room for page number)
+        max_y = 270
+
         for para in paragraphs:
             para = para.strip()
             if not para:
                 continue
 
-            # Check if we're near bottom of page
-            if pdf.get_y() > 260:
+            # Calculate approximate height needed for this paragraph
+            pdf.set_font('Arial', '', 11)
+            line_height = 6.5
+            # Estimate lines needed
+            chars_per_line = 80
+            estimated_lines = max(1, len(para) // chars_per_line)
+            estimated_height = estimated_lines * line_height + 10  # +10 for spacing
+
+            # Check if paragraph will fit on current page
+            if pdf.get_y() + estimated_height > max_y:
+                # Start new page for this paragraph
+                self._add_page_number(pdf)
                 pdf.add_page()
-                pdf.ln(10)
+                # Add header line on new page
+                pdf.set_draw_color(*self.primary_color)
+                pdf.set_line_width(0.5)
+                pdf.line(self.margin_left, 15, 210 - self.margin_right, 15)
+                pdf.set_y(25)
 
             # Handle different content types
             if para.startswith('# '):
@@ -192,8 +209,14 @@ class PDFExporter:
                 pdf.multi_cell(0, 6.5, para, align='J')
                 pdf.ln(4)
 
-        # Page number at bottom
+        # Add page number at bottom
+        self._add_page_number(pdf)
+
+    def _add_page_number(self, pdf: FPDF):
+        """Add page number at bottom of page"""
+        current_y = pdf.get_y()  # Save current position
         pdf.set_y(285)
         pdf.set_font('Arial', 'I', 9)
         pdf.set_text_color(*self.secondary_color)
         pdf.cell(0, 10, f'Page {pdf.page_no() - 1}', align='C')  # -1 to not count cover
+        pdf.set_y(current_y)  # Restore position
