@@ -442,10 +442,25 @@ async def delete_book(
         raise HTTPException(status_code=401, detail=error)
 
     try:
+        # Get book details before deletion to count pages
+        book = book_store.get_book(license_key, book_id)
+
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+
+        # Count pages in the book
+        page_count = len(book.get('pages', []))
+
+        # Delete book from database
         deleted = book_store.delete_book(license_key, book_id)
 
         if not deleted:
             raise HTTPException(status_code=404, detail="Book not found")
+
+        # Decrement usage counters
+        usage_tracker.decrement_book(license_key)
+        if page_count > 0:
+            usage_tracker.decrement_pages(license_key, page_count)
 
         return {
             "success": True,

@@ -67,6 +67,42 @@ class UsageTracker:
         conn.commit()
         conn.close()
 
+    def decrement_book(self, license_key: str):
+        """Decrement book generation count"""
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        now = datetime.utcnow().isoformat()
+
+        cursor.execute("""
+            UPDATE usage
+            SET book_count = MAX(0, book_count - 1),
+                last_used = ?
+            WHERE license_key = ?
+        """, (now, license_key))
+
+        conn.commit()
+        conn.close()
+
+    def decrement_pages(self, license_key: str, count: int):
+        """Decrement page generation count by specified amount"""
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        now = datetime.utcnow().isoformat()
+
+        cursor.execute("""
+            UPDATE usage
+            SET page_count = MAX(0, page_count - ?),
+                last_used = ?
+            WHERE license_key = ?
+        """, (count, now, license_key))
+
+        conn.commit()
+        conn.close()
+
     def get_usage_stats(self, license_key: str) -> Dict:
         """Get usage statistics for a license key"""
 
