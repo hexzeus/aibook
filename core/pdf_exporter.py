@@ -1,6 +1,7 @@
 from fpdf import FPDF
 from io import BytesIO
 from typing import Dict
+import unicodedata
 
 
 class PDFExporter:
@@ -10,6 +11,20 @@ class PDFExporter:
         self.page_width = 210  # A4 width in mm
         self.page_height = 297  # A4 height in mm
         self.margin = 20  # 20mm margin
+
+    def _clean_text(self, text: str) -> str:
+        """Clean text for PDF compatibility - replace problematic characters"""
+        # Replace em-dash with regular dash
+        text = text.replace('—', '-')
+        text = text.replace('–', '-')
+        # Replace curly quotes with straight quotes
+        text = text.replace('"', '"').replace('"', '"')
+        text = text.replace(''', "'").replace(''', "'")
+        # Remove other problematic Unicode characters
+        text = unicodedata.normalize('NFKD', text)
+        # Keep only ASCII-compatible characters
+        text = text.encode('ascii', 'ignore').decode('ascii')
+        return text
 
     def export_book(self, book_data: Dict) -> BytesIO:
         """
@@ -54,7 +69,7 @@ class PDFExporter:
         pdf.ln(80)
 
         # Book title
-        title = book_data.get('title', 'Untitled Book')
+        title = self._clean_text(book_data.get('title', 'Untitled Book'))
         pdf.set_font('Arial', 'B', 32)
         pdf.set_text_color(26, 26, 26)
         pdf.multi_cell(0, 15, title, align='C')
@@ -64,6 +79,7 @@ class PDFExporter:
         # Subtitle if exists
         subtitle = book_data.get('structure', {}).get('subtitle', '')
         if subtitle:
+            subtitle = self._clean_text(subtitle)
             pdf.set_font('Arial', '', 18)
             pdf.set_text_color(74, 74, 74)
             pdf.multi_cell(0, 10, subtitle, align='C')
@@ -77,13 +93,14 @@ class PDFExporter:
         # Section header
         section = page_data.get('section', '')
         if section:
+            section = self._clean_text(section)
             pdf.set_font('Arial', 'B', 16)
             pdf.set_text_color(44, 62, 80)
             pdf.multi_cell(0, 10, section, align='L')
             pdf.ln(5)
 
         # Page content
-        content = page_data.get('content', '')
+        content = self._clean_text(page_data.get('content', ''))
 
         # Reset font for body text
         pdf.set_font('Arial', '', 12)

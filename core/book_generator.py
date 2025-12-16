@@ -298,18 +298,21 @@ Previous Pages Context:
         if not previous_pages:
             return "This is the first page of the book."
 
-        # Get last N pages for context
+        # Get last N pages for context (prioritize more recent pages)
         recent_pages = previous_pages[-max_pages:]
 
         context_parts = []
         for page in recent_pages:
-            # Truncate content if too long
-            content = page['content']
-            if len(content) > 500:
-                content = content[:500] + "..."
+            # Get full content for better context
+            content = page.get('content', '')
+
+            # Truncate only if extremely long (over 1000 chars)
+            if len(content) > 1000:
+                content = content[:1000] + "..."
 
             context_parts.append(
-                f"Page {page['page_number']} ({page['section']}): {content}"
+                f"Page {page.get('page_number', 'N/A')} - {page.get('section', 'Untitled')}:\n{content}"
             )
 
-        return "\n\n".join(context_parts)
+        context_str = "\n\n---\n\n".join(context_parts)
+        return f"Here is what has been written so far:\n\n{context_str}"
