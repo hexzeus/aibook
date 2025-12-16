@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Book Generator - Create Professional Ebooks with AI</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light-gray: #f1f5f9;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            box-shadow: var(--shadow);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .usage-badge {
+            background: var(--light-gray);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .btn-logout {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Auth Screen */
+        .auth-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .auth-card h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-card p {
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--light-gray);
+            color: var(--dark);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            width: auto;
+        }
+
+        /* Main App */
+        .main-app {
+            display: none;
+        }
+
+        .main-app.active {
+            display: block;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: transparent;
+            color: var(--gray);
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Create Book Section */
+        .create-book-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .create-book-card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Book List */
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .book-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .book-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .book-card h3 {
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .book-card p {
+            color: var(--gray);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .book-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .book-progress {
+            font-size: 0.875rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .book-type-badge {
+            background: var(--light-gray);
+            color: var(--gray);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Book Editor */
+        .editor-container {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .editor-title h2 {
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .editor-title p {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .pages-container {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .pages-sidebar {
+            width: 250px;
+            flex-shrink: 0;
+        }
+
+        .page-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .page-item {
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .page-item:hover {
+            border-color: var(--primary);
+        }
+
+        .page-item.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .page-item-number {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-item-section {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .page-editor {
+            flex: 1;
+        }
+
+        .page-editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .page-editor-header h3 {
+            color: var(--dark);
+        }
+
+        .page-content-area {
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 400px;
+            background: white;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .page-content-area[contenteditable="true"] {
+            outline: none;
+        }
+
+        .page-content-area[contenteditable="true"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .generate-next-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--light-gray);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .generate-next-section h4 {
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+
+        .generate-options {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .generate-options input {
+            flex: 1;
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .spinner-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner-large {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--light-gray);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .spinner-content h3 {
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .spinner-content p {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            color: var(--dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .books-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pages-container {
+                flex-direction: column;
+            }
+
+            .pages-sidebar {
+                width: 100%;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .editor-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .editor-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-card">
+            <h1>📚 AI Book Generator</h1>
+            <p>Create professional ebooks with AI in minutes</p>
+
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div class="form-group">
+                    <label for="licenseKey">Enter Your License Key</label>
+                    <input
+                        type="text"
+                        id="licenseKey"
+                        placeholder="Your Gumroad license key"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn" id="authBtn">
+                    <span id="authBtnText">Access Book Generator</span>
+                    <span id="authBtnLoading" class="loading hidden"></span>
+                </button>
+
+                <p class="mt-2" style="font-size: 0.875rem;">
+                    Don't have a license?
+                    <a href="YOUR_GUMROAD_URL" target="_blank" style="color: var(--primary);">
+                        Purchase here
+                    </a>
+                </p>
+            </form>
+
+            <div id="authError" class="alert alert-error hidden mt-2">
+                <span>❌</span>
+                <span id="authErrorText"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="main-app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">📚 AI Book Generator</div>
+                <div class="user-info">
+                    <div class="usage-badge" id="usageDisplay">
+                        📊 Loading...
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('create')">
+                    ✨ Create New Book
+                </button>
+                <button class="tab" onclick="switchTab('mybooks')">
+                    📚 My Books
+                </button>
+            </div>
+
+            <!-- Create Book Tab -->
+            <div id="createTab" class="tab-content active">
+                <div class="create-book-card">
+                    <h2>Create Your Book</h2>
+                    <form id="createBookForm" onsubmit="handleCreateBook(event)">
+                        <div class="form-group">
+                            <label for="bookDescription">
+                                What is your book about? *
+                            </label>
+                            <textarea
+                                id="bookDescription"
+                                placeholder="Example: A children's book about a brave little robot who learns to overcome his fear of the dark by making friends with fireflies."
+                                required
+                                minlength="10"
+                                maxlength="1000"
+                            ></textarea>
+                            <small style="color: var(--gray);">
+                                Be specific about the theme, characters, and message you want to convey.
+                            </small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="targetPages">Number of Pages *</label>
+                                <input
+                                    type="number"
+                                    id="targetPages"
+                                    min="5"
+                                    max="100"
+                                    value="20"
+                                    required
+                                >
+                                <small style="color: var(--gray);">
+                                    Between 5-100 pages
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bookType">Book Type *</label>
+                                <select id="bookType" required>
+                                    <option value="general">General</option>
+                                    <option value="kids">Kids Book</option>
+                                    <option value="adult">Adult Book</option>
+                                    <option value="educational">Educational</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn" id="createBookBtn">
+                            <span id="createBookBtnText">🚀 Generate Book Structure</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="createBookSuccess" class="alert alert-success hidden">
+                    <span>✅</span>
+                    <span>Book created successfully! Switching to editor...</span>
+                </div>
+
+                <div id="createBookError" class="alert alert-error hidden">
+                    <span>❌</span>
+                    <span id="createBookErrorText"></span>
+                </div>
+            </div>
+
+            <!-- My Books Tab -->
+            <div id="mybooksTab" class="tab-content">
+                <div id="booksList" class="books-grid">
+                    <!-- Books will be loaded here -->
+                </div>
+
+                <div id="booksEmpty" class="empty-state hidden">
+                    <div class="empty-state-icon">📚</div>
+                    <h3>No books yet</h3>
+                    <p>Create your first book to get started!</p>
+                    <button class="btn btn-small mt-2" onclick="switchTab('create')">
+                        Create New Book
+                    </button>
+                </div>
+            </div>
+
+            <!-- Book Editor Tab (hidden by default) -->
+            <div id="editorTab" class="tab-content">
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <div class="editor-title">
+                            <h2 id="editorBookTitle">Book Title</h2>
+                            <p id="editorBookMeta">0 of 0 pages</p>
+                        </div>
+                        <div class="editor-actions">
+                            <button class="btn btn-small btn-secondary" onclick="closeEditor()">
+                                ← Back to Books
+                            </button>
+                            <button class="btn btn-small" onclick="exportBook()" id="exportBtn">
+                                📄 Export PDF
+                            </button>
+                            <button class="btn btn-small" onclick="deleteCurrentBook()" style="background: var(--danger);">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pages-container">
+                        <div class="pages-sidebar">
+                            <h4 style="margin-bottom: 1rem; color: var(--dark);">Pages</h4>
+                            <div id="pagesList" class="page-list">
+                                <!-- Pages will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div class="page-editor">
+                            <div class="page-editor-header">
+                                <h3 id="currentPageTitle">Page 1</h3>
+                                <button
+                                    class="btn btn-small"
+                                    onclick="saveCurrentPage()"
+                                    id="savePageBtn"
+                                >
+                                    💾 Save Changes
+                                </button>
+                            </div>
+
+                            <div
+                                id="pageContentArea"
+                                class="page-content-area"
+                                contenteditable="true"
+                                onblur="markPageAsEdited()"
+                            >
+                                Select a page to start editing...
+                            </div>
+
+                            <div id="generateNextSection" class="generate-next-section hidden">
+                                <h4>Generate Next Page</h4>
+                                <p style="color: var(--gray); margin-bottom: 1rem; font-size: 0.875rem;">
+                                    Let AI create the next page, or provide guidance for specific content.
+                                </p>
+
+                                <div class="generate-options">
+                                    <input
+                                        type="text"
+                                        id="pageGuidance"
+                                        placeholder="Optional: Guide the AI (e.g., 'Make this page focus on the robot meeting his first friend')"
+                                    >
+                                </div>
+
+                                <button
+                                    class="btn"
+                                    onclick="generateNextPage()"
+                                    id="generateNextBtn"
+                                >
+                                    ✨ Generate Next Page
+                                </button>
+                            </div>
+
+                            <div id="bookCompleteSection" class="generate-next-section hidden" style="background: #d1fae5;">
+                                <h4 style="color: #065f46;">🎉 Book Complete!</h4>
+                                <p style="color: #047857; margin-bottom: 1rem;">
+                                    All pages have been generated. You can still edit any page or export your book.
+                                </p>
+                                <button class="btn" onclick="exportBook()">
+                                    📄 Export as PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="spinnerOverlay" class="spinner-overlay hidden">
+        <div class="spinner-content">
+            <div class="spinner-large"></div>
+            <h3 id="spinnerTitle">Processing...</h3>
+            <p id="spinnerMessage">Please wait...</p>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Delete Book?</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">×</button>
+            </div>
+            <p style="color: var(--gray); margin-bottom: 1.5rem;">
+                Are you sure you want to delete this book? This action cannot be undone.
+            </p>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">
+                    Cancel
+                </button>
+                <button class="btn" style="background: var(--danger);" onclick="confirmDelete()">
+                    Delete Book
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8000'; // Change this to your deployed backend URL
+
+        // State
+        let currentLicenseKey = '';
+        let currentBook = null;
+        let currentPageNumber = 1;
+        let hasUnsavedChanges = false;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved license key
+            const savedLicense = localStorage.getItem('aibook_license');
+            if (savedLicense) {
+                currentLicenseKey = savedLicense;
+                validateLicenseAndInit();
+            }
+        });
+
+        // Auth Functions
+        async function handleAuth(event) {
+            event.preventDefault();
+
+            const licenseKey = document.getElementById('licenseKey').value.trim();
+            const authBtn = document.getElementById('authBtn');
+            const authBtnText = document.getElementById('authBtnText');
+            const authBtnLoading = document.getElementById('authBtnLoading');
+            const authError = document.getElementById('authError');
+
+            // Show loading
+            authBtn.disabled = true;
+            authBtnText.classList.add('hidden');
+            authBtnLoading.classList.remove('hidden');
+            authError.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/usage`, {
+                    headers: {
+                        'Authorization': `Bearer ${licenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Save license key
+                    currentLicenseKey = licenseKey;
+                    localStorage.setItem('aibook_license', licenseKey);
+
+                    // Show main app
+                    showMainApp();
+                    loadUsageStats();
+                    loadBooks();
+                } else {
+                    throw new Error(data.error || 'Invalid license key');
+                }
+            } catch (error) {
+                document.getElementById('authErrorText').textContent = error.message;
+                authError.classList.remove('hidden');
+            } finally {
+                authBtn.disabled = false;
+                authBtnText.classList.remove('hidden');
+                authBtnLoading.classList.add('hidden');
+            }
+        }
+
+        async function validateLicenseAndInit() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/usage`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMainApp();
+                    loadUsageStats();
+                    loadBooks();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.add('active');
+        }
+
+        function logout() {
+            localStorage.removeItem('aibook_license');
+            currentLicenseKey = '';
+            currentBook = null;
+            document.getElementById('authScreen').style.display = 'flex';
+            document.getElementById('mainApp').classList.remove('active');
+            document.getElementById('licenseKey').value = '';
+        }
+
+        // Usage Stats
+        async function loadUsageStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/usage`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.usage;
+                    document.getElementById('usageDisplay').textContent =
+                        `📊 ${stats.book_count} books • ${stats.page_count} pages generated`;
+                }
+            } catch (error) {
+                console.error('Failed to load usage stats:', error);
+            }
+        }
+
+        // Tab Navigation
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            if (tabName === 'create') {
+                document.getElementById('createTab').classList.add('active');
+            } else if (tabName === 'mybooks') {
+                document.getElementById('mybooksTab').classList.add('active');
+                loadBooks();
+            }
+        }
+
+        // Create Book
+        async function handleCreateBook(event) {
+            event.preventDefault();
+
+            const description = document.getElementById('bookDescription').value.trim();
+            const targetPages = parseInt(document.getElementById('targetPages').value);
+            const bookType = document.getElementById('bookType').value;
+
+            const createBookBtn = document.getElementById('createBookBtn');
+            const createBookError = document.getElementById('createBookError');
+            const createBookSuccess = document.getElementById('createBookSuccess');
+
+            // Show loading
+            showSpinner('Creating Your Book...', 'Generating structure and first page with AI');
+            createBookBtn.disabled = true;
+            createBookError.classList.add('hidden');
+            createBookSuccess.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    },
+                    body: JSON.stringify({
+                        description,
+                        target_pages: targetPages,
+                        book_type: bookType
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    createBookSuccess.classList.remove('hidden');
+
+                    // Load the book in editor
+                    setTimeout(() => {
+                        openBookEditor(data.book);
+                        // Reset form
+                        document.getElementById('createBookForm').reset();
+                        createBookSuccess.classList.add('hidden');
+                    }, 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to create book');
+                }
+            } catch (error) {
+                document.getElementById('createBookErrorText').textContent = error.message;
+                createBookError.classList.remove('hidden');
+            } finally {
+                hideSpinner();
+                createBookBtn.disabled = false;
+            }
+        }
+
+        // Load Books
+        async function loadBooks() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const booksList = document.getElementById('booksList');
+                    const booksEmpty = document.getElementById('booksEmpty');
+
+                    if (data.books.length === 0) {
+                        booksList.innerHTML = '';
+                        booksEmpty.classList.remove('hidden');
+                    } else {
+                        booksEmpty.classList.add('hidden');
+                        booksList.innerHTML = data.books.map(book => `
+                            <div class="book-card" onclick="loadBookAndEdit('${book.book_id}')">
+                                <h3>${book.title}</h3>
+                                <p>${book.description.substring(0, 100)}${book.description.length > 100 ? '...' : ''}</p>
+                                <div class="book-meta">
+                                    <span class="book-progress">
+                                        ${book.page_count} / ${book.target_pages} pages
+                                    </span>
+                                    <span class="book-type-badge">
+                                        ${book.book_type}
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load books:', error);
+            }
+        }
+
+        // Load and edit book
+        async function loadBookAndEdit(bookId) {
+            showSpinner('Loading Book...', 'Loading all pages');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/${bookId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    openBookEditor(data.book);
+                } else {
+                    throw new Error(data.error || 'Failed to load book');
+                }
+            } catch (error) {
+                alert('Failed to load book: ' + error.message);
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Open Book Editor
+        function openBookEditor(book) {
+            currentBook = book;
+            currentPageNumber = 1;
+            hasUnsavedChanges = false;
+
+            // Hide other tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Show editor tab
+            document.getElementById('editorTab').classList.add('active');
+
+            // Update header
+            document.getElementById('editorBookTitle').textContent = book.title;
+            document.getElementById('editorBookMeta').textContent =
+                `${book.pages.length} of ${book.target_pages} pages`;
+
+            // Load pages list
+            const pagesList = document.getElementById('pagesList');
+            pagesList.innerHTML = book.pages.map(page => `
+                <div class="page-item ${page.page_number === 1 ? 'active' : ''}"
+                     onclick="selectPage(${page.page_number})">
+                    <div class="page-item-number">Page ${page.page_number}</div>
+                    <div class="page-item-section">${page.section}</div>
+                </div>
+            `).join('');
+
+            // Load first page
+            selectPage(1);
+        }
+
+        // Select Page
+        function selectPage(pageNumber) {
+            if (hasUnsavedChanges) {
+                if (!confirm('You have unsaved changes. Discard them?')) {
+                    return;
+                }
+                hasUnsavedChanges = false;
+            }
+
+            currentPageNumber = pageNumber;
+
+            // Update active state in sidebar
+            document.querySelectorAll('.page-item').forEach((item, index) => {
+                item.classList.toggle('active', index + 1 === pageNumber);
+            });
+
+            // Find page data
+            const page = currentBook.pages.find(p => p.page_number === pageNumber);
+
+            if (page) {
+                document.getElementById('currentPageTitle').textContent =
+                    `Page ${page.page_number}: ${page.section}`;
+                document.getElementById('pageContentArea').textContent = page.content;
+
+                // Hide generate next section
+                document.getElementById('generateNextSection').classList.add('hidden');
+                document.getElementById('bookCompleteSection').classList.add('hidden');
+            }
+
+            // Show generate next section if this is the last page and book not complete
+            if (pageNumber === currentBook.pages.length &&
+                currentBook.pages.length < currentBook.target_pages) {
+                document.getElementById('generateNextSection').classList.remove('hidden');
+            }
+
+            // Show complete section if book is complete
+            if (currentBook.pages.length >= currentBook.target_pages &&
+                pageNumber === currentBook.pages.length) {
+                document.getElementById('bookCompleteSection').classList.remove('hidden');
+            }
+        }
+
+        // Mark page as edited
+        function markPageAsEdited() {
+            hasUnsavedChanges = true;
+        }
+
+        // Save Current Page
+        async function saveCurrentPage() {
+            const content = document.getElementById('pageContentArea').textContent;
+            const savePageBtn = document.getElementById('savePageBtn');
+
+            savePageBtn.disabled = true;
+            savePageBtn.textContent = '💾 Saving...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/update-page`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    },
+                    body: JSON.stringify({
+                        book_id: currentBook.book_id,
+                        page_number: currentPageNumber,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    hasUnsavedChanges = false;
+
+                    // Update local book data
+                    const page = currentBook.pages.find(p => p.page_number === currentPageNumber);
+                    if (page) {
+                        page.content = content;
+                    }
+
+                    savePageBtn.textContent = '✅ Saved!';
+                    setTimeout(() => {
+                        savePageBtn.textContent = '💾 Save Changes';
+                    }, 2000);
+                } else {
+                    throw new Error(data.error || 'Failed to save page');
+                }
+            } catch (error) {
+                alert('Failed to save page: ' + error.message);
+                savePageBtn.textContent = '❌ Failed';
+                setTimeout(() => {
+                    savePageBtn.textContent = '💾 Save Changes';
+                }, 2000);
+            } finally {
+                savePageBtn.disabled = false;
+            }
+        }
+
+        // Generate Next Page
+        async function generateNextPage() {
+            const guidance = document.getElementById('pageGuidance').value.trim();
+            const generateNextBtn = document.getElementById('generateNextBtn');
+
+            const nextPageNumber = currentBook.pages.length + 1;
+
+            showSpinner('Generating Next Page...', `Creating page ${nextPageNumber} with AI`);
+            generateNextBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/generate-page`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    },
+                    body: JSON.stringify({
+                        book_id: currentBook.book_id,
+                        page_number: nextPageNumber,
+                        user_input: guidance || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Add new page to book
+                    currentBook.pages.push(data.page);
+
+                    // Update meta
+                    document.getElementById('editorBookMeta').textContent =
+                        `${currentBook.pages.length} of ${currentBook.target_pages} pages`;
+
+                    // Add page to sidebar
+                    const pagesList = document.getElementById('pagesList');
+                    const newPageItem = document.createElement('div');
+                    newPageItem.className = 'page-item';
+                    newPageItem.onclick = () => selectPage(data.page.page_number);
+                    newPageItem.innerHTML = `
+                        <div class="page-item-number">Page ${data.page.page_number}</div>
+                        <div class="page-item-section">${data.page.section}</div>
+                    `;
+                    pagesList.appendChild(newPageItem);
+
+                    // Clear guidance input
+                    document.getElementById('pageGuidance').value = '';
+
+                    // Select the new page
+                    selectPage(data.page.page_number);
+
+                    // Update usage stats
+                    loadUsageStats();
+                } else {
+                    throw new Error(data.error || 'Failed to generate page');
+                }
+            } catch (error) {
+                alert('Failed to generate page: ' + error.message);
+            } finally {
+                hideSpinner();
+                generateNextBtn.disabled = false;
+            }
+        }
+
+        // Export Book
+        async function exportBook() {
+            const exportBtn = document.getElementById('exportBtn');
+
+            showSpinner('Exporting to PDF...', 'Creating your professional ebook');
+            exportBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/export`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    },
+                    body: JSON.stringify({
+                        book_id: currentBook.book_id
+                    })
+                });
+
+                if (response.ok) {
+                    // Download the PDF
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${currentBook.title.replace(/\s+/g, '_')}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to export book');
+                }
+            } catch (error) {
+                alert('Failed to export book: ' + error.message);
+            } finally {
+                hideSpinner();
+                exportBtn.disabled = false;
+            }
+        }
+
+        // Delete Book
+        function deleteCurrentBook() {
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        async function confirmDelete() {
+            closeDeleteModal();
+            showSpinner('Deleting Book...', 'Removing book and all pages');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/${currentBook.book_id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close editor and go back to books
+                    closeEditor();
+                    loadBooks();
+                } else {
+                    throw new Error(data.error || 'Failed to delete book');
+                }
+            } catch (error) {
+                alert('Failed to delete book: ' + error.message);
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Close Editor
+        function closeEditor() {
+            if (hasUnsavedChanges) {
+                if (!confirm('You have unsaved changes. Discard them?')) {
+                    return;
+                }
+            }
+
+            currentBook = null;
+            hasUnsavedChanges = false;
+
+            // Show my books tab
+            document.getElementById('editorTab').classList.remove('active');
+            document.getElementById('mybooksTab').classList.add('active');
+
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach((tab, index) => {
+                tab.classList.toggle('active', index === 1);
+            });
+
+            loadBooks();
+        }
+
+        // Spinner Functions
+        function showSpinner(title, message) {
+            document.getElementById('spinnerTitle').textContent = title;
+            document.getElementById('spinnerMessage').textContent = message;
+            document.getElementById('spinnerOverlay').classList.remove('hidden');
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinnerOverlay').classList.add('hidden');
+        }
+
+        // Prevent accidental page close with unsaved changes
+        window.addEventListener('beforeunload', (event) => {
+            if (hasUnsavedChanges) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
