@@ -1204,7 +1204,7 @@
                                 ← Back to Books
                             </button>
                             <button class="btn btn-small" onclick="exportBook()" id="exportBtn">
-                                📄 Export PDF
+                                📚 Export EPUB
                             </button>
                             <button class="btn btn-small hidden" onclick="completeBook()" id="completeBtn" style="background: var(--success);">
                                 ✨ Complete Book
@@ -1273,7 +1273,7 @@
                                     All pages have been generated. You can still edit any page or export your book.
                                 </p>
                                 <button class="btn" onclick="exportBook()">
-                                    📄 Export as PDF
+                                    📚 Export as EPUB
                                 </button>
                             </div>
                         </div>
@@ -1889,7 +1889,7 @@
         async function exportBook() {
             const exportBtn = document.getElementById('exportBtn');
 
-            showSpinner('Exporting to PDF...', 'Creating your professional ebook');
+            showSpinner('Exporting to EPUB...', 'Creating your professional ebook (industry standard format for Amazon, Etsy, etc.)');
             exportBtn.disabled = true;
 
             try {
@@ -1905,12 +1905,12 @@
                 });
 
                 if (response.ok) {
-                    // Download the PDF
+                    // Download the EPUB
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${currentBook.title.replace(/\s+/g, '_')}.pdf`;
+                    a.download = `${currentBook.title.replace(/\s+/g, '_')}.epub`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);

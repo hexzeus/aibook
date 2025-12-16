@@ -12,7 +12,7 @@ from core.gumroad import GumroadValidator
 from core.usage_tracker import UsageTracker
 from core.book_generator import BookGenerator
 from core.book_store import BookStore
-from core.pdf_exporter import PDFExporter
+from core.epub_exporter import EPUBExporter
 
 # Load environment variables
 load_dotenv()
@@ -41,7 +41,6 @@ app.add_middleware(
 gumroad = GumroadValidator()
 usage_tracker = UsageTracker()
 book_store = BookStore()
-pdf_exporter = PDFExporter()
 
 
 # Request models
@@ -486,9 +485,17 @@ async def export_book(
     authorization: str = Header(...)
 ):
     """
-    Export book to PDF format
+    Export book to EPUB format (industry standard for ebooks)
 
-    Returns a downloadable PDF file
+    EPUB is the professional format for:
+    - Amazon Kindle (KDP)
+    - Apple Books
+    - Google Play Books
+    - Kobo, Nook, and all major ereaders
+    - Etsy digital products
+    - Gumroad ebooks
+
+    Returns a downloadable EPUB file
     """
 
     license_key = authorization.replace("Bearer ", "").strip()
@@ -509,15 +516,16 @@ async def export_book(
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
 
-        # Generate PDF
-        pdf_buffer = pdf_exporter.export_book(book)
+        # Generate EPUB
+        epub_exporter = EPUBExporter()
+        epub_buffer = epub_exporter.export_book(book)
 
         # Create filename
-        filename = f"{book['title'].replace(' ', '_')}.pdf"
+        filename = f"{book['title'].replace(' ', '_')}.epub"
 
         return StreamingResponse(
-            pdf_buffer,
-            media_type="application/pdf",
+            epub_buffer,
+            media_type="application/epub+zip",
             headers={
                 "Content-Disposition": f"attachment; filename={filename}"
             }
