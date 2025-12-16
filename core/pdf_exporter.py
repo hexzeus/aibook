@@ -1,18 +1,15 @@
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+from fpdf import FPDF
 from io import BytesIO
 from typing import Dict
 
 
 class PDFExporter:
-    """Export books to PDF format"""
+    """Export books to PDF format using fpdf2"""
 
     def __init__(self):
-        self.page_size = letter
-        self.margin = 0.75 * inch
+        self.page_width = 210  # A4 width in mm
+        self.page_height = 297  # A4 height in mm
+        self.margin = 20  # 20mm margin
 
     def export_book(self, book_data: Dict) -> BytesIO:
         """
@@ -25,163 +22,72 @@ class PDFExporter:
             BytesIO buffer containing PDF
         """
 
-        buffer = BytesIO()
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=False)
 
-        # Create PDF document
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=self.page_size,
-            leftMargin=self.margin,
-            rightMargin=self.margin,
-            topMargin=self.margin,
-            bottomMargin=self.margin
-        )
-
-        # Build story (content flow)
-        story = []
-        styles = self._get_styles()
-
-        # Add title page if first page is title page
-        pages = book_data.get('pages', [])
-        if pages and pages[0].get('is_title_page'):
-            story.extend(self._create_title_page(book_data, pages[0], styles))
-            pages = pages[1:]  # Skip title page in main content
-        else:
-            # Create title page from structure if no explicit title page
-            story.extend(self._create_title_page_from_structure(book_data, styles))
+        # Add title page
+        self._create_title_page(pdf, book_data)
 
         # Add content pages
-        for page in pages:
-            story.extend(self._create_content_page(page, styles))
+        pages = book_data.get('pages', [])
 
-        # Build PDF
-        doc.build(story)
+        # Skip first page if it's a title page
+        start_idx = 1 if pages and pages[0].get('is_title_page') else 0
 
+        for page in pages[start_idx:]:
+            self._create_content_page(pdf, page)
+
+        # Output to BytesIO buffer
+        buffer = BytesIO()
+        pdf_output = pdf.output(dest='S').encode('latin-1')
+        buffer.write(pdf_output)
         buffer.seek(0)
+
         return buffer
 
-    def _get_styles(self):
-        """Create custom paragraph styles"""
+    def _create_title_page(self, pdf: FPDF, book_data: Dict):
+        """Create title page"""
 
-        styles = getSampleStyleSheet()
-
-        # Title style
-        styles.add(ParagraphStyle(
-            name='BookTitle',
-            parent=styles['Title'],
-            fontSize=32,
-            textColor='#1a1a1a',
-            spaceAfter=12,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        ))
-
-        # Subtitle style
-        styles.add(ParagraphStyle(
-            name='BookSubtitle',
-            parent=styles['Normal'],
-            fontSize=18,
-            textColor='#4a4a4a',
-            spaceAfter=30,
-            alignment=TA_CENTER,
-            fontName='Helvetica'
-        ))
-
-        # Section header style
-        styles.add(ParagraphStyle(
-            name='SectionHeader',
-            parent=styles['Heading2'],
-            fontSize=16,
-            textColor='#2c3e50',
-            spaceAfter=12,
-            spaceBefore=12,
-            fontName='Helvetica-Bold'
-        ))
-
-        # Body text style
-        styles.add(ParagraphStyle(
-            name='BookBody',
-            parent=styles['Normal'],
-            fontSize=12,
-            leading=18,
-            textColor='#2c3e50',
-            alignment=TA_JUSTIFY,
-            spaceAfter=12,
-            fontName='Helvetica'
-        ))
-
-        return styles
-
-    def _create_title_page(self, book_data: Dict, title_page: Dict, styles) -> list:
-        """Create title page elements"""
-
-        elements = []
+        pdf.add_page()
 
         # Add spacing from top
-        elements.append(Spacer(1, 2 * inch))
+        pdf.ln(80)
 
         # Book title
         title = book_data.get('title', 'Untitled Book')
-        elements.append(Paragraph(title, styles['BookTitle']))
-        elements.append(Spacer(1, 0.3 * inch))
+        pdf.set_font('Arial', 'B', 32)
+        pdf.set_text_color(26, 26, 26)
+        pdf.multi_cell(0, 15, title, align='C')
+
+        pdf.ln(10)
 
         # Subtitle if exists
         subtitle = book_data.get('structure', {}).get('subtitle', '')
         if subtitle:
-            elements.append(Paragraph(subtitle, styles['BookSubtitle']))
+            pdf.set_font('Arial', '', 18)
+            pdf.set_text_color(74, 74, 74)
+            pdf.multi_cell(0, 10, subtitle, align='C')
+            pdf.ln(20)
 
-        elements.append(Spacer(1, 1 * inch))
+    def _create_content_page(self, pdf: FPDF, page_data: Dict):
+        """Create content page"""
 
-        # Title page content (introduction)
-        content = title_page.get('content', '')
-        if content:
-            # Split into paragraphs
-            paragraphs = content.split('\n\n')
-            for para in paragraphs:
-                if para.strip():
-                    elements.append(Paragraph(para.strip(), styles['BookBody']))
-                    elements.append(Spacer(1, 0.2 * inch))
-
-        # Page break after title page
-        elements.append(PageBreak())
-
-        return elements
-
-    def _create_title_page_from_structure(self, book_data: Dict, styles) -> list:
-        """Create title page from book structure"""
-
-        elements = []
-
-        # Add spacing from top
-        elements.append(Spacer(1, 2.5 * inch))
-
-        # Book title
-        title = book_data.get('title', 'Untitled Book')
-        elements.append(Paragraph(title, styles['BookTitle']))
-        elements.append(Spacer(1, 0.3 * inch))
-
-        # Subtitle if exists
-        subtitle = book_data.get('structure', {}).get('subtitle', '')
-        if subtitle:
-            elements.append(Paragraph(subtitle, styles['BookSubtitle']))
-
-        # Page break
-        elements.append(PageBreak())
-
-        return elements
-
-    def _create_content_page(self, page_data: Dict, styles) -> list:
-        """Create content page elements"""
-
-        elements = []
+        pdf.add_page()
 
         # Section header
         section = page_data.get('section', '')
         if section:
-            elements.append(Paragraph(section, styles['SectionHeader']))
+            pdf.set_font('Arial', 'B', 16)
+            pdf.set_text_color(44, 62, 80)
+            pdf.multi_cell(0, 10, section, align='L')
+            pdf.ln(5)
 
         # Page content
         content = page_data.get('content', '')
+
+        # Reset font for body text
+        pdf.set_font('Arial', '', 12)
+        pdf.set_text_color(44, 62, 80)
 
         # Split content into paragraphs
         paragraphs = content.split('\n\n')
@@ -189,16 +95,14 @@ class PDFExporter:
         for para in paragraphs:
             para = para.strip()
             if para:
-                # Handle different paragraph types
+                # Handle headers
                 if para.startswith('#'):
-                    # Header
                     para = para.lstrip('#').strip()
-                    elements.append(Paragraph(para, styles['SectionHeader']))
+                    pdf.set_font('Arial', 'B', 14)
+                    pdf.multi_cell(0, 8, para, align='L')
+                    pdf.ln(3)
+                    pdf.set_font('Arial', '', 12)
                 else:
-                    # Regular paragraph
-                    elements.append(Paragraph(para, styles['BookBody']))
-
-        # Add page break after each page
-        elements.append(PageBreak())
-
-        return elements
+                    # Regular paragraph with justified alignment
+                    pdf.multi_cell(0, 7, para, align='J')
+                    pdf.ln(5)
