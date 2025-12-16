@@ -1383,9 +1383,13 @@
             initializeTheme();
             // Check for saved license key
             const savedLicense = localStorage.getItem('aibook_license');
+            console.log('🔍 Checking localStorage for license key...');
             if (savedLicense) {
+                console.log('✅ Found saved license key:', savedLicense.substring(0, 8) + '...');
                 currentLicenseKey = savedLicense;
                 validateLicenseAndInit();
+            } else {
+                console.log('❌ No saved license key found');
             }
         });
 
@@ -1415,9 +1419,11 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Save license key
+                    // CRITICAL: Save the NEW license key
+                    console.log('✅ Login successful with license key:', licenseKey.substring(0, 8) + '...');
                     currentLicenseKey = licenseKey;
                     localStorage.setItem('aibook_license', licenseKey);
+                    console.log('💾 License key saved to localStorage');
 
                     // Show main app
                     showMainApp();
@@ -1464,12 +1470,21 @@
         }
 
         function logout() {
+            // CRITICAL: Clear license key from localStorage
             localStorage.removeItem('aibook_license');
+
+            // ALSO clear the currentLicenseKey variable
             currentLicenseKey = '';
             currentBook = null;
+
+            // Clear the input field
+            document.getElementById('licenseKey').value = '';
+
+            // Show auth screen
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('mainApp').classList.remove('active');
-            document.getElementById('licenseKey').value = '';
+
+            console.log('✅ Logged out successfully - localStorage cleared');
         }
 
         // Usage Stats
@@ -1576,6 +1591,7 @@
         // Load In-Progress Books
         async function loadInProgressBooks() {
             try {
+                console.log('📖 Loading in-progress books with license key:', currentLicenseKey.substring(0, 8) + '...');
                 const response = await fetch(`${API_BASE_URL}/api/books/in-progress`, {
                     headers: {
                         'Authorization': `Bearer ${currentLicenseKey}`
@@ -1583,15 +1599,18 @@
                 });
 
                 const data = await response.json();
+                console.log('📊 In-progress books response:', data);
 
                 if (data.success) {
                     const booksList = document.getElementById('booksList');
                     const booksEmpty = document.getElementById('booksEmpty');
 
                     if (data.books.length === 0) {
+                        console.log('❌ No in-progress books found for this license key');
                         booksList.innerHTML = '';
                         booksEmpty.classList.remove('hidden');
                     } else {
+                        console.log('✅ Found', data.books.length, 'in-progress books');
                         booksEmpty.classList.add('hidden');
                         booksList.innerHTML = data.books.map(book => `
                             <div class="book-card" onclick="loadBookAndEdit('${book.book_id}')">
