@@ -420,6 +420,148 @@
             font-weight: 600;
         }
 
+        /* Library Grid */
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .library-book-card {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--border);
+        }
+
+        .library-book-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2);
+        }
+
+        .library-book-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .library-book-cover svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .library-book-info {
+            padding: 1.25rem;
+        }
+
+        .library-book-info h3 {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .library-book-meta {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Immersive Reader Modal */
+        .reader-modal {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .reader-modal.active {
+            display: flex;
+        }
+
+        .reader-header {
+            background: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reader-title h2 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .reader-title p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .reader-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .reader-body {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            background: var(--book-page);
+        }
+
+        .reader-content {
+            max-width: 800px;
+            width: 100%;
+            background: var(--bg-primary);
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.8;
+            color: var(--book-text);
+        }
+
+        .reader-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .reader-content h2 {
+            font-size: 1.75rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+        }
+
+        .reader-content p {
+            margin-bottom: 1.25rem;
+            text-align: justify;
+        }
+
+        .reader-navigation {
+            background: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         /* Book Editor - ENTERPRISE BOOK READING EXPERIENCE */
         .editor-container {
             background: var(--book-page);
@@ -945,7 +1087,10 @@
                     ✨ Create New Book
                 </button>
                 <button class="tab" onclick="switchTab('mybooks')">
-                    📚 My Books
+                    📝 In Progress
+                </button>
+                <button class="tab" onclick="switchTab('library')">
+                    📚 Library
                 </button>
             </div>
 
@@ -1014,18 +1159,34 @@
                 </div>
             </div>
 
-            <!-- My Books Tab -->
+            <!-- My Books Tab (In Progress) -->
             <div id="mybooksTab" class="tab-content">
                 <div id="booksList" class="books-grid">
-                    <!-- Books will be loaded here -->
+                    <!-- In-progress books will be loaded here -->
                 </div>
 
                 <div id="booksEmpty" class="empty-state hidden">
-                    <div class="empty-state-icon">📚</div>
-                    <h3>No books yet</h3>
+                    <div class="empty-state-icon">📝</div>
+                    <h3>No books in progress</h3>
                     <p>Create your first book to get started!</p>
                     <button class="btn btn-small mt-2" onclick="switchTab('create')">
                         Create New Book
+                    </button>
+                </div>
+            </div>
+
+            <!-- Library Tab (Completed Books) -->
+            <div id="libraryTab" class="tab-content">
+                <div id="libraryGrid" class="library-grid">
+                    <!-- Completed books will be loaded here -->
+                </div>
+
+                <div id="libraryEmpty" class="empty-state hidden">
+                    <div class="empty-state-icon">📚</div>
+                    <h3>No completed books yet</h3>
+                    <p>Complete a book to add it to your library!</p>
+                    <button class="btn btn-small mt-2" onclick="switchTab('mybooks')">
+                        View In Progress
                     </button>
                 </div>
             </div>
@@ -1044,6 +1205,9 @@
                             </button>
                             <button class="btn btn-small" onclick="exportBook()" id="exportBtn">
                                 📄 Export PDF
+                            </button>
+                            <button class="btn btn-small hidden" onclick="completeBook()" id="completeBtn" style="background: var(--success);">
+                                ✨ Complete Book
                             </button>
                             <button class="btn btn-small" onclick="deleteCurrentBook()" style="background: var(--danger);">
                                 🗑️ Delete
@@ -1149,6 +1313,35 @@
         </div>
     </div>
 
+    <!-- Immersive Reader Modal -->
+    <div id="readerModal" class="reader-modal">
+        <div class="reader-header">
+            <div class="reader-title">
+                <h2 id="readerBookTitle">Book Title</h2>
+                <p id="readerBookMeta">0 pages</p>
+            </div>
+            <div class="reader-controls">
+                <button class="btn btn-small" onclick="closeReader()">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+        <div class="reader-body">
+            <div class="reader-content" id="readerContent">
+                <!-- Book content will be rendered here -->
+            </div>
+        </div>
+        <div class="reader-navigation">
+            <button class="btn btn-small btn-secondary" onclick="readerPrevPage()" id="readerPrevBtn">
+                ← Previous
+            </button>
+            <span id="readerPageIndicator" style="color: var(--text-secondary);">Page 1 of 10</span>
+            <button class="btn btn-small btn-secondary" onclick="readerNextPage()" id="readerNextBtn">
+                Next →
+            </button>
+        </div>
+    </div>
+
     <script>
         // Configuration
         const API_BASE_URL = 'https://aibook-815a.onrender.com'; // Deployed backend URL
@@ -1158,6 +1351,8 @@
         let currentBook = null;
         let currentPageNumber = 1;
         let hasUnsavedChanges = false;
+        let readerBook = null;
+        let readerCurrentPage = 0;
 
         // Theme Management
         function initializeTheme() {
@@ -1315,7 +1510,10 @@
                 document.getElementById('createTab').classList.add('active');
             } else if (tabName === 'mybooks') {
                 document.getElementById('mybooksTab').classList.add('active');
-                loadBooks();
+                loadInProgressBooks();
+            } else if (tabName === 'library') {
+                document.getElementById('libraryTab').classList.add('active');
+                loadCompletedBooks();
             }
         }
 
@@ -1375,10 +1573,10 @@
             }
         }
 
-        // Load Books
-        async function loadBooks() {
+        // Load In-Progress Books
+        async function loadInProgressBooks() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/books`, {
+                const response = await fetch(`${API_BASE_URL}/api/books/in-progress`, {
                     headers: {
                         'Authorization': `Bearer ${currentLicenseKey}`
                     }
@@ -1412,8 +1610,51 @@
                     }
                 }
             } catch (error) {
-                console.error('Failed to load books:', error);
+                console.error('Failed to load in-progress books:', error);
             }
+        }
+
+        // Load Completed Books (Library)
+        async function loadCompletedBooks() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/completed`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const libraryGrid = document.getElementById('libraryGrid');
+                    const libraryEmpty = document.getElementById('libraryEmpty');
+
+                    if (data.books.length === 0) {
+                        libraryGrid.innerHTML = '';
+                        libraryEmpty.classList.remove('hidden');
+                    } else {
+                        libraryEmpty.classList.add('hidden');
+                        libraryGrid.innerHTML = data.books.map(book => `
+                            <div class="library-book-card" onclick="openImmersiveReader('${book.book_id}')">
+                                <div class="library-book-cover">
+                                    ${book.cover_svg}
+                                </div>
+                                <div class="library-book-info">
+                                    <h3>${book.title}</h3>
+                                    <p class="library-book-meta">${book.page_count} pages • ${book.book_type}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load completed books:', error);
+            }
+        }
+
+        // Legacy function for compatibility
+        async function loadBooks() {
+            return loadInProgressBooks();
         }
 
         // Load and edit book
@@ -1459,6 +1700,14 @@
             document.getElementById('editorBookTitle').textContent = book.title;
             document.getElementById('editorBookMeta').textContent =
                 `${book.pages.length} of ${book.target_pages} pages`;
+
+            // Show Complete button if book is complete
+            const completeBtn = document.getElementById('completeBtn');
+            if (book.pages.length >= book.target_pages) {
+                completeBtn.classList.remove('hidden');
+            } else {
+                completeBtn.classList.add('hidden');
+            }
 
             // Load pages list
             const pagesList = document.getElementById('pagesList');
@@ -1748,6 +1997,164 @@
         function hideSpinner() {
             document.getElementById('spinnerOverlay').classList.add('hidden');
         }
+
+        // Complete Book Function
+        async function completeBook() {
+            if (!currentBook) return;
+
+            if (!confirm('Complete this book and generate an AI cover? Once completed, you can read it in your Library!')) {
+                return;
+            }
+
+            showSpinner('Completing Book...', 'Generating AI-powered book cover');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    },
+                    body: JSON.stringify({
+                        book_id: currentBook.book_id
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('🎉 Book completed! Your AI-generated cover is ready. Check your Library!');
+                    closeEditor();
+                    switchTab('library');
+                } else {
+                    throw new Error(data.error || 'Failed to complete book');
+                }
+            } catch (error) {
+                alert('Failed to complete book: ' + error.message);
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Open Immersive Reader
+        async function openImmersiveReader(bookId) {
+            showSpinner('Opening Book...', 'Loading your book');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books/${bookId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentLicenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    readerBook = data.book;
+                    readerCurrentPage = 0;
+                    openReader();
+                } else {
+                    throw new Error(data.error || 'Failed to load book');
+                }
+            } catch (error) {
+                alert('Failed to open book: ' + error.message);
+            } finally {
+                hideSpinner();
+            }
+        }
+
+        // Open Reader Modal
+        function openReader() {
+            if (!readerBook) return;
+
+            document.getElementById('readerBookTitle').textContent = readerBook.title;
+            document.getElementById('readerBookMeta').textContent = `${readerBook.pages.length} pages`;
+
+            renderReaderPage();
+
+            document.getElementById('readerModal').classList.add('active');
+        }
+
+        // Close Reader
+        function closeReader() {
+            document.getElementById('readerModal').classList.remove('active');
+            readerBook = null;
+            readerCurrentPage = 0;
+        }
+
+        // Render Reader Page
+        function renderReaderPage() {
+            if (!readerBook || !readerBook.pages[readerCurrentPage]) return;
+
+            const page = readerBook.pages[readerCurrentPage];
+            const content = page.content;
+
+            // Convert markdown to HTML for immersive reading
+            let html = content;
+
+            // Convert headers
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+
+            // Convert bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+            // Convert bullet points
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/^(\* .+)$/gm, '<li>$1</li>');
+
+            // Wrap lists
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+            // Convert paragraphs
+            html = html.split('\n\n').map(para => {
+                if (para.startsWith('<h1>') || para.startsWith('<h2>') || para.startsWith('<ul>')) {
+                    return para;
+                }
+                return `<p>${para}</p>`;
+            }).join('\n');
+
+            document.getElementById('readerContent').innerHTML = html;
+
+            // Update navigation
+            document.getElementById('readerPageIndicator').textContent =
+                `Page ${readerCurrentPage + 1} of ${readerBook.pages.length}`;
+
+            document.getElementById('readerPrevBtn').disabled = readerCurrentPage === 0;
+            document.getElementById('readerNextBtn').disabled =
+                readerCurrentPage === readerBook.pages.length - 1;
+        }
+
+        // Reader Navigation
+        function readerPrevPage() {
+            if (readerCurrentPage > 0) {
+                readerCurrentPage--;
+                renderReaderPage();
+                document.getElementById('readerContent').scrollTop = 0;
+            }
+        }
+
+        function readerNextPage() {
+            if (readerCurrentPage < readerBook.pages.length - 1) {
+                readerCurrentPage++;
+                renderReaderPage();
+                document.getElementById('readerContent').scrollTop = 0;
+            }
+        }
+
+        // Keyboard navigation for reader
+        document.addEventListener('keydown', (e) => {
+            const readerModal = document.getElementById('readerModal');
+            if (readerModal.classList.contains('active')) {
+                if (e.key === 'ArrowLeft') {
+                    readerPrevPage();
+                } else if (e.key === 'ArrowRight') {
+                    readerNextPage();
+                } else if (e.key === 'Escape') {
+                    closeReader();
+                }
+            }
+        });
 
         // Prevent accidental page close with unsaved changes
         window.addEventListener('beforeunload', (event) => {
