@@ -199,7 +199,10 @@ class EPUBExporter:
         - Gumroad ebooks
         """
 
-        book = epub.EpubBook()
+        try:
+            book = epub.EpubBook()
+        except Exception as e:
+            raise Exception(f"Failed to create EPUB book object: {str(e)}")
 
         # Set metadata
         book_id = book_data.get('book_id', str(uuid.uuid4()))
@@ -252,7 +255,8 @@ class EPUBExporter:
 
         for idx, page in enumerate(pages):
             page_num = page.get('page_number', idx + 1)
-            section = self._clean_text(page.get('section', f'Chapter {page_num}'))
+            section_raw = page.get('section', f'Chapter {page_num}')
+            section = self._clean_text(section_raw) if section_raw else f'Chapter {page_num}'
             content = page.get('content', '')
 
             # Convert markdown to HTML
@@ -278,22 +282,35 @@ class EPUBExporter:
             chapters.append(chapter)
 
         # Define Table of Contents
-        book.toc = (
-            epub.Link('title.xhtml', 'Title Page', 'title'),
-            tuple(epub.Link(f'chapter_{idx+1}.xhtml', page.get('section', f'Chapter {idx+1}'), f'chapter_{idx+1}')
-                  for idx, page in enumerate(pages))
-        )
+        toc_items = [epub.Link('title.xhtml', 'Title Page', 'title')]
+        for idx, page in enumerate(pages):
+            toc_items.append(
+                epub.Link(
+                    f'chapter_{idx+1}.xhtml',
+                    page.get('section', f'Chapter {idx+1}'),
+                    f'chapter_{idx+1}'
+                )
+            )
+        book.toc = tuple(toc_items)
 
         # Add navigation files
-        book.add_item(epub.EpubNcx())
-        book.add_item(epub.EpubNav())
+        try:
+            book.add_item(epub.EpubNcx())
+            book.add_item(epub.EpubNav())
+        except Exception as e:
+            raise Exception(f"Failed to add navigation to EPUB: {str(e)}")
 
         # Define spine (reading order)
-        book.spine = ['nav', title_page] + chapters
+        try:
+            book.spine = ['nav', title_page] + chapters
+        except Exception as e:
+            raise Exception(f"Failed to define EPUB spine: {str(e)}")
 
         # Write to BytesIO
-        buffer = BytesIO()
-        epub.write_epub(buffer, book)
-        buffer.seek(0)
-
-        return buffer
+        try:
+            buffer = BytesIO()
+            epub.write_epub(buffer, book)
+            buffer.seek(0)
+            return buffer
+        except Exception as e:
+            raise Exception(f"Failed to write EPUB file: {str(e)}")
