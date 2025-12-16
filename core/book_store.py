@@ -377,6 +377,10 @@ class BookStore:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
+        print(f"[BookStore] Querying in-progress books")
+        print(f"[BookStore] License key: {license_key[:8]}...")
+        print(f"[BookStore] Query: WHERE license_key = ? AND is_completed = 0")
+
         cursor.execute("""
             SELECT b.*, COUNT(p.page_id) as page_count
             FROM books b
@@ -388,6 +392,20 @@ class BookStore:
         """, (license_key, limit, offset))
 
         rows = cursor.fetchall()
+        print(f"[BookStore] Query returned {len(rows)} rows")
+
+        # Debug: Show what we found
+        if rows:
+            for row in rows:
+                print(f"[BookStore] Found book: {row['title']} (is_completed={row['is_completed']})")
+        else:
+            # Query all books for this license to see what's there
+            cursor.execute("SELECT book_id, title, is_completed FROM books WHERE license_key = ?", (license_key,))
+            all_books = cursor.fetchall()
+            print(f"[BookStore] DEBUG: Total books for this license: {len(all_books)}")
+            for book in all_books:
+                print(f"[BookStore] DEBUG: Book '{book['title']}' has is_completed={book['is_completed']}")
+
         conn.close()
 
         return [
