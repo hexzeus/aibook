@@ -7,7 +7,7 @@ class ClaudeClient:
     """Wrapper for Anthropic Claude API with optimized timeouts"""
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.api_key = (api_key or os.getenv("ANTHROPIC_API_KEY", "")).strip()
         if not self.api_key:
             raise ValueError("Claude API key not provided")
 
