@@ -48,6 +48,23 @@ def migrate_database():
                 raise
 
     conn.commit()
+
+    # Update existing books to set is_completed = 0 where it's NULL
+    print("Updating existing books with NULL is_completed values...")
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE books
+        SET is_completed = 0
+        WHERE is_completed IS NULL
+    """)
+    rows_updated = cursor.rowcount
+    conn.commit()
+
+    if rows_updated > 0:
+        print(f"✅ Updated {rows_updated} existing books to set is_completed = 0")
+    else:
+        print("✅ No books needed updating")
+
     conn.close()
 
     print("✅ Migration completed successfully!")

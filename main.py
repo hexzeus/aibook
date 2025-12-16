@@ -641,6 +641,10 @@ async def list_completed_books(
         }
 
     except Exception as e:
+        # Log the actual error for debugging
+        print(f"ERROR in list_completed_books: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Failed to list completed books: {str(e)}"
@@ -676,6 +680,10 @@ async def list_in_progress_books(
         }
 
     except Exception as e:
+        # Log the actual error for debugging
+        print(f"ERROR in list_in_progress_books: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Failed to list in-progress books: {str(e)}"
