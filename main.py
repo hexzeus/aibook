@@ -95,7 +95,7 @@ async def health_check():
 
 
 @app.get("/debug/database")
-async def debug_database():
+async def debug_database(authorization: str = Header(None)):
     """Debug endpoint to check database state"""
     import sqlite3
 
@@ -115,9 +115,19 @@ async def debug_database():
     cursor.execute("SELECT is_completed, COUNT(*) FROM books GROUP BY is_completed")
     by_status = dict(cursor.fetchall())
 
-    # Get sample book
-    cursor.execute("SELECT book_id, title, is_completed, created_at FROM books LIMIT 1")
+    # Get sample book with license key
+    cursor.execute("SELECT book_id, title, is_completed, license_key, created_at FROM books LIMIT 1")
     sample = cursor.fetchone()
+
+    # If authorization header provided, check books for that license
+    books_for_license = None
+    if authorization:
+        license_key = authorization.replace("Bearer ", "").strip()
+        cursor.execute("SELECT COUNT(*) FROM books WHERE license_key = ?", (license_key,))
+        books_for_license = {
+            "license_key_prefix": license_key[:8] + "...",
+            "count": cursor.fetchone()[0]
+        }
 
     conn.close()
 
@@ -126,7 +136,14 @@ async def debug_database():
         "columns": columns,
         "total_books": total_books,
         "books_by_status": by_status,
-        "sample_book": sample if sample else None
+        "sample_book": {
+            "book_id": sample[0] if sample else None,
+            "title": sample[1] if sample else None,
+            "is_completed": sample[2] if sample else None,
+            "license_key_prefix": sample[3][:8] + "..." if sample and sample[3] else None,
+            "created_at": sample[4] if sample else None
+        } if sample else None,
+        "books_for_current_license": books_for_license
     }
 
 
