@@ -32,26 +32,24 @@ def migrate_database():
         migrations_needed.append(("completed_at", "TEXT"))
 
     if not migrations_needed:
-        print("✅ Database is already up to date!")
-        conn.close()
-        return
+        print("✅ Database schema is already up to date!")
+    else:
+        # Add missing columns
+        for column_name, column_def in migrations_needed:
+            try:
+                cursor.execute(f"ALTER TABLE books ADD COLUMN {column_name} {column_def}")
+                print(f"✅ Added column: {column_name}")
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" in str(e):
+                    print(f"⚠️  Column {column_name} already exists, skipping")
+                else:
+                    raise
 
-    # Add missing columns
-    for column_name, column_def in migrations_needed:
-        try:
-            cursor.execute(f"ALTER TABLE books ADD COLUMN {column_name} {column_def}")
-            print(f"✅ Added column: {column_name}")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" in str(e):
-                print(f"⚠️  Column {column_name} already exists, skipping")
-            else:
-                raise
+        conn.commit()
 
-    conn.commit()
-
-    # Update existing books to set is_completed = 0 where it's NULL
-    print("Updating existing books with NULL is_completed values...")
-    cursor = conn.cursor()
+    # ALWAYS update existing books to set is_completed = 0 where it's NULL
+    # This is critical for books created before the migration
+    print("\nChecking for books with NULL is_completed values...")
     cursor.execute("""
         UPDATE books
         SET is_completed = 0
@@ -63,7 +61,7 @@ def migrate_database():
     if rows_updated > 0:
         print(f"✅ Updated {rows_updated} existing books to set is_completed = 0")
     else:
-        print("✅ No books needed updating")
+        print("✅ All books already have is_completed values set")
 
     conn.close()
 
