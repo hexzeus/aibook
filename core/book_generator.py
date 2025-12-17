@@ -488,19 +488,23 @@ Themes: {', '.join(book_themes)}
 Tone: {book_tone}
 Type: {book_type}
 
-DESIGN REQUIREMENTS:
+CRITICAL DESIGN REQUIREMENTS:
 
-📐 DIMENSIONS:
-- Width: 800px
-- Height: 1200px (standard book cover ratio)
-- Professional margins and spacing
+📐 DIMENSIONS (MUST FOLLOW EXACTLY):
+- SVG must have: width="800" height="1200" viewBox="0 0 800 1200"
+- PORTRAIT orientation ONLY (taller than wide)
+- ALL content must fit within the 800x1200 viewBox
+- Use margins: minimum 60px from all edges
+- Safe area for text: x=60 to x=740, y=100 to y=1100
 
 🎨 VISUAL ELEMENTS:
 - Eye-catching title typography (large, bold, readable)
+- Title positioned in upper-middle area (y=200-500)
 - Elegant background (gradient, pattern, or solid with texture)
-- Optional subtitle area
+- Optional subtitle below title
 - Thematic visual elements that reflect the book's content
 - Professional color palette (3-5 colors maximum)
+- All elements must stay within viewBox bounds
 
 ✨ STYLE GUIDELINES:
 {"- Kid-friendly with bright colors, playful fonts, and whimsical illustrations" if book_type == "kids" else ""}
@@ -509,15 +513,22 @@ DESIGN REQUIREMENTS:
 {"- Versatile general market design that appeals broadly" if book_type == "general" else ""}
 
 🎯 TYPOGRAPHY:
-- Title should be the dominant element
+- Title should be the dominant element, sized 48-72px
+- Center-align text horizontally (x=400, text-anchor="middle")
 - Use web-safe fonts (Arial, Helvetica, Times, Georgia, or similar)
-- Excellent contrast for readability
-- Proper text alignment and spacing
+- Excellent contrast for readability (light text on dark bg or vice versa)
+- Break long titles into multiple lines within the safe area
+
+⚠️ CRITICAL RULES:
+1. SVG MUST start with: <svg width="800" height="1200" viewBox="0 0 800 1200" xmlns="http://www.w3.org/2000/svg">
+2. ALL coordinates must be within 0-800 (x) and 0-1200 (y)
+3. NO content should extend beyond these bounds
+4. Design for PORTRAIT/VERTICAL orientation (like a real book cover)
 
 DELIVER:
 Output ONLY the complete SVG code. No markdown fences, no explanations. Just the raw SVG starting with <svg> and ending with </svg>.
 
-The cover should look like it was designed by a professional for a published book."""
+The cover should look like it was designed by a professional for a published book in PORTRAIT orientation."""
 
         response = await self.claude.generate(
             system_prompt=system_prompt,
@@ -562,9 +573,9 @@ The cover should look like it was designed by a professional for a published boo
             # Get full content for better context
             content = page.get('content', '')
 
-            # Truncate only if extremely long (over 1000 chars)
-            if len(content) > 1000:
-                content = content[:1000] + "..."
+            # Truncate only if extremely long (over 2000 chars)
+            if len(content) > 2000:
+                content = content[:2000] + "..."
 
             context_parts.append(
                 f"Page {page.get('page_number', 'N/A')} - {page.get('section', 'Untitled')}:\n{content}"

@@ -1,0 +1,42 @@
+# FastAPI and web server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database - PostgreSQL
+sqlalchemy>=2.0.36  # Python 3.13 compatible
+psycopg2-binary>=2.9.10  # PostgreSQL adapter (newer version with Python 3.13 wheels)
+alembic>=1.14.0  # Database migrations
+
+# Data validation
+pydantic>=2.10.0  # Python 3.13 compatible with pre-built wheels
+pydantic-settings>=2.6.0
+
+# HTTP client
+httpx==0.25.2
+
+# PDF and EPUB export
+fpdf2==2.7.9
+ebooklib==0.18
+Pillow>=10.4.0  # Image processing for covers (Python 3.13 compatible)
+
+# Authentication and security (not needed for basic license key auth)
+# python-jose[cryptography]==3.3.0
+# passlib[bcrypt]==1.7.4
+
+# Async support (optional - skip for now, requires C compiler)
+# asyncpg==0.29.0  # Async PostgreSQL driver
+
+# Logging and monitoring
+python-json-logger==2.0.7
+
+# Testing (development) - install separately if needed
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# pytest-cov==4.1.0
+
+# Code quality (development) - install separately if needed
+# black==23.12.0
+# flake8==6.1.0
+# mypy==1.7.1

@@ -1,256 +1,222 @@
-# AI Book Generator - Backend
+# AI Book Generator v2.0 🚀
 
-Professional AI-powered ebook creation platform. Generate complete books page-by-page with Claude AI, edit content, and export to PDF.
+Professional ebook creation platform with AI-powered content generation, credit-based licensing, and PostgreSQL backend.
 
 ## Features
 
-- **Smart Book Generation**: AI creates complete book structure and outline based on your description
-- **Page-by-Page Creation**: Generate pages sequentially with AI or provide custom input
-- **Full Editing**: All generated content is completely editable
-- **PDF Export**: Export finished books as professional PDFs
-- **Multiple Book Types**: Kids books, adult books, educational content
-- **Persistent Storage**: All books saved to database
-- **Usage Tracking**: Monitor API usage per license
+✅ **Credit-Based System**
+- 1,000-17,000 credits per package
+- $0.02 per generation
+- No subscriptions, credits never expire
 
-## Tech Stack
+✅ **AI-Powered Generation**
+- Book structure and outline
+- Page-by-page content generation
+- AI-generated SVG covers
+- Professional quality output
 
-- **FastAPI**: Modern, high-performance Python web framework
-- **Claude AI (Sonnet 4)**: State-of-the-art language model for content generation
-- **SQLite**: Lightweight database for books and pages
-- **ReportLab**: Professional PDF generation
-- **Gumroad**: License validation and payments
+✅ **Enhanced EPUB Export**
+- Perfect formatting for all e-readers
+- Amazon KDP ready
+- Smart typography (curly quotes, em dashes)
+- Professional copyright pages
 
-## Setup
+✅ **PostgreSQL Database**
+- Scalable and reliable
+- Full usage analytics
+- Version control for pages
+- Soft deletes
 
-### 1. Install Dependencies
+✅ **Modular Frontend**
+- Clean component architecture
+- Easy to maintain and extend
+- Dark mode support
+- Responsive design
 
-```bash
-pip install -r requirements.txt
+## Architecture
+
+```
+├── database/
+│   ├── models.py           # SQLAlchemy models
+│   ├── connection.py       # Database manager
+│   ├── repositories/       # Data access layer
+│   └── schema.sql          # PostgreSQL schema
+├── core/
+│   ├── gumroad_v2.py       # License validation
+│   ├── book_generator.py   # AI generation
+│   └── epub_exporter_v2.py # Enhanced EPUB
+├── frontend/
+│   ├── index.html          # Main entry
+│   ├── css/                # Modular styles
+│   └── js/                 # Component modules
+├── main_postgres.py        # FastAPI backend
+└── requirements_postgres.txt
 ```
 
-### 2. Configure Environment
+## Quick Start
 
-Create a `.env` file:
+### Local Development
 
+1. **Install Dependencies**
+```bash
+pip install -r requirements_postgres.txt
+```
+
+2. **Set Up PostgreSQL**
+```bash
+createdb aibook_dev
+```
+
+3. **Configure Environment**
 ```bash
 cp .env.example .env
+# Edit .env with your keys
 ```
 
-Edit `.env` with your credentials:
-
-```
-ANTHROPIC_API_KEY=your_claude_api_key
-GUMROAD_PRODUCT_ID=your_gumroad_product_id
-```
-
-### 3. Run the Server
-
+4. **Initialize Database**
 ```bash
-python main.py
+python -c "from database.connection import initialize_database; db = initialize_database(); db.create_tables()"
 ```
 
-Server runs at `http://localhost:8000`
+5. **Run Backend**
+```bash
+uvicorn main_postgres:app --reload
+```
+
+6. **Open Frontend**
+```bash
+cd frontend
+python -m http.server 3000
+# Open http://localhost:3000
+```
+
+### Production Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide.
+
+## Credit Costs
+
+| Action | Credits | Cost |
+|--------|---------|------|
+| Book Structure | 1 | $0.02 |
+| Page Generation | 1 | $0.02 |
+| Cover Generation | 2 | $0.04 |
+| **20-page book total** | **23** | **$0.46** |
+
+## Pricing Packages
+
+| Package | Credits | Price | Savings |
+|---------|---------|-------|---------|
+| Starter | 1,000 | $19 | 5% |
+| Professional ⭐ | 3,000 | $49 | 18% |
+| Business | 7,000 | $99 | 29% |
+| Enterprise | 17,000 | $199 | 41% |
 
 ## API Endpoints
 
 ### Authentication
+- `GET /api/credits` - Get user credits
 
-All endpoints require Gumroad license key in header:
-```
-Authorization: Bearer YOUR_LICENSE_KEY
-```
+### Books
+- `POST /api/books` - Create book (2 credits)
+- `GET /api/books` - List all books
+- `GET /api/books/in-progress` - List in-progress books
+- `GET /api/books/completed` - List completed books
+- `GET /api/books/{id}` - Get single book
+- `DELETE /api/books/{id}` - Delete book (free)
 
-### Core Endpoints
+### Pages
+- `POST /api/books/generate-page` - Generate page (1 credit)
+- `PUT /api/books/update-page` - Update page (free)
 
-#### Create Book
-```http
-POST /api/books
-{
-  "description": "A children's book about a brave little robot",
-  "target_pages": 20,
-  "book_type": "kids"
-}
-```
-
-Returns complete book structure + first page generated.
-
-#### Generate Next Page
-```http
-POST /api/books/generate-page
-{
-  "book_id": "uuid",
-  "page_number": 2,
-  "user_input": "Optional guidance for this page"
-}
-```
-
-AI generates the next page in sequence. User can provide input or leave blank for full AI generation.
-
-#### Update Page Content
-```http
-PUT /api/books/update-page
-{
-  "book_id": "uuid",
-  "page_number": 1,
-  "content": "Updated page content..."
-}
-```
-
-Edit any page's content.
-
-#### List Books
-```http
-GET /api/books?limit=50&offset=0
-```
-
-#### Get Specific Book
-```http
-GET /api/books/{book_id}
-```
-
-Returns book with all pages.
-
-#### Delete Book
-```http
-DELETE /api/books/{book_id}
-```
-
-#### Export to PDF
-```http
-POST /api/books/export
-{
-  "book_id": "uuid"
-}
-```
-
-Returns downloadable PDF file.
-
-### Utility Endpoints
-
-#### Usage Statistics
-```http
-GET /api/usage
-```
-
-Returns book/page generation counts.
-
-#### Health Check
-```http
-GET /health
-```
+### Export
+- `POST /api/books/complete` - Complete book + cover (2 credits)
+- `POST /api/books/export` - Export to EPUB (free)
 
 ## Database Schema
 
-### Books Table
-- `book_id`: UUID primary key
-- `license_key`: User's license
-- `title`: Book title
-- `description`: Original description
-- `target_pages`: Target page count
-- `book_type`: kids/adult/educational/general
-- `structure`: JSON outline
-- `created_at`, `updated_at`: Timestamps
+### Core Tables
+- `users` - User accounts with credits
+- `books` - Book metadata and structure
+- `pages` - Page content with AI tracking
+- `book_exports` - Export history
+- `usage_logs` - Detailed analytics
+- `license_purchases` - Purchase tracking
 
-### Pages Table
-- `page_id`: UUID primary key
-- `book_id`: Foreign key to books
-- `page_number`: Sequential page number
-- `section`: Section/chapter name
-- `content`: Page text content
-- `is_title_page`: Boolean flag
-- `created_at`, `updated_at`: Timestamps
+### Key Features
+- Computed credits remaining
+- Automatic page count updates
+- Soft deletes
+- Version control
+- Comprehensive indexes
 
-### Usage Table
-- `license_key`: Primary key
-- `book_count`: Total books created
-- `page_count`: Total pages generated
-- `last_used`, `created_at`: Timestamps
+## Tech Stack
 
-## How It Works
+**Backend**
+- FastAPI (Python web framework)
+- SQLAlchemy (ORM)
+- PostgreSQL (Database)
+- Anthropic Claude (AI)
+- EbookLib (EPUB generation)
 
-### Book Creation Flow
+**Frontend**
+- Vanilla JavaScript (ES6 modules)
+- CSS Variables (Theming)
+- Modern HTML5
 
-1. **User Input**: Description + target pages + book type
-2. **AI Structure Generation**: Claude creates complete outline
-3. **First Page Generation**: Title page + introduction
-4. **Database Storage**: Save book + first page
-5. **Return to User**: Complete book data
+**Deployment**
+- Render.com (Hosting)
+- Gumroad (Licensing)
 
-### Page Generation Flow
+## Development
 
-1. **Context Building**: Load previous 3 pages for context
-2. **AI Generation**: Claude writes next page based on outline + context
-3. **Sequential Validation**: Ensure pages generated in order
-4. **Database Storage**: Save new page
-5. **Completion Check**: Track progress toward target pages
-
-### PDF Export Flow
-
-1. **Load Complete Book**: All pages from database
-2. **Create Title Page**: Formatted with ReportLab
-3. **Format Content Pages**: Professional typography
-4. **Generate PDF**: Build complete document
-5. **Stream to User**: Downloadable file
-
-## Production Deployment
-
-### Environment Variables
-
-Required for production:
-- `ANTHROPIC_API_KEY`: Claude API key
-- `GUMROAD_PRODUCT_ID`: Your Gumroad product
-- `SECRET_KEY`: Change from default
-
-### Database
-
-SQLite included for simplicity. For production scale, consider PostgreSQL:
-
-```python
-# Update core/book_store.py and core/usage_tracker.py
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./aibook.db")
-```
-
-### Deploy to Cloud
-
-Works with:
-- Railway
-- Heroku
-- DigitalOcean App Platform
-- AWS/GCP/Azure
-
-Example (Railway):
+### Run Tests
 ```bash
-railway login
-railway init
-railway up
+pytest
 ```
 
-## Architecture Highlights
+### Code Quality
+```bash
+black .
+flake8
+mypy .
+```
 
-### Modular Core Services
+### Database Migrations
+```bash
+alembic revision --autogenerate -m "description"
+alembic upgrade head
+```
 
-- `claude_client.py`: Claude API wrapper
-- `book_generator.py`: AI generation logic
-- `book_store.py`: Database operations
-- `pdf_exporter.py`: PDF creation
-- `gumroad.py`: License validation
-- `usage_tracker.py`: Usage analytics
+## Project Structure
 
-### Smart Context Management
+```
+📦 aibook/
+├── 📁 database/          # PostgreSQL models & repos
+├── 📁 core/              # Business logic
+├── 📁 frontend/          # Modular frontend
+├── 📄 main_postgres.py   # FastAPI app
+├── 📄 requirements_postgres.txt
+├── 📄 render.yaml        # Deployment config
+├── 📄 DEPLOYMENT.md      # Deploy guide
+├── 📄 PRICING_STRATEGY.md # Business model
+└── 📄 README.md          # You are here
+```
 
-Book generator maintains context of previous pages when generating new content, ensuring narrative consistency.
+## Contributing
 
-### Separation of Concerns
-
-- API layer (`main.py`)
-- Business logic (`core/`)
-- Database operations (isolated in store classes)
-- AI operations (isolated in generator)
+This is a commercial project. Contact for collaboration opportunities.
 
 ## License
 
-Commercial use requires Gumroad license.
+Proprietary. All rights reserved.
 
 ## Support
 
-For issues or questions, contact support or open an issue on GitHub.
+- GitHub Issues: Bug reports only
+- Email: support@yourdomain.com
+- Gumroad: Purchase and licensing
+
+---
+
+**Built with ❤️ to be the #1 AI book tool on Gumroad**
