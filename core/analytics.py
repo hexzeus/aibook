@@ -197,7 +197,8 @@ class AnalyticsService:
             .filter(func.date(Book.created_at) == today)\
             .scalar()
 
-        pages_today = self.session.query(func.sum(UsageLog.metadata['page_number'].astext.cast(int)))\
+        # Count page generation events (simpler approach - just count the events)
+        pages_today = self.session.query(func.count(UsageLog.log_id))\
             .filter(
                 UsageLog.action_type == 'page_generated',
                 func.date(UsageLog.created_at) == today
