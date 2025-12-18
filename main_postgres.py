@@ -822,11 +822,13 @@ async def export_book(
             metadata={'format': 'epub'}
         )
 
-    # Update stats
-    user_repo = UserRepository(db)
-    user_repo.increment_export_count(user.user_id)
+        # Update stats
+        user_repo.increment_export_count(user.user_id)
 
-    db.commit()
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
     filename = f"{book_data['title'].replace(' ', '_')}.epub"
 
