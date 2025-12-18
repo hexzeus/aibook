@@ -16,6 +16,9 @@ pydantic-settings>=2.6.0
 # HTTP client
 httpx==0.25.2
 
+# Payment processing
+stripe>=5.0.0
+
 # PDF and EPUB export
 fpdf2==2.7.9
 ebooklib==0.18
