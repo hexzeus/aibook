@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Book Generator - Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2563eb;
+            margin-bottom: 1rem;
+        }
+
+        .status {
+            padding: 1rem;
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            margin-bottom: 1rem;
+        }
+
+        .credits {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .credit-box {
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .credit-box label {
+            display: block;
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .credit-box .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .form-group {
+            margin: 1rem 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #0f172a;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .books-list {
+            margin-top: 2rem;
+        }
+
+        .book-item {
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .book-item h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            background: #fee2e2;
+            border-left-color: #dc2626;
+            color: #991b1b;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left-color: #059669;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AI Book Generator v2.0</h1>
+
+        <!-- Auth Section -->
+        <div id="authSection">
+            <div class="form-group">
+                <label>License Key:</label>
+                <input type="text" id="licenseKey" placeholder="Enter your license key">
+            </div>
+            <button onclick="login()">Login</button>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <div class="status" id="statusBox">
+                <strong>✅ Connected</strong>
+            </div>
+
+            <div class="credits">
+                <div class="credit-box">
+                    <label>Total Credits</label>
+                    <div class="value" id="totalCredits">0</div>
+                </div>
+                <div class="credit-box">
+                    <label>Used</label>
+                    <div class="value" id="usedCredits">0</div>
+                </div>
+                <div class="credit-box">
+                    <label>Remaining</label>
+                    <div class="value" id="remainingCredits">0</div>
+                </div>
+            </div>
+
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e2e8f0;">
+
+            <h2>Create New Book</h2>
+            <div class="form-group">
+                <label>Book Description:</label>
+                <textarea id="bookDescription" rows="4" placeholder="Describe your book..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Number of Pages:</label>
+                <input type="number" id="targetPages" value="10" min="5" max="100">
+            </div>
+            <button onclick="createBook()" id="createBtn">Create Book</button>
+
+            <div class="books-list">
+                <h2>Your Books</h2>
+                <div id="booksList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        let licenseKey = '';
+
+        async function login() {
+            licenseKey = document.getElementById('licenseKey').value.trim();
+            if (!licenseKey) {
+                alert('Please enter a license key');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/credits`, {
+                    headers: {
+                        'Authorization': `Bearer ${licenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    updateCredits(data.credits);
+                    loadBooks();
+                } else {
+                    alert('Invalid license key: ' + (data.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function updateCredits(credits) {
+            document.getElementById('totalCredits').textContent = credits.total;
+            document.getElementById('usedCredits').textContent = credits.used;
+            document.getElementById('remainingCredits').textContent = credits.remaining;
+        }
+
+        async function createBook() {
+            const description = document.getElementById('bookDescription').value.trim();
+            const targetPages = parseInt(document.getElementById('targetPages').value);
+
+            if (!description) {
+                alert('Please enter a book description');
+                return;
+            }
+
+            const btn = document.getElementById('createBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${licenseKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        target_pages: targetPages,
+                        book_type: 'general'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    alert('Book created successfully!');
+                    document.getElementById('bookDescription').value = '';
+                    updateCredits(data.credits);
+                    loadBooks();
+                } else {
+                    alert('Error: ' + (data.detail || 'Failed to create book'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create Book';
+            }
+        }
+
+        async function loadBooks() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/books`, {
+                    headers: {
+                        'Authorization': `Bearer ${licenseKey}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const booksList = document.getElementById('booksList');
+                    if (data.books.length === 0) {
+                        booksList.innerHTML = '<p style="color: #64748b;">No books yet. Create your first book!</p>';
+                    } else {
+                        booksList.innerHTML = data.books.map(book => `
+                            <div class="book-item">
+                                <h3>${book.title}</h3>
+                                <p style="color: #64748b; margin: 0.5rem 0;">${book.description}</p>
+                                <p style="font-size: 0.875rem;">
+                                    Pages: ${book.total_pages} |
+                                    Status: ${book.status} |
+                                    Created: ${new Date(book.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading books:', error);
+            }
+        }
+    </script>
+</body>
+</html>

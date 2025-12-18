@@ -1,0 +1,88 @@
+
+
+# Subscription endpoints
+@app.get("/api/subscriptions/plans")
+async def get_subscription_plan_list():
+    """Get all available subscription plans"""
+    plans = get_subscription_plans()
+
+    return {
+        "success": True,
+        "plans": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "price_monthly": p.price_display_monthly,
+                "price_yearly": p.price_display_yearly,
+                "price_monthly_cents": p.price_monthly_usd,
+                "price_yearly_cents": p.price_yearly_usd,
+                "credits_per_month": p.credits_per_month,
+                "features": p.features,
+                "is_popular": p.is_popular
+            }
+            for p in plans
+        ]
+    }
+
+
+@app.post("/api/subscriptions/activate")
+async def activate_subscription_endpoint(
+    plan_id: str,
+    billing_cycle: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Activate subscription (called after payment)"""
+    subscription_service = SubscriptionService(db)
+
+    user = subscription_service.activate_subscription(
+        user_id=user.user_id,
+        plan_id=plan_id,
+        billing_cycle=billing_cycle
+    )
+
+    db.commit()
+
+    return {
+        "success": True,
+        "subscription": {
+            "tier": user.subscription_tier,
+            "status": user.subscription_status,
+            "credits_per_month": user.monthly_credit_allocation,
+            "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+        }
+    }
+
+
+@app.post("/api/subscriptions/cancel")
+async def cancel_subscription_endpoint(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel subscription"""
+    subscription_service = SubscriptionService(db)
+    subscription_service.cancel_subscription(user.user_id)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Subscription cancelled. You'll retain access until expiration."
+    }
+
+
+@app.get("/api/subscriptions/status")
+async def get_subscription_status(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current subscription status"""
+    return {
+        "success": True,
+        "subscription": {
+            "tier": user.subscription_tier,
+            "status": user.subscription_status,
+            "credits_per_month": user.monthly_credit_allocation,
+            "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
+            "next_credit_reset": user.next_credit_reset_at.isoformat() if user.next_credit_reset_at else None
+        }
+    }

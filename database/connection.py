@@ -40,18 +40,19 @@ class DatabaseManager:
         if self.database_url.startswith('postgres://'):
             self.database_url = self.database_url.replace('postgres://', 'postgresql://', 1)
 
-        # Create engine with connection pooling
+        # Create engine with optimized connection pooling for production
         self.engine = create_engine(
             self.database_url,
             poolclass=QueuePool,
-            pool_size=5,  # Reduced pool size to prevent exhaustion
-            max_overflow=5,  # Reduced overflow
+            pool_size=10,  # Increased for better concurrency
+            max_overflow=20,  # Allow bursts of traffic
             pool_pre_ping=True,  # Test connections before using them
-            pool_recycle=300,  # Recycle connections after 5 minutes (shorter)
-            pool_timeout=10,  # Timeout for getting connection from pool
+            pool_recycle=1800,  # Recycle connections after 30 minutes
+            pool_timeout=30,  # Increased timeout for high traffic
             echo=False,  # Set to True for SQL query logging (development only)
             connect_args={
-                "options": "-c statement_timeout=30000"  # 30 second timeout for all statements
+                "options": "-c statement_timeout=60000 -c idle_in_transaction_session_timeout=10000"
+                # 60s statement timeout, 10s idle transaction timeout
             }
         )
 

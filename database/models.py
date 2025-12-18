@@ -31,9 +31,13 @@ class User(Base):
     # credits_remaining is computed in PostgreSQL, access via query
 
     # Subscription management
-    subscription_tier = Column(String(50), default='basic')
-    subscription_status = Column(String(50), default='active')
+    subscription_tier = Column(String(50), default='basic')  # basic, starter, pro, business, enterprise
+    subscription_status = Column(String(50), default='active')  # active, cancelled, expired, paused
     subscription_expires_at = Column(DateTime(timezone=True))
+    subscription_stripe_id = Column(String(255))  # Stripe subscription ID
+    subscription_gumroad_id = Column(String(255))  # Gumroad subscription ID
+    monthly_credit_allocation = Column(Integer, default=0)  # Credits per month for subscription
+    next_credit_reset_at = Column(DateTime(timezone=True))  # When monthly credits reset
 
     # Account info
     is_active = Column(Boolean, default=True)
@@ -49,6 +53,13 @@ class User(Base):
     total_books_created = Column(Integer, default=0)
     total_pages_generated = Column(Integer, default=0)
     total_exports = Column(Integer, default=0)
+
+    # Affiliate program
+    affiliate_code = Column(String(50), unique=True, index=True)  # User's unique affiliate code
+    referred_by_code = Column(String(50), index=True)  # Who referred this user
+    total_referrals = Column(Integer, default=0)  # Number of successful referrals
+    affiliate_earnings_cents = Column(Integer, default=0)  # Earnings from referrals
+    affiliate_payout_email = Column(String(255))  # PayPal email for payouts
 
     # Settings
     preferences = Column(JSONB, default={})

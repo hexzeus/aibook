@@ -106,17 +106,23 @@ class UserRepository:
         return user
 
     def update_last_login(self, user_id: uuid.UUID) -> User:
-        """Update user's last login timestamp"""
-        print(f"[REPO] update_last_login called for {user_id}", flush=True)
-        user = self.get_by_id(user_id)
-        print(f"[REPO] Got user: {user is not None}", flush=True)
-        if user:
-            print(f"[REPO] Setting last_login_at...", flush=True)
-            user.last_login_at = datetime.utcnow()
-            print(f"[REPO] Flushing session...", flush=True)
-            self.session.flush()
-            print(f"[REPO] Flush complete", flush=True)
-        return user
+        """
+        Update user's last login timestamp using direct UPDATE to avoid locks
+        This bypasses ORM to prevent session lock issues
+        """
+        from sqlalchemy import update
+
+        stmt = (
+            update(User)
+            .where(User.user_id == user_id)
+            .values(last_login_at=datetime.utcnow())
+        )
+        self.session.execute(stmt)
+        # No flush needed - will commit at endpoint level
+        # This prevents blocking other operations
+
+        # Return refreshed user
+        return self.get_by_id(user_id)
 
     def update_preferences(self, user_id: uuid.UUID, preferences: Dict) -> User:
         """Update user preferences"""

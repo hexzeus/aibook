@@ -18,6 +18,13 @@ from database.repositories import UserRepository, BookRepository, UsageRepositor
 from core.gumroad_v2 import GumroadValidator
 from core.book_generator import BookGenerator
 from core.epub_exporter_v2 import EnhancedEPUBExporter
+from core.credit_packages import get_all_packages, get_package_by_id, get_gumroad_url
+from core.analytics import AnalyticsService
+from core.rate_limiter import rate_limit_middleware, RateLimits
+from core.gumroad_webhook import verify_gumroad_signature, process_gumroad_webhook
+from core.subscription_manager import SubscriptionService, get_all_plans as get_subscription_plans, get_plan_by_id
+from core.stripe_integration import StripeIntegration
+from core.affiliate_system import AffiliateSystem
 
 # Load environment
 load_dotenv()
@@ -115,9 +122,9 @@ async def get_current_user(
 
     if user:
         print(f"[AUTH] User found, returning user object...", flush=True)
-        # TODO: Fix last_login update - currently causes session locks
-        # user_repo.update_last_login(user.user_id)
-        # db.commit()
+        # Update last login with non-blocking approach
+        user_repo.update_last_login(user.user_id)
+        db.commit()
         return user
 
     # Development bypass: Allow "TEST-LICENSE-KEY" in development mode
@@ -147,9 +154,17 @@ async def get_current_user(
         raise HTTPException(status_code=401, detail=error or "Invalid license key")
 
     # Create new user with credits
+    # Email is required for marketing and support
+    email = purchase_data.get('email')
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email is required. Please purchase with a valid email address."
+        )
+
     user = user_repo.create_user(
         license_key=license_key,
-        email=purchase_data.get('email'),
+        email=email,
         total_credits=purchase_data.get('credits', 1000),
         gumroad_product_id=purchase_data.get('product_id'),
         gumroad_sale_id=purchase_data.get('sale_id'),
@@ -221,13 +236,77 @@ async def get_credits(
     }
 
 
-@app.post("/api/books")
-async def create_book(
-    request: CreateBookRequest,
+@app.get("/api/credit-packages")
+async def get_credit_packages():
+    """Get available credit packages for purchase"""
+    packages = get_all_packages()
+
+    return {
+        "success": True,
+        "packages": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "credits": p.credits,
+                "price": p.price_display,
+                "price_cents": p.price_usd,
+                "savings_percent": p.savings_percent,
+                "badge": p.badge,
+                "is_featured": p.is_featured,
+                "purchase_url": get_gumroad_url(p.id)
+            }
+            for p in packages
+        ]
+    }
+
+
+@app.post("/api/credits/purchase")
+async def initiate_credit_purchase(
+    package_id: str,
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create new book - costs 1 credit"""
+    """
+    Initiate credit purchase - returns Gumroad URL
+    User will be redirected to Gumroad, then webhook will add credits
+    """
+    package = get_package_by_id(package_id)
+    if not package:
+        raise HTTPException(status_code=400, detail="Invalid package ID")
+
+    # Generate Gumroad URL with user's license key as custom field
+    gumroad_url = get_gumroad_url(package_id)
+
+    # Add license key as query parameter for auto-fill
+    purchase_url = f"{gumroad_url}?wanted=true&license_key={user.license_key}"
+
+    return {
+        "success": True,
+        "purchase_url": purchase_url,
+        "package": {
+            "id": package.id,
+            "name": package.name,
+            "credits": package.credits,
+            "price": package.price_display
+        }
+    }
+
+
+@app.post("/api/books")
+async def create_book(
+    request: CreateBookRequest,
+    http_request: Request,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create new book - costs 2 credits"""
+    # Rate limit: 10 books per hour
+    await rate_limit_middleware(
+        http_request,
+        RateLimits.BOOK_CREATE,
+        key_func=lambda r: str(user.user_id)
+    )
+
     user_repo = UserRepository(db)
     book_repo = BookRepository(db)
     usage_repo = UsageRepository(db)
@@ -702,25 +781,46 @@ async def export_book(
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Export book to EPUB - FREE"""
+    """Export book to EPUB - Costs 1 credit (premium feature)"""
+    user_repo = UserRepository(db)
     book_repo = BookRepository(db)
     usage_repo = UsageRepository(db)
+
+    # Check credits (1 credit for professional EPUB export)
+    if user.credits_remaining < 1:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits. Export requires 1 credit, you have {user.credits_remaining}"
+        )
 
     book_data = book_repo.get_book_with_pages(uuid.UUID(request.book_id), user.user_id)
     if not book_data:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Generate EPUB
-    exporter = EnhancedEPUBExporter()
-    epub_buffer = exporter.export_book(book_data)
+    # Consume credit for export
+    user_repo.consume_credits(user.user_id, 1)
 
-    # Log export
-    usage_repo.create_export(
-        book_id=uuid.UUID(request.book_id),
-        user_id=user.user_id,
-        format='epub',
-        file_size_bytes=epub_buffer.getbuffer().nbytes
-    )
+    try:
+        # Generate EPUB
+        exporter = EnhancedEPUBExporter()
+        epub_buffer = exporter.export_book(book_data)
+
+        # Log export
+        usage_repo.create_export(
+            book_id=uuid.UUID(request.book_id),
+            user_id=user.user_id,
+            format='epub',
+            file_size_bytes=epub_buffer.getbuffer().nbytes
+        )
+
+        # Log usage
+        usage_repo.log_action(
+            user_id=user.user_id,
+            action_type='book_exported',
+            credits_consumed=1,
+            book_id=uuid.UUID(request.book_id),
+            metadata={'format': 'epub'}
+        )
 
     # Update stats
     user_repo = UserRepository(db)
@@ -762,6 +862,153 @@ async def general_exception_handler(request, exc):
     )
 
 
+# Gumroad Webhook
+@app.post("/api/webhooks/gumroad")
+async def gumroad_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Handle Gumroad webhooks for instant credit delivery
+    Called when user makes a purchase
+    """
+    # Get raw body for signature verification
+    body = await request.body()
+    signature = request.headers.get("X-Gumroad-Signature", "")
+
+    # Verify signature
+    if not verify_gumroad_signature(body, signature):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    # Parse JSON
+    try:
+        data = await request.json()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    # Process webhook
+    result = process_gumroad_webhook(data, db)
+
+    return result
+
+
+# Analytics endpoints
+@app.get("/api/analytics/realtime")
+async def get_realtime_stats(db: Session = Depends(get_db)):
+    """Get real-time statistics for social proof"""
+    analytics = AnalyticsService(db)
+    return analytics.get_real_time_stats()
+
+
+@app.get("/api/analytics/conversion-funnel")
+async def get_conversion_funnel(
+    days: int = 30,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get conversion funnel metrics (admin only)"""
+    analytics = AnalyticsService(db)
+    return analytics.get_conversion_funnel(days)
+
+
+@app.get("/api/analytics/credit-stats")
+async def get_credit_stats(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get credit usage statistics"""
+    analytics = AnalyticsService(db)
+    return analytics.get_credit_usage_stats()
+
+
+# Subscription endpoints
+@app.get("/api/subscriptions/plans")
+async def get_subscription_plan_list():
+    """Get all available subscription plans"""
+    plans = get_subscription_plans()
+
+    return {
+        "success": True,
+        "plans": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "price_monthly": p.price_display_monthly,
+                "price_yearly": p.price_display_yearly,
+                "price_monthly_cents": p.price_monthly_usd,
+                "price_yearly_cents": p.price_yearly_usd,
+                "credits_per_month": p.credits_per_month,
+                "features": p.features,
+                "is_popular": p.is_popular
+            }
+            for p in plans
+        ]
+    }
+
+
+@app.post("/api/subscriptions/activate")
+async def activate_subscription_endpoint(
+    plan_id: str,
+    billing_cycle: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Activate subscription (called after payment)"""
+    subscription_service = SubscriptionService(db)
+
+    user = subscription_service.activate_subscription(
+        user_id=user.user_id,
+        plan_id=plan_id,
+        billing_cycle=billing_cycle
+    )
+
+    db.commit()
+
+    return {
+        "success": True,
+        "subscription": {
+            "tier": user.subscription_tier,
+            "status": user.subscription_status,
+            "credits_per_month": user.monthly_credit_allocation,
+            "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None
+        }
+    }
+
+
+@app.post("/api/subscriptions/cancel")
+async def cancel_subscription_endpoint(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel subscription"""
+    subscription_service = SubscriptionService(db)
+    subscription_service.cancel_subscription(user.user_id)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Subscription cancelled. You'll retain access until expiration."
+    }
+
+
+@app.get("/api/subscriptions/status")
+async def get_subscription_status(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current subscription status"""
+    return {
+        "success": True,
+        "subscription": {
+            "tier": user.subscription_tier,
+            "status": user.subscription_status,
+            "credits_per_month": user.monthly_credit_allocation,
+            "expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
+            "next_credit_reset": user.next_credit_reset_at.isoformat() if user.next_credit_reset_at else None
+        }
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -770,3 +1017,111 @@ if __name__ == "__main__":
         port=8000,
         reload=True
     )
+
+
+# Stripe endpoints
+stripe_client = StripeIntegration()
+
+@app.post("/api/stripe/create-checkout")
+async def create_stripe_checkout(
+    package_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create Stripe checkout session for credit purchase"""
+    package = get_package_by_id(package_id)
+    if not package:
+        raise HTTPException(status_code=400, detail="Invalid package ID")
+
+    session = stripe_client.create_checkout_session(
+        price_id=f"price_{package.id}",  # Configure in Stripe dashboard
+        customer_email=user.email,
+        metadata={
+            'user_id': str(user.user_id),
+            'package_id': package.id,
+            'credits': package.credits
+        }
+    )
+
+    return {"success": True, "checkout_url": session['url']}
+
+
+@app.post("/api/webhooks/stripe")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """Handle Stripe webhooks"""
+    payload = await request.body()
+    signature = request.headers.get('stripe-signature', '')
+
+    if not stripe_client.verify_webhook_signature(payload, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        import json
+        event_data = json.loads(payload)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    result = stripe_client.process_webhook(event_data)
+    user_repo = UserRepository(db)
+
+    if result['event'] == 'payment_completed':
+        # Grant credits
+        user_id = uuid.UUID(result['user_id'])
+        package = get_package_by_id(result['package_id'])
+        
+        user_repo.add_credits(
+            user_id=user_id,
+            credits=package.credits,
+            purchase_data={
+                'sale_id': result.get('payment_intent'),
+                'product_name': package.name,
+                'price_cents': result['amount_cents'],
+                'credits': package.credits
+            }
+        )
+        db.commit()
+
+    return {"success": True}
+
+
+# Affiliate endpoints
+@app.get("/api/affiliate/stats")
+async def get_affiliate_stats_endpoint(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's affiliate statistics"""
+    affiliate_system = AffiliateSystem(db)
+    stats = affiliate_system.get_affiliate_stats(user.user_id)
+    
+    return {"success": True, "stats": stats}
+
+
+@app.post("/api/affiliate/generate-code")
+async def generate_affiliate_code_endpoint(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate affiliate code for user"""
+    affiliate_system = AffiliateSystem(db)
+    code = affiliate_system.generate_affiliate_code(user.user_id)
+    db.commit()
+    
+    return {"success": True, "code": code}
+
+
+@app.post("/api/affiliate/request-payout")
+async def request_affiliate_payout_endpoint(
+    paypal_email: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Request affiliate payout"""
+    affiliate_system = AffiliateSystem(db)
+    
+    try:
+        result = affiliate_system.request_payout(user.user_id, paypal_email)
+        db.commit()
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

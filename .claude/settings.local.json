@@ -3,7 +3,15 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python -c:*)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill //F //PID 17044)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(psql:*)"
     ]
   }
 }

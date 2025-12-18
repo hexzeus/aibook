@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Book Generator - Create Professional Ebooks with AI</title>
+
+    <!-- CSS Modules -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/layouts.css">
+</head>
+<body>
+    <!-- App Loading Screen -->
+    <div id="appLoadingScreen" class="app-loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">📚</div>
+            <h1 class="loading-title">AI Book Generator</h1>
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="loading-text">Initializing...</p>
+        </div>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="authScreen" class="auth-screen" style="display: none;">
+        <div class="auth-card">
+            <h1>📚 AI Book Generator</h1>
+            <p>Create professional ebooks with AI in minutes</p>
+
+            <form id="authForm">
+                <div class="form-group">
+                    <label for="licenseKey">Enter Your License Key</label>
+                    <div class="license-input-wrapper">
+                        <input
+                            type="text"
+                            id="licenseKey"
+                            placeholder="Your Gumroad license key"
+                            required
+                        >
+                        <button
+                            type="button"
+                            id="clearLicenseBtn"
+                            class="clear-license-btn"
+                            title="Clear saved license key"
+                            style="display: none;"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="authBtn">
+                    <span id="authBtnText">Access Book Generator</span>
+                </button>
+
+                <p class="mt-2" style="font-size: 0.875rem;">
+                    Don't have a license?
+                    <a href="https://blazestudiox.gumroad.com/l/aibookgenerator" target="_blank" style="color: var(--primary);">
+                        Purchase here
+                    </a>
+                </p>
+            </form>
+
+            <div id="authError" class="alert alert-error hidden mt-2">
+                <span>❌</span>
+                <span id="authErrorText"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="main-app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="app-title">📚 AI Book Generator</h1>
+                </div>
+                <div class="header-right">
+                    <div class="credits-display">
+                        <div class="credit-item">
+                            <span class="credit-label">Total:</span>
+                            <span class="credit-value" id="creditsTotal">0</span>
+                        </div>
+                        <div class="credit-item">
+                            <span class="credit-label">Used:</span>
+                            <span class="credit-value" id="creditsUsed">0</span>
+                        </div>
+                        <div class="credit-item">
+                            <span class="credit-label">Remaining:</span>
+                            <span class="credit-value" id="creditsRemaining">0</span>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                        <span id="themeIcon">☀️</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="localStorage.clear(); window.location.reload();">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <div class="nav-content">
+                <button class="nav-btn active" data-tab="create" onclick="window.showCreateTab()">
+                    ✨ Create Book
+                </button>
+                <button class="nav-btn" data-tab="library" onclick="window.showLibraryTab()">
+                    📚 My Books
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <div id="pageContent" class="page-container">
+                <!-- Page content will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="spinnerOverlay" class="spinner-overlay hidden">
+        <div class="spinner-content">
+            <div class="spinner-large"></div>
+            <h3 id="spinnerTitle">Processing...</h3>
+            <p id="spinnerMessage">Please wait...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
