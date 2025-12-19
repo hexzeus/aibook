@@ -721,82 +721,85 @@ async def complete_book(
             detail=f"Book incomplete. {current_pages}/{book.target_pages} pages"
         )
 
-    # Consume credits
+    # CRITICAL: Get all book data BEFORE consuming credits and committing
+    # This prevents SSL timeout during AI generation
+    print(f"[COMPLETE] Extracting book data before AI generation...", flush=True)
+    book_id_str = str(book.book_id)
+    user_id_str = str(user.user_id)
+    book_title = book.title
+    book_themes = book.structure.get('themes', []) if book.structure else []
+    book_tone = book.structure.get('tone', 'engaging') if book.structure else 'engaging'
+    book_type = book.book_type
+
+    # Consume credits and commit IMMEDIATELY (before AI generation)
     print(f"[COMPLETE] Consuming 2 credits...", flush=True)
     user_repo.consume_credits(user.user_id, 2)
-    print(f"[COMPLETE] Credits consumed (will commit at end)", flush=True)
+
+    # Get updated credits count BEFORE committing
+    credits_after = user.credits_remaining - 2
+
+    print(f"[COMPLETE] Committing credits immediately (to prevent SSL timeout)...", flush=True)
+    db.commit()
+    print(f"[COMPLETE] Credits committed, DB connection released", flush=True)
 
     try:
-        # Generate cover
+        # Generate cover (NO DB CONNECTION HELD - this takes 10-30 seconds)
         print(f"[COMPLETE] Initializing BookGenerator...", flush=True)
         generator = BookGenerator(api_key=None)
 
         print(f"[COMPLETE] Generating cover SVG (this may take 10-30 seconds)...", flush=True)
         cover_svg = await generator.generate_book_cover_svg(
-            book_title=book.title,
-            book_themes=book.structure.get('themes', []),
-            book_tone=book.structure.get('tone', 'engaging'),
-            book_type=book.book_type
+            book_title=book_title,
+            book_themes=book_themes,
+            book_tone=book_tone,
+            book_type=book_type
         )
         print(f"[COMPLETE] Cover generated successfully", flush=True)
 
-        # Complete book
+        # Now save the results to database (get fresh session)
         print(f"[COMPLETE] Marking book as complete in database...", flush=True)
-        book_repo.complete_book(book.book_id, cover_svg)
+        book_repo.complete_book(uuid.UUID(book_id_str), cover_svg)
         print(f"[COMPLETE] Book marked as complete", flush=True)
 
         # Log usage
         print(f"[COMPLETE] Logging usage...", flush=True)
         usage_repo.log_action(
-            user_id=user.user_id,
+            user_id=uuid.UUID(user_id_str),
             action_type='book_completed',
             credits_consumed=2,
-            book_id=book.book_id
+            book_id=uuid.UUID(book_id_str)
         )
         print(f"[COMPLETE] Usage logged", flush=True)
 
-        # Check for PostgreSQL locks before committing
-        print(f"[COMPLETE] Checking for database locks...", flush=True)
-        try:
-            lock_query = text("""
-                SELECT pid, usename, pg_blocking_pids(pid) as blocked_by, query
-                FROM pg_stat_activity
-                WHERE cardinality(pg_blocking_pids(pid)) > 0
-            """)
-            locks = db.execute(lock_query).fetchall()
-            if locks:
-                print(f"[COMPLETE] WARNING: Found {len(locks)} blocked queries!", flush=True)
-                for lock in locks:
-                    print(f"[COMPLETE] Blocked PID {lock[0]}: {lock[3][:100]}", flush=True)
-        except Exception as lock_check_error:
-            print(f"[COMPLETE] Could not check locks: {lock_check_error}", flush=True)
-
-        # Try committing directly without flush (commit includes flush)
-        print(f"[COMPLETE] Committing transaction...", flush=True)
-        try:
-            db.commit()
-            print(f"[COMPLETE] Transaction committed successfully", flush=True)
-        except Exception as commit_error:
-            print(f"[COMPLETE] COMMIT ERROR: {str(commit_error)}", flush=True)
-            import traceback
-            print(f"[COMPLETE] Traceback: {traceback.format_exc()}", flush=True)
-            raise
+        # Commit the completion and usage log
+        print(f"[COMPLETE] Committing book completion...", flush=True)
+        db.commit()
+        print(f"[COMPLETE] Transaction committed successfully", flush=True)
 
         return {
             "success": True,
             "message": "Book completed with AI cover",
             "credits_consumed": 2,
-            "credits_remaining": user.credits_remaining - 2,
+            "credits_remaining": credits_after,
             "cover_svg": cover_svg
         }
 
     except Exception as e:
         print(f"[COMPLETE] ERROR: {str(e)}", flush=True)
+        import traceback
+        print(f"[COMPLETE] Traceback: {traceback.format_exc()}", flush=True)
+
+        # Credits already consumed and committed, so we need to refund in a new transaction
         print(f"[COMPLETE] Refunding 2 credits...", flush=True)
-        user_repo.refund_credits(user.user_id, 2)
-        print(f"[COMPLETE] Rolling back transaction...", flush=True)
-        db.rollback()
-        print(f"[COMPLETE] Rollback complete", flush=True)
+        try:
+            db.rollback()  # Rollback any pending changes
+            user_repo.refund_credits(uuid.UUID(user_id_str), 2)
+            db.commit()
+            print(f"[COMPLETE] Credits refunded successfully", flush=True)
+        except Exception as refund_error:
+            print(f"[COMPLETE] Refund error: {str(refund_error)}", flush=True)
+            db.rollback()
+
         raise HTTPException(status_code=500, detail=str(e))
 
 
