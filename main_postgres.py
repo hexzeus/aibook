@@ -454,15 +454,17 @@ async def generate_page(
 
     # Store user_id for potential refund (before any DB operations that might fail)
     user_id = user.user_id
+    book_id = book.book_id
 
-    # Consume credit
+    # Consume credit and commit immediately (prevents SSL timeout during AI generation)
     user_repo.consume_credits(user_id, 1)
+    db.commit()
 
     try:
-        # Generate page
+        # Generate page (this takes 30+ seconds, connection would timeout if held open)
         generator = BookGenerator(api_key=None)
 
-        book_data = book_repo.get_book_with_pages(book.book_id, user.user_id)
+        book_data = book_repo.get_book_with_pages(book_id, user_id)
 
         next_page = await generator.generate_next_page(
             book_structure=book_data['structure'],
@@ -473,7 +475,7 @@ async def generate_page(
 
         # Save page
         book_repo.create_page(
-            book_id=book.book_id,
+            book_id=book_id,
             page_number=next_page['page_number'],
             section=next_page['section'],
             content=next_page['content'],
@@ -483,25 +485,29 @@ async def generate_page(
 
         # Log usage
         usage_repo.log_action(
-            user_id=user.user_id,
+            user_id=user_id,
             action_type='page_generated',
             credits_consumed=1,
-            book_id=book.book_id,
+            book_id=book_id,
             metadata={'page_number': next_page['page_number']}
         )
 
         # Update stats
-        user_repo.increment_page_count(user.user_id, 1)
+        user_repo.increment_page_count(user_id, 1)
 
         db.commit()
+
+        # Get fresh credits count
+        fresh_user = user_repo.get_by_id(user_id)
+        target_pages = book_repo.get_book(book_id, user_id).target_pages
 
         return {
             "success": True,
             "message": "Page generated successfully",
             "credits_consumed": 1,
-            "credits_remaining": user.credits_remaining - 1,
+            "credits_remaining": fresh_user.credits_remaining,
             "page": next_page,
-            "is_complete": next_page['page_number'] >= book.target_pages
+            "is_complete": next_page['page_number'] >= target_pages
         }
 
     except Exception as e:
