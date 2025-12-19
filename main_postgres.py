@@ -1120,8 +1120,18 @@ async def get_affiliate_stats_endpoint(
     """Get user's affiliate statistics"""
     affiliate_system = AffiliateSystem(db)
     stats = affiliate_system.get_affiliate_stats(user.user_id)
-    
-    return {"success": True, "stats": stats}
+
+    # Return stats at top level (frontend expects this format)
+    return {
+        "success": True,
+        "affiliate_code": user.affiliate_code,
+        "total_referrals": user.total_referrals or 0,
+        "total_earnings_cents": user.affiliate_earnings_cents or 0,
+        "pending_payout_cents": user.affiliate_earnings_cents or 0,  # All earnings are pending until payout
+        "paid_out_cents": 0,  # TODO: Track paid out separately
+        "payout_email": user.affiliate_payout_email,
+        "recent_referrals": []  # TODO: Implement referral tracking
+    }
 
 
 @app.post("/api/affiliate/generate-code")
@@ -1137,6 +1147,23 @@ async def generate_affiliate_code_endpoint(
     return {"success": True, "code": code}
 
 
+@app.post("/api/affiliate/update-payout-email")
+async def update_affiliate_payout_email_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update affiliate payout email"""
+    email = request.get('email')
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    user.affiliate_payout_email = email
+    db.commit()
+
+    return {"success": True}
+
+
 @app.post("/api/affiliate/request-payout")
 async def request_affiliate_payout_endpoint(
     paypal_email: str,
@@ -1145,10 +1172,149 @@ async def request_affiliate_payout_endpoint(
 ):
     """Request affiliate payout"""
     affiliate_system = AffiliateSystem(db)
-    
+
     try:
         result = affiliate_system.request_payout(user.user_id, paypal_email)
         db.commit()
         return {"success": True, **result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# Premium feature endpoints
+@app.post("/api/premium/generate-illustration")
+async def generate_illustration_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate AI illustration for book page (Premium feature - 3 credits)"""
+    book_id = request.get('book_id')
+    page_number = request.get('page_number')
+    prompt = request.get('prompt')
+
+    if not all([book_id, page_number, prompt]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Verify book ownership
+    book_repo = BookRepository(db)
+    book = book_repo.get_book(book_id, user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Check credits
+    user_repo = UserRepository(db)
+    if user.credits_remaining < 3:
+        raise HTTPException(status_code=402, detail="Insufficient credits (requires 3)")
+
+    # Consume credits
+    user_repo.consume_credits(user.user_id, 3)
+    db.commit()
+
+    try:
+        # TODO: Integrate with DALL-E or Stable Diffusion API
+        # For now, return placeholder
+        illustration_url = f"https://via.placeholder.com/800x600.png?text={prompt[:50]}"
+
+        return {
+            "success": True,
+            "illustration_url": illustration_url,
+            "message": "Illustration generation coming soon"
+        }
+    except Exception as e:
+        # Refund credits on failure
+        user_repo.refund_credits(user.user_id, 3)
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/premium/apply-style")
+async def apply_custom_style_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Apply custom writing style to page (Premium feature - 2 credits)"""
+    book_id = request.get('book_id')
+    page_number = request.get('page_number')
+    style = request.get('style')
+
+    if not all([book_id, page_number, style]):
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Verify book ownership
+    book_repo = BookRepository(db)
+    book = book_repo.get_book(book_id, user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Check credits
+    user_repo = UserRepository(db)
+    if user.credits_remaining < 2:
+        raise HTTPException(status_code=402, detail="Insufficient credits (requires 2)")
+
+    # Consume credits
+    user_repo.consume_credits(user.user_id, 2)
+    db.commit()
+
+    try:
+        # TODO: Implement style application with Claude API
+        # For now, return placeholder
+        return {
+            "success": True,
+            "message": "Custom style application coming soon"
+        }
+    except Exception as e:
+        # Refund credits on failure
+        user_repo.refund_credits(user.user_id, 2)
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/premium/bulk-export")
+async def bulk_export_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Bulk export book to multiple formats (Premium feature - 1 credit per format)"""
+    book_id = request.get('book_id')
+    formats = request.get('formats', [])
+
+    if not book_id or not formats:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Verify book ownership
+    book_repo = BookRepository(db)
+    book = book_repo.get_book(book_id, user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    credits_needed = len(formats)
+
+    # Check credits
+    user_repo = UserRepository(db)
+    if user.credits_remaining < credits_needed:
+        raise HTTPException(status_code=402, detail=f"Insufficient credits (requires {credits_needed})")
+
+    # Consume credits
+    user_repo.consume_credits(user.user_id, credits_needed)
+    db.commit()
+
+    try:
+        # TODO: Implement actual export functionality
+        # For now, return placeholder URLs
+        download_urls = {}
+        for fmt in formats:
+            download_urls[fmt] = f"https://placeholder.com/{book_id}.{fmt}"
+
+        return {
+            "success": True,
+            "download_urls": download_urls,
+            "message": "Bulk export coming soon"
+        }
+    except Exception as e:
+        # Refund credits on failure
+        user_repo.refund_credits(user.user_id, credits_needed)
+        db.commit()
+        raise HTTPException(status_code=500, detail=str(e))
