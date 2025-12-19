@@ -925,13 +925,17 @@
     inset: 0;
     background: var(--overlay);
     backdrop-filter: blur(8px);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: calc(var(--z-modal) + 50);
     opacity: 0;
     transition: opacity var(--transition-base);
     padding: var(--spacing-lg);
+}
+
+.modal.active .modal-overlay {
+    display: flex;
 }
 
 .modal-show {
