@@ -1318,3 +1318,37 @@ async def bulk_export_endpoint(
         user_repo.refund_credits(user.user_id, credits_needed)
         db.commit()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# USER PROFILE ENDPOINTS
+# ============================================================================
+
+@app.post("/api/users/update-email")
+async def update_user_email_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user's email address for marketing communications
+    """
+    email = request.get('email')
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+
+    # Basic email validation
+    import re
+    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_regex, email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    # Update user email
+    user.email = email
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Email updated successfully"
+    }
