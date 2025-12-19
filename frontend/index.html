@@ -34,7 +34,7 @@
 
             <form id="authForm">
                 <div class="form-group">
-                    <label for="licenseKey">Enter Your License Key</label>
+                    <label for="licenseKey">License Key</label>
                     <div class="license-input-wrapper">
                         <input
                             type="text"
@@ -52,10 +52,13 @@
                             ✕
                         </button>
                     </div>
+                    <p class="form-hint" id="licenseHint" style="display: none; color: var(--success); margin-top: 0.5rem;">
+                        ✓ Your license key is saved securely
+                    </p>
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="authBtn">
-                    <span id="authBtnText">Access Book Generator</span>
+                <button type="submit" class="btn btn-primary btn-block" id="authBtn">
+                    <span id="authBtnText">Continue to Book Generator →</span>
                 </button>
 
                 <p class="mt-2" style="font-size: 0.875rem;">

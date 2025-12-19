@@ -38,9 +38,20 @@ function populateSavedLicenseKey() {
         licenseInput.setAttribute('data-actual-key', savedLicense);
         licenseInput.setAttribute('data-is-masked', 'true');
 
-        // Show clear button
+        // Show clear button and hint
         if (clearBtn) {
             clearBtn.style.display = 'block';
+        }
+
+        const hint = document.getElementById('licenseHint');
+        if (hint) {
+            hint.style.display = 'block';
+        }
+
+        // Update button text for returning users
+        const authBtn = document.getElementById('authBtnText');
+        if (authBtn) {
+            authBtn.textContent = 'Continue to Book Generator →';
         }
 
         // When user focuses, reveal the full key if they want to edit

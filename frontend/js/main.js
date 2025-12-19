@@ -42,50 +42,30 @@ async function init() {
     const startTime = Date.now();
 
     try {
-        // Check for saved license
+        // ALWAYS show auth screen for smooth UX
+        // Saved license will be pre-filled but user must click to enter
         const savedLicense = storage.getLicenseKey();
 
         if (savedLicense) {
-            console.log('Found saved license');
-            loadingText.textContent = 'Validating license...';
-
-            try {
-                await validateAndLoadUser();
-                loadingText.textContent = 'Loading your books...';
-            } catch (error) {
-                console.error('License validation failed:', error);
-                // Wait for minimum time, then show auth
-                await ensureMinimumLoadingTime(startTime, minLoadingTime);
-                hideLoadingScreen(loadingScreen);
-                showAuthScreen();
-                initAuth();
-                return;
-            }
+            console.log('Found saved license - will pre-fill auth form');
+            loadingText.textContent = 'Ready to continue...';
         } else {
-            console.log('No saved license found');
+            console.log('No saved license');
             loadingText.textContent = 'Ready to start...';
-            // Wait for minimum time, then show auth
-            await ensureMinimumLoadingTime(startTime, minLoadingTime);
-            hideLoadingScreen(loadingScreen);
-            showAuthScreen();
-            initAuth();
-            return;
         }
 
-        // Ensure minimum loading time for smooth transition
+        // Wait for minimum time, then show auth
         await ensureMinimumLoadingTime(startTime, minLoadingTime);
-
-        // Hide loading screen smoothly
         hideLoadingScreen(loadingScreen);
+        showAuthScreen();
+        initAuth();
     } catch (error) {
         console.error('Initialization error:', error);
         await ensureMinimumLoadingTime(startTime, minLoadingTime);
         hideLoadingScreen(loadingScreen);
         showAuthScreen();
+        initAuth();
     }
-
-    // Initialize auth handlers
-    initAuth();
 }
 
 /**
