@@ -138,7 +138,12 @@ async def rate_limit_middleware(
 
     # Determine rate limit key
     if key_func:
-        key = await key_func(request)
+        # Check if key_func is async or regular function
+        import inspect
+        if inspect.iscoroutinefunction(key_func):
+            key = await key_func(request)
+        else:
+            key = key_func(request)
     else:
         # Default to IP address
         key = request.client.host if request.client else "unknown"
