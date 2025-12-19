@@ -947,6 +947,7 @@
 }
 
 .modal-content {
+    position: relative;
     background: var(--bg-elevated);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-xl);
@@ -963,6 +964,30 @@
 
 .modal-hide .modal-content {
     transform: scale(0.9);
+}
+
+.modal-close {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    z-index: 10;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 .modal-header {
