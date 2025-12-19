@@ -318,11 +318,15 @@ async def create_book(
             detail=f"Insufficient credits. Need 2, have {user.credits_remaining}"
         )
 
-    # Consume credits upfront
-    user_repo.consume_credits(user.user_id, 2)
+    # Store user_id before any DB operations
+    user_id = user.user_id
+
+    # Consume credits upfront and commit immediately
+    user_repo.consume_credits(user_id, 2)
+    db.commit()
 
     try:
-        # Generate book structure
+        # Generate book structure (this takes 30+ seconds, connection would timeout if held open)
         generator = BookGenerator(api_key=None)
 
         structure = None
@@ -340,18 +344,18 @@ async def create_book(
                 first_page = chunk['data']
             elif chunk['stage'] == 'error':
                 # Refund credits on error
-                user_repo.refund_credits(user.user_id, 2)
+                user_repo.refund_credits(user_id, 2)
                 db.commit()
                 raise Exception(chunk['error'])
 
         if not structure or not first_page:
-            user_repo.refund_credits(user.user_id, 2)
+            user_repo.refund_credits(user_id, 2)
             db.commit()
             raise Exception("Failed to generate book")
 
         # Create book in database
         book = book_repo.create_book(
-            user_id=user.user_id,
+            user_id=user_id,
             title=structure['title'],
             description=request.description,
             target_pages=request.target_pages,
@@ -374,7 +378,7 @@ async def create_book(
 
         # Log usage
         usage_repo.log_action(
-            user_id=user.user_id,
+            user_id=user_id,
             action_type='book_created',
             credits_consumed=2,
             book_id=book.book_id,
@@ -382,24 +386,30 @@ async def create_book(
         )
 
         # Update user stats
-        user_repo.increment_book_count(user.user_id)
-        user_repo.increment_page_count(user.user_id, 1)
+        user_repo.increment_book_count(user_id)
+        user_repo.increment_page_count(user_id, 1)
 
         db.commit()
 
         # Return full book data
-        book_data = book_repo.get_book_with_pages(book.book_id, user.user_id)
+        book_data = book_repo.get_book_with_pages(book.book_id, user_id)
+
+        # Get fresh credits count after all operations
+        fresh_user = user_repo.get_by_id(user_id)
 
         return {
             "success": True,
             "message": "Book created successfully",
             "credits_consumed": 2,
-            "credits_remaining": user.credits_remaining - 2,
+            "credits_remaining": fresh_user.credits_remaining,
             "book": book_data
         }
 
     except Exception as e:
         db.rollback()
+        # Note: Credits were already committed before AI generation started
+        # This prevents SSL timeout errors during long AI operations
+        # Credits are only refunded if generation explicitly fails (handled above)
         import traceback
         traceback.print_exc()
         print(f"\nDETAILED ERROR: {str(e)}\n")
