@@ -33,13 +33,29 @@ export async function initCreditModal() {
  * Show credit modal
  * @param {string} reason - Why modal is shown: 'low' | 'out' | 'purchase'
  */
-export function showCreditModal(reason = 'low') {
+export async function showCreditModal(reason = 'low') {
     if (!modalElement) {
-        initCreditModal();
+        await initCreditModal();
+    }
+
+    // Ensure packages are loaded before rendering
+    if (creditPackages.length === 0) {
+        console.warn('Credit packages not loaded yet, fetching...');
+        try {
+            const response = await api.get('/api/credit-packages');
+            if (response.success) {
+                creditPackages = response.packages;
+            }
+        } catch (error) {
+            console.error('Failed to load credit packages:', error);
+        }
     }
 
     // Update modal content based on reason
     updateModalContent(reason);
+
+    // Render packages
+    renderPackages();
 
     // Show modal with animation
     modalElement.classList.add('active');
@@ -130,6 +146,14 @@ window.purchaseCredits = async function(packageId) {
         const response = await api.post('/api/credits/purchase', { package_id: packageId });
 
         if (response.success && response.purchase_url) {
+            // Show email capture modal if not already shown
+            // (Will be checked on return from Gumroad)
+            const hasProvidedEmail = localStorage.getItem('hasProvidedEmail');
+            if (!hasProvidedEmail) {
+                // Set flag to show email modal on return
+                localStorage.setItem('showEmailCaptureAfterPurchase', 'true');
+            }
+
             // Redirect to Gumroad
             window.location.href = response.purchase_url;
         }

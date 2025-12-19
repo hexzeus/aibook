@@ -456,15 +456,16 @@ async def generate_page(
     user_id = user.user_id
     book_id = book.book_id
 
+    # GET ALL BOOK DATA BEFORE COMMITTING (so we can close the connection)
+    book_data = book_repo.get_book_with_pages(book_id, user_id)
+
     # Consume credit and commit immediately (prevents SSL timeout during AI generation)
     user_repo.consume_credits(user_id, 1)
     db.commit()
 
     try:
-        # Generate page (this takes 30+ seconds, connection would timeout if held open)
+        # Generate page (this takes 30+ seconds, NO DB CONNECTION HELD)
         generator = BookGenerator(api_key=None)
-
-        book_data = book_repo.get_book_with_pages(book_id, user_id)
 
         next_page = await generator.generate_next_page(
             book_structure=book_data['structure'],

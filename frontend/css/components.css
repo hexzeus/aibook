@@ -1027,6 +1027,53 @@
     min-width: 100px;
 }
 
+/* Email Capture Modal */
+.email-capture-content {
+    max-width: 500px;
+}
+
+.email-capture-header {
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg);
+}
+
+.email-capture-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.email-capture-header h2 {
+    margin: 0 0 var(--spacing-sm);
+    font-family: var(--font-serif);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+}
+
+.email-capture-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+}
+
+.email-capture-form {
+    padding: 0 var(--spacing-xl) var(--spacing-xl);
+}
+
+.email-capture-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+.email-capture-footer {
+    text-align: center;
+    padding: 0 var(--spacing-xl) var(--spacing-lg);
+    margin: 0;
+    color: var(--text-tertiary);
+}
+
 @media (max-width: 768px) {
     .modal-content {
         max-width: 100%;

@@ -8,9 +8,12 @@ import { initTheme, toggleTheme as themeToggle, getCurrentTheme, getThemeDisplay
 import { initCreatePage } from './pages/create.js';
 import { initLibraryPage } from './pages/library.js';
 import { initEditorPage } from './pages/editor.js';
+import { initAffiliatePage } from './pages/affiliate.js';
+import { initSubscriptionsPage } from './pages/subscriptions.js';
 import { initCreditModal, showCreditModal } from './utils/creditModal.js';
 import { initSocialProof } from './components/socialProof.js';
 import { shouldShowOnboarding, startOnboarding } from './components/onboarding.js';
+import { initEmailCaptureModal, showEmailCaptureModal } from './components/emailCaptureModal.js';
 
 // Global state
 window.appState = {
@@ -158,8 +161,18 @@ function showMainApp() {
         // Initialize credit modal
         initCreditModal();
 
+        // Initialize email capture modal
+        initEmailCaptureModal();
+
         // Check if credits are low and show modal
         checkCreditsAndShowModal();
+
+        // Check if we should show email capture modal (after purchase)
+        const showEmailCapture = localStorage.getItem('showEmailCaptureAfterPurchase');
+        if (showEmailCapture === 'true') {
+            localStorage.removeItem('showEmailCaptureAfterPurchase');
+            setTimeout(() => showEmailCaptureModal(), 1500);
+        }
 
         // Initialize social proof
         initSocialProof();
@@ -239,6 +252,18 @@ window.showEditorTab = function(bookId) {
     console.log('Loading editor for book:', bookId);
     setActiveTab('editor');
     initEditorPage(bookId);
+};
+
+window.showAffiliateTab = function() {
+    console.log('Loading affiliate tab...');
+    setActiveTab('affiliate');
+    initAffiliatePage();
+};
+
+window.showSubscriptionsTab = function() {
+    console.log('Loading subscriptions tab...');
+    setActiveTab('subscriptions');
+    initSubscriptionsPage();
 };
 
 function setActiveTab(tabName) {

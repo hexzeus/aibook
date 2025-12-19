@@ -185,6 +185,37 @@ function renderEditor() {
                     </div>
                     <div id="pagesList"></div>
                 </div>
+
+                <!-- Premium Features Section -->
+                <div class="premium-features-section">
+                    <div class="premium-header">
+                        <h3>⭐ Premium Features</h3>
+                    </div>
+
+                    <button class="premium-feature-btn" onclick="window.generateIllustration()">
+                        <div class="feature-icon">🎨</div>
+                        <div class="feature-info">
+                            <div class="feature-name">AI Illustration</div>
+                            <div class="feature-desc">Add custom images</div>
+                        </div>
+                    </button>
+
+                    <button class="premium-feature-btn" onclick="window.applyCustomStyle()">
+                        <div class="feature-icon">✨</div>
+                        <div class="feature-info">
+                            <div class="feature-name">Custom Style</div>
+                            <div class="feature-desc">Apply writing style</div>
+                        </div>
+                    </button>
+
+                    <button class="premium-feature-btn" onclick="window.bulkExport()">
+                        <div class="feature-icon">📦</div>
+                        <div class="feature-info">
+                            <div class="feature-name">Bulk Export</div>
+                            <div class="feature-desc">PDF, DOCX, TXT</div>
+                        </div>
+                    </button>
+                </div>
             </div>
 
             <div class="editor-main">
@@ -567,6 +598,37 @@ window.viewPages = function() {
                     </div>
                     <div id="pagesList"></div>
                 </div>
+
+                <!-- Premium Features Section -->
+                <div class="premium-features-section">
+                    <div class="premium-header">
+                        <h3>⭐ Premium Features</h3>
+                    </div>
+
+                    <button class="premium-feature-btn" onclick="window.generateIllustration()">
+                        <div class="feature-icon">🎨</div>
+                        <div class="feature-info">
+                            <div class="feature-name">AI Illustration</div>
+                            <div class="feature-desc">Add custom images</div>
+                        </div>
+                    </button>
+
+                    <button class="premium-feature-btn" onclick="window.applyCustomStyle()">
+                        <div class="feature-icon">✨</div>
+                        <div class="feature-info">
+                            <div class="feature-name">Custom Style</div>
+                            <div class="feature-desc">Apply writing style</div>
+                        </div>
+                    </button>
+
+                    <button class="premium-feature-btn" onclick="window.bulkExport()">
+                        <div class="feature-icon">📦</div>
+                        <div class="feature-info">
+                            <div class="feature-name">Bulk Export</div>
+                            <div class="feature-desc">PDF, DOCX, TXT</div>
+                        </div>
+                    </button>
+                </div>
             </div>
 
             <div class="editor-main">
@@ -657,5 +719,95 @@ window.toggleMobileSidebar = function() {
         } else {
             document.body.style.overflow = '';
         }
+    }
+};
+
+/**
+ * Premium Feature: Generate AI Illustration
+ */
+window.generateIllustration = async function() {
+    const prompt = window.prompt('Describe the illustration you want to generate:');
+    if (!prompt) return;
+
+    try {
+        const response = await api.post('/api/premium/generate-illustration', {
+            book_id: currentBook.book_id,
+            page_number: currentPage,
+            prompt: prompt
+        });
+
+        if (response.success) {
+            alert('✅ Illustration generated successfully!');
+            // Refresh the current page to show the illustration
+            await loadPage(currentPage);
+        } else {
+            throw new Error(response.error || 'Failed to generate illustration');
+        }
+    } catch (error) {
+        alert('Failed to generate illustration: ' + error.message);
+    }
+};
+
+/**
+ * Premium Feature: Apply Custom Style
+ */
+window.applyCustomStyle = async function() {
+    const style = window.prompt('Enter your custom writing style (e.g., "professional and formal", "casual and friendly"):');
+    if (!style) return;
+
+    try {
+        const response = await api.post('/api/premium/apply-style', {
+            book_id: currentBook.book_id,
+            page_number: currentPage,
+            style: style
+        });
+
+        if (response.success) {
+            alert('✅ Custom style applied successfully!');
+            // Refresh the current page to show styled content
+            await loadPage(currentPage);
+        } else {
+            throw new Error(response.error || 'Failed to apply custom style');
+        }
+    } catch (error) {
+        alert('Failed to apply custom style: ' + error.message);
+    }
+};
+
+/**
+ * Premium Feature: Bulk Export
+ */
+window.bulkExport = async function() {
+    const formats = ['PDF', 'DOCX', 'TXT'];
+    const selectedFormats = [];
+
+    for (const format of formats) {
+        if (confirm(`Include ${format} format?`)) {
+            selectedFormats.push(format.toLowerCase());
+        }
+    }
+
+    if (selectedFormats.length === 0) {
+        alert('No formats selected');
+        return;
+    }
+
+    try {
+        const response = await api.post('/api/premium/bulk-export', {
+            book_id: currentBook.book_id,
+            formats: selectedFormats
+        });
+
+        if (response.success && response.download_urls) {
+            alert('✅ Bulk export started! Download links:\n\n' +
+                Object.entries(response.download_urls)
+                    .map(([format, url]) => `${format.toUpperCase()}: ${url}`)
+                    .join('\n')
+            );
+        } else {
+            throw new Error(response.error || 'Failed to export');
+        }
+    } catch (error) {
+        alert('Failed to bulk export: ' + error.message);
     }
 };
