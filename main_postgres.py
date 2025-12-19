@@ -442,8 +442,11 @@ async def generate_page(
     if current_pages >= book.target_pages:
         raise HTTPException(status_code=400, detail="Book is already complete")
 
+    # Store user_id for potential refund (before any DB operations that might fail)
+    user_id = user.user_id
+
     # Consume credit
-    user_repo.consume_credits(user.user_id, 1)
+    user_repo.consume_credits(user_id, 1)
 
     try:
         # Generate page
@@ -492,8 +495,13 @@ async def generate_page(
         }
 
     except Exception as e:
-        user_repo.refund_credits(user.user_id, 1)
         db.rollback()
+        # Refund credit (user_id was stored before any DB operations)
+        try:
+            user_repo.refund_credits(user_id, 1)
+            db.commit()
+        except:
+            pass  # If refund fails, at least we rolled back the original transaction
         raise HTTPException(status_code=500, detail=str(e))
 
 
