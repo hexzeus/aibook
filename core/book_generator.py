@@ -616,17 +616,15 @@ Include the book title prominently displayed.
 No author name needed.
 Professional publishing quality."""
 
-        # Generate image with DALL-E
+        # Generate image with DALL-E (returns base64 directly)
         result = await self.openai_client.generate_image(
             prompt=prompt,
             size="1024x1792",  # Portrait orientation for book cover
             quality="hd"
         )
 
-        # Download and convert to base64
-        image_base64 = await self.openai_client.download_image_as_base64(result["url"])
-
-        return image_base64
+        # Return the base64 image data directly from DALL-E
+        return result["b64_json"]
 
     def _build_page_context(self, previous_pages: list, max_pages: int = 3) -> str:
         """Build context string from previous pages"""

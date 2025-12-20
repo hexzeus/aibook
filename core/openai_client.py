@@ -97,7 +97,7 @@ class OpenAIClient:
             timeout: Request timeout in seconds
 
         Returns:
-            Dict with 'url' and 'revised_prompt' keys
+            Dict with 'b64_json' (base64 image data) and 'revised_prompt' keys
 
         Raises:
             Exception: On API errors or timeouts
@@ -113,7 +113,8 @@ class OpenAIClient:
                         "prompt": prompt,
                         "size": size,
                         "quality": quality,
-                        "n": 1
+                        "n": 1,
+                        "response_format": "b64_json"  # Request base64 directly
                     }
                 )
 
@@ -124,7 +125,7 @@ class OpenAIClient:
 
                 result = response.json()
                 return {
-                    "url": result["data"][0]["url"],
+                    "b64_json": result["data"][0]["b64_json"],
                     "revised_prompt": result["data"][0].get("revised_prompt", prompt)
                 }
 
