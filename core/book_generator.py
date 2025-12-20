@@ -1,13 +1,31 @@
 from typing import AsyncGenerator, Dict, Optional
 import json
 from .claude_client import ClaudeClient
+from .openai_client import OpenAIClient
 
 
 class BookGenerator:
-    """AI-powered book generation engine"""
+    """AI-powered book generation engine with support for Claude and OpenAI"""
 
-    def __init__(self, api_key: Optional[str] = None):
-        self.claude = ClaudeClient(api_key=api_key)
+    def __init__(self, api_key: Optional[str] = None, model_provider: str = "claude"):
+        """
+        Initialize the book generator
+
+        Args:
+            api_key: API key for the selected provider (optional, will use env vars)
+            model_provider: "claude" or "openai" (default: "claude")
+        """
+        self.model_provider = model_provider.lower()
+
+        if self.model_provider == "claude":
+            self.client = ClaudeClient(api_key=api_key)
+        elif self.model_provider == "openai":
+            self.client = OpenAIClient(api_key=api_key)
+        else:
+            raise ValueError(f"Unsupported model provider: {model_provider}. Use 'claude' or 'openai'")
+
+        # Always initialize OpenAI client for DALL-E image generation
+        self.openai_client = OpenAIClient(api_key=api_key) if self.model_provider != "openai" else self.client
 
     async def generate_book_structure(
         self,
@@ -77,7 +95,7 @@ DELIVER THIS EXACT JSON STRUCTURE:
 
 CRITICAL: Every page must serve a PURPOSE. Every transition must feel INEVITABLE. The structure should read like it was designed by a publishing house's editorial board, not generated randomly."""
 
-        response = await self.claude.generate(
+        response = await self.client.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=3000,
@@ -196,7 +214,7 @@ WRITING QUALITY STANDARDS:
 
 Write the complete first page NOW. Make it unforgettable."""
 
-        content = await self.claude.generate(
+        content = await self.client.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=2000,
@@ -312,7 +330,7 @@ Now write Page {page_outline['page_number']} with AUTOPUBLISHER EXCELLENCE.
 
 Remember: This will be sold on marketplaces like Amazon and Etsy. It must compete with traditionally published books. Make every word count."""
 
-        content = await self.claude.generate(
+        content = await self.client.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=2000,
@@ -530,7 +548,7 @@ Output ONLY the complete SVG code. No markdown fences, no explanations. Just the
 
 The cover should look like it was designed by a professional for a published book in PORTRAIT orientation."""
 
-        response = await self.claude.generate(
+        response = await self.client.generate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=3000,
@@ -558,6 +576,57 @@ The cover should look like it was designed by a professional for a published boo
                 svg_code = svg_code[svg_start:]
 
         return svg_code
+
+    async def generate_book_cover_image(
+        self,
+        book_title: str,
+        book_themes: list,
+        book_tone: str,
+        book_type: str = "general"
+    ) -> str:
+        """
+        Generate a professional book cover using DALL-E 3
+
+        Args:
+            book_title: The title of the book
+            book_themes: List of themes in the book
+            book_tone: The tone/style of the book
+            book_type: Type of book (kids, adult, educational, general)
+
+        Returns:
+            Base64-encoded PNG image data
+        """
+
+        # Build a detailed prompt for DALL-E
+        type_styles = {
+            "kids": "whimsical, colorful, playful children's book illustration style",
+            "adult": "sophisticated, elegant, mature literary fiction cover design",
+            "educational": "clean, professional, modern educational book design",
+            "general": "professional, eye-catching mainstream book cover design"
+        }
+
+        style = type_styles.get(book_type, type_styles["general"])
+
+        prompt = f"""A professional book cover design in portrait orientation with the title "{book_title}".
+Style: {style}.
+Themes: {', '.join(book_themes)}.
+Tone: {book_tone}.
+The cover should look like a published book you'd find in a bookstore, with elegant typography and a visually striking design.
+Include the book title prominently displayed.
+No author name needed.
+Professional publishing quality."""
+
+        # Generate image with DALL-E
+        result = await self.openai_client.generate_image(
+            prompt=prompt,
+            size="1024x1792",  # Portrait orientation for book cover
+            quality="hd"
+        )
+
+        # Download and convert to base64
+        image_base64 = await self.openai_client.download_image_as_base64(result["url"])
+
+        return image_base64
 
     def _build_page_context(self, previous_pages: list, max_pages: int = 3) -> str:
         """Build context string from previous pages"""

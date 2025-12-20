@@ -232,7 +232,8 @@ async def get_credits(
             "books_created": stats['total_books_created'],
             "pages_generated": stats['total_pages_generated'],
             "exports": stats['total_exports']
-        }
+        },
+        "preferred_model": user.preferred_model or 'claude'
     }
 
 
@@ -327,7 +328,9 @@ async def create_book(
 
     try:
         # Generate book structure (this takes 30+ seconds, connection would timeout if held open)
-        generator = BookGenerator(api_key=None)
+        # Use user's preferred model (default: claude)
+        preferred_model = user.preferred_model or 'claude'
+        generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
         structure = None
         first_page = None
@@ -465,7 +468,9 @@ async def generate_page(
 
     try:
         # Generate page (this takes 30+ seconds, NO DB CONNECTION HELD)
-        generator = BookGenerator(api_key=None)
+        # Use user's preferred model (default: claude)
+        preferred_model = user.preferred_model or 'claude'
+        generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
         next_page = await generator.generate_next_page(
             book_structure=book_data['structure'],
@@ -745,16 +750,22 @@ async def complete_book(
     try:
         # Generate cover (NO DB CONNECTION HELD - this takes 10-30 seconds)
         print(f"[COMPLETE] Initializing BookGenerator...", flush=True)
-        generator = BookGenerator(api_key=None)
+        # Use user's preferred model
+        preferred_model = user.preferred_model or 'claude'
+        generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
-        print(f"[COMPLETE] Generating cover SVG (this may take 10-30 seconds)...", flush=True)
-        cover_svg = await generator.generate_book_cover_svg(
+        # Always use DALL-E for image generation (better quality than SVG)
+        print(f"[COMPLETE] Generating cover image with DALL-E (this may take 10-30 seconds)...", flush=True)
+        cover_image_base64 = await generator.generate_book_cover_image(
             book_title=book_title,
             book_themes=book_themes,
             book_tone=book_tone,
             book_type=book_type
         )
         print(f"[COMPLETE] Cover generated successfully", flush=True)
+
+        # Store as data URL for easier frontend display
+        cover_svg = f"data:image/png;base64,{cover_image_base64}"
 
         # Now save the results to database (get fresh session)
         print(f"[COMPLETE] Marking book as complete in database...", flush=True)
@@ -1354,4 +1365,33 @@ async def update_user_email_endpoint(
     return {
         "success": True,
         "message": "Email updated successfully"
+    }
+
+
+@app.post("/api/users/update-preferred-model")
+async def update_preferred_model_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user's preferred AI model
+    """
+    model_provider = request.get('model_provider')
+
+    if not model_provider:
+        raise HTTPException(status_code=400, detail="Model provider is required")
+
+    # Validate model provider
+    if model_provider not in ['claude', 'openai']:
+        raise HTTPException(status_code=400, detail="Invalid model provider. Use 'claude' or 'openai'")
+
+    # Update user preferred model
+    user.preferred_model = model_provider
+    db.commit()
+
+    return {
+        "success": True,
+        "preferred_model": model_provider,
+        "message": f"Preferred model updated to {model_provider}"
     }

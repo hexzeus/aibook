@@ -63,6 +63,7 @@ class User(Base):
 
     # Settings
     preferences = Column(JSONB, default={})
+    preferred_model = Column(String(50), default='claude')  # claude or openai
 
     # Relationships
     books = relationship("Book", back_populates="user", cascade="all, delete-orphan")
