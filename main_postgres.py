@@ -575,8 +575,11 @@ async def list_books(
                 'book_type': b.book_type,
                 'target_pages': b.target_pages,
                 'page_count': b.current_page_count,
+                'pages_generated': b.current_page_count,
                 'completion_percentage': b.completion_percentage,
                 'status': b.status,
+                'is_completed': b.is_completed,
+                'cover_svg': b.cover_svg if b.is_completed else None,
                 'created_at': b.created_at.isoformat(),
                 'updated_at': b.updated_at.isoformat()
             }
@@ -609,7 +612,9 @@ async def list_in_progress_books(
                 'book_type': b.book_type,
                 'target_pages': b.target_pages,
                 'page_count': b.current_page_count,
+                'pages_generated': b.current_page_count,
                 'completion_percentage': b.completion_percentage,
+                'status': 'in_progress',
                 'created_at': b.created_at.isoformat(),
                 'updated_at': b.updated_at.isoformat()
             }
