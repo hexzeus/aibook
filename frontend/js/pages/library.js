@@ -127,7 +127,11 @@ function createBookCard(book) {
         <div class="book-card ${statusClass}" onclick="window.openBook('${book.book_id}')">
             ${isCompleted ? `
                 <div class="book-card-cover">
-                    ${book.cover_svg ? book.cover_svg : `
+                    ${book.cover_svg ?
+                        (book.cover_svg.startsWith('data:image') ?
+                            `<img src="${book.cover_svg}" alt="${escapeHtml(book.title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-lg);" />`
+                            : book.cover_svg
+                        ) : `
                         <div class="book-cover-placeholder">
                             <div class="placeholder-icon">📖</div>
                             <div class="placeholder-title">${escapeHtml(book.title)}</div>

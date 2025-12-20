@@ -60,7 +60,10 @@ function renderCompletedBook() {
                 <div class="book-cover-section">
                     ${currentBook.cover_svg ? `
                         <div class="book-cover-display">
-                            ${currentBook.cover_svg}
+                            ${currentBook.cover_svg.startsWith('data:image') ?
+                                `<img src="${currentBook.cover_svg}" alt="${escapeHtml(currentBook.title)}" style="width: 100%; height: auto; max-height: 600px; object-fit: contain; border-radius: var(--radius-xl);" />`
+                                : currentBook.cover_svg
+                            }
                         </div>
                     ` : `
                         <div class="book-cover-placeholder">
@@ -311,12 +314,17 @@ function attachEditorEventListeners() {
 
     // Complete book button
     const completeBtn = document.querySelector('.complete-book-btn');
+    console.log('[EDITOR] Complete book button found:', !!completeBtn);
     if (completeBtn) {
+        console.log('[EDITOR] Attaching click listener to complete book button');
         completeBtn.addEventListener('click', (e) => {
+            console.log('[EDITOR] Complete book button clicked!');
             e.preventDefault();
             e.stopPropagation();
             window.completeBook();
         });
+    } else {
+        console.log('[EDITOR] Complete book button NOT found. pagesGenerated:', currentBook.pages?.length, 'targetPages:', currentBook.target_pages, 'status:', currentBook.status);
     }
 
     // Save page button
@@ -496,15 +504,30 @@ window.generateNextPage = async function() {
 };
 
 window.completeBook = async function() {
-    const confirmed = await modal.confirm({
-        title: 'Complete Book?',
-        message: 'This will generate an AI cover for your book and mark it as completed (costs 2 credits). This may take 30-60 seconds.',
-        confirmText: 'Continue',
-        cancelText: 'Cancel',
-        type: 'warning'
-    });
+    console.log('[COMPLETE] completeBook function called');
+    console.log('[COMPLETE] Current book:', currentBook);
+    console.log('[COMPLETE] Modal utility:', modal);
 
-    if (!confirmed) {
+    try {
+        console.log('[COMPLETE] Calling modal.confirm...');
+        const confirmed = await modal.confirm({
+            title: 'Complete Book?',
+            message: 'This will generate an AI cover for your book and mark it as completed (costs 2 credits). This may take 30-60 seconds.',
+            confirmText: 'Continue',
+            cancelText: 'Cancel',
+            type: 'warning'
+        });
+
+        console.log('[COMPLETE] User confirmed:', confirmed);
+
+        if (!confirmed) {
+            console.log('[COMPLETE] User cancelled');
+            return;
+        }
+    } catch (error) {
+        console.error('[COMPLETE] Error showing confirmation modal:', error);
+        console.error('[COMPLETE] Error stack:', error.stack);
+        alert('Error showing confirmation: ' + error.message);
         return;
     }
 
@@ -739,7 +762,7 @@ window.generateIllustration = async function() {
         if (response.success) {
             alert('✅ Illustration generated successfully!');
             // Refresh the current page to show the illustration
-            await loadPage(currentPage);
+            displayPage(currentPage);
         } else {
             throw new Error(response.error || 'Failed to generate illustration');
         }
@@ -765,7 +788,7 @@ window.applyCustomStyle = async function() {
         if (response.success) {
             alert('✅ Custom style applied successfully!');
             // Refresh the current page to show styled content
-            await loadPage(currentPage);
+            displayPage(currentPage);
         } else {
             throw new Error(response.error || 'Failed to apply custom style');
         }

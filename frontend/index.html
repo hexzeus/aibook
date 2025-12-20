@@ -57,6 +57,19 @@
                     </p>
                 </div>
 
+                <div class="form-group">
+                    <label for="referralCode">Referral Code (Optional)</label>
+                    <input
+                        type="text"
+                        id="referralCode"
+                        placeholder="Enter referral code if you have one"
+                        style="text-transform: uppercase;"
+                    >
+                    <p class="form-hint" style="color: var(--text-tertiary); margin-top: 0.5rem; font-size: 0.75rem;">
+                        Get bonus credits when you use a referral code
+                    </p>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-block" id="authBtn">
                     <span id="authBtnText">Continue to Book Generator →</span>
                 </button>
@@ -94,6 +107,13 @@
                     <button class="btn btn-primary btn-sm" onclick="window.showCreditModal('purchase')" title="Buy more credits">
                         💎 Buy Credits
                     </button>
+                    <div class="model-selector">
+                        <label for="modelSelect" style="font-size: 0.75rem; color: var(--text-tertiary); margin-right: 0.5rem;">AI Model:</label>
+                        <select id="modelSelect" class="model-select" onchange="window.updatePreferredModel(this.value)">
+                            <option value="claude">Claude (Sonnet 4.5)</option>
+                            <option value="openai">ChatGPT (GPT-4o)</option>
+                        </select>
+                    </div>
                     <button class="theme-toggle" onclick="window.toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
                         <span id="themeIcon">☀️</span>
                     </button>

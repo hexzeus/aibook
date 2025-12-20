@@ -101,12 +101,18 @@ async function validateAndLoadUser() {
 
         if (response.success) {
             window.appState.credits = response.credits;
+            window.appState.preferred_model = response.preferred_model || 'claude';
             window.appState.currentUser = {
                 credits: response.credits,
-                usage: response.usage
+                usage: response.usage,
+                preferred_model: response.preferred_model || 'claude'
             };
 
             showMainApp();
+
+            // Update model selector
+            updateModelSelector(response.preferred_model || 'claude');
+
             return true;
         }
     } catch (error) {
@@ -193,18 +199,55 @@ function showMainApp() {
 window.updateCreditsDisplay = function() {
     const credits = window.appState.credits;
     if (credits) {
-        document.getElementById('creditsTotal').textContent = credits.total || 0;
-        document.getElementById('creditsUsed').textContent = credits.used || 0;
-        document.getElementById('creditsRemaining').textContent = credits.remaining || 0;
-
-        // Add visual warning if low on credits
         const remainingEl = document.getElementById('creditsRemaining');
-        if (credits.remaining <= 0) {
-            remainingEl.style.color = 'var(--danger)';
-        } else if (credits.remaining <= 10) {
-            remainingEl.style.color = 'var(--warning)';
-        } else {
-            remainingEl.style.color = 'var(--text-primary)';
+        if (remainingEl) {
+            remainingEl.textContent = credits.remaining || 0;
+
+            // Add visual warning if low on credits
+            if (credits.remaining <= 0) {
+                remainingEl.style.color = 'var(--danger)';
+            } else if (credits.remaining <= 10) {
+                remainingEl.style.color = 'var(--warning)';
+            } else {
+                remainingEl.style.color = 'var(--text-primary)';
+            }
+        }
+    }
+};
+
+/**
+ * Update model selector display
+ */
+window.updateModelSelector = function(preferredModel) {
+    const modelSelect = document.getElementById('modelSelect');
+    if (modelSelect) {
+        modelSelect.value = preferredModel || 'claude';
+    }
+};
+
+/**
+ * Update user's preferred AI model
+ */
+window.updatePreferredModel = async function(modelProvider) {
+    try {
+        const response = await api.post('/api/users/update-preferred-model', { model_provider: modelProvider });
+
+        if (response.success) {
+            toast.success(`AI model switched to ${modelProvider === 'claude' ? 'Claude (Sonnet 4.5)' : 'ChatGPT (GPT-4o)'}`);
+
+            // Update app state
+            if (window.appState) {
+                window.appState.preferred_model = modelProvider;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating preferred model:', error);
+        toast.error('Failed to update AI model preference');
+
+        // Revert selector to previous value
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect && window.appState) {
+            modelSelect.value = window.appState.preferred_model || 'claude';
         }
     }
 };
