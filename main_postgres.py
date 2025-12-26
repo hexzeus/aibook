@@ -571,6 +571,43 @@ async def update_page(
     }
 
 
+@app.put("/api/books/{book_id}/pages/{page_id}/notes")
+async def update_page_notes(
+    book_id: str,
+    page_id: str,
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update page notes - FREE"""
+    book_repo = BookRepository(db)
+
+    # Verify book belongs to user
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get page
+    page = db.query(Page).filter(
+        Page.page_id == uuid.UUID(page_id),
+        Page.book_id == uuid.UUID(book_id),
+        Page.is_deleted == False
+    ).first()
+
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Update notes
+    notes = request.get('notes', '')
+    page.notes = notes if notes.strip() else None
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Notes updated successfully"
+    }
+
+
 @app.delete("/api/books/page")
 async def delete_page(
     request: DeletePageRequest,

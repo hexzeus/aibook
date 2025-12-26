@@ -243,6 +243,9 @@ class Page(Base):
     is_edited = Column(Boolean, default=False)
     last_edited_at = Column(DateTime(timezone=True))
 
+    # User notes/annotations
+    notes = Column(Text)
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

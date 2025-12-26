@@ -18,6 +18,7 @@ import {
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import EditBookModal from '../components/EditBookModal';
+import PageNotes from '../components/PageNotes';
 import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
@@ -457,6 +458,11 @@ export default function Editor() {
                       <Edit3 className="w-4 h-4" />
                       {editMode ? 'Cancel' : 'Edit'}
                     </button>
+                    <PageNotes
+                      bookId={book.book_id}
+                      pageId={currentPage.page_id}
+                      pageNumber={currentPage.page_number}
+                    />
                     {!currentPage.is_title_page && (
                       <>
                         <button
