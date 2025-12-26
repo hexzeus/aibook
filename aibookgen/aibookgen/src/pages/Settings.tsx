@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Mail, Cpu, Save } from 'lucide-react';
+import { Mail, Cpu, Save, Bell } from 'lucide-react';
 import Layout from '../components/Layout';
 import { creditsApi, userApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
@@ -9,6 +9,13 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const toast = useToastStore();
   const [email, setEmail] = useState('');
+  const [notifications, setNotifications] = useState({
+    bookComplete: true,
+    pageGenerated: false,
+    creditLow: true,
+    weeklyDigest: false,
+    affiliateEarnings: true,
+  });
 
   const { data: stats } = useQuery({
     queryKey: ['credits'],
@@ -33,6 +40,21 @@ export default function Settings() {
   });
 
   const currentModel = stats?.preferred_model || 'claude';
+
+  // Load notification preferences from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('notification_preferences');
+    if (saved) {
+      setNotifications(JSON.parse(saved));
+    }
+  }, []);
+
+  const handleNotificationToggle = (key: keyof typeof notifications) => {
+    const updated = { ...notifications, [key]: !notifications[key] };
+    setNotifications(updated);
+    localStorage.setItem('notification_preferences', JSON.stringify(updated));
+    toast.success('Notification preferences updated');
+  };
 
   return (
     <Layout>
@@ -123,6 +145,122 @@ export default function Settings() {
                   {currentModel === 'openai' && '✓ Currently selected'}
                 </div>
               </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Bell className="w-6 h-6 text-brand-400" />
+              Notification Preferences
+            </h3>
+            <p className="text-gray-400 mb-6 text-sm">
+              Choose which email notifications you'd like to receive
+            </p>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div>
+                  <div className="font-semibold mb-1">Book Completion</div>
+                  <div className="text-sm text-gray-400">
+                    Notify me when a book generation is complete
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle('bookComplete')}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    notifications.bookComplete ? 'bg-brand-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      notifications.bookComplete ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              <label className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div>
+                  <div className="font-semibold mb-1">Page Generated</div>
+                  <div className="text-sm text-gray-400">
+                    Notify me each time a new page is generated
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle('pageGenerated')}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    notifications.pageGenerated ? 'bg-brand-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      notifications.pageGenerated ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              <label className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div>
+                  <div className="font-semibold mb-1">Low Credits Warning</div>
+                  <div className="text-sm text-gray-400">
+                    Alert me when credits are running low (below 100)
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle('creditLow')}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    notifications.creditLow ? 'bg-brand-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      notifications.creditLow ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              <label className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div>
+                  <div className="font-semibold mb-1">Weekly Digest</div>
+                  <div className="text-sm text-gray-400">
+                    Send me a weekly summary of my activity
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle('weeklyDigest')}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    notifications.weeklyDigest ? 'bg-brand-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      notifications.weeklyDigest ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
+
+              <label className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-all cursor-pointer">
+                <div>
+                  <div className="font-semibold mb-1">Affiliate Earnings</div>
+                  <div className="text-sm text-gray-400">
+                    Notify me when I earn affiliate commissions
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleNotificationToggle('affiliateEarnings')}
+                  className={`relative w-14 h-7 rounded-full transition-colors ${
+                    notifications.affiliateEarnings ? 'bg-brand-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      notifications.affiliateEarnings ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </label>
             </div>
           </div>
 
