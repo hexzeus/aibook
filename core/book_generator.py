@@ -607,16 +607,19 @@ The cover should look like it was designed by a professional for a published boo
 
         style = type_styles.get(book_type, type_styles["general"])
 
-        prompt = f"""A professional book cover BACKGROUND design in portrait orientation.
+        prompt = f"""An abstract artistic design suitable for a book cover background.
 Style: {style}.
 Themes: {', '.join(book_themes)}.
 Tone: {book_tone}.
 
-IMPORTANT: Create ONLY the background artwork/design - NO TEXT, NO TITLES, NO WORDS of any kind.
-The design should be a beautiful, atmospheric background that evokes the book's themes and mood.
-Leave plenty of space in the center for text overlay.
-Think of this as the artistic backdrop for a book cover where the title will be added separately.
-Professional publishing quality with balanced composition."""
+CRITICAL REQUIREMENTS:
+- NO TEXT, NO WORDS, NO LETTERS, NO BOOK SHAPES
+- Create an abstract artistic pattern, texture, or thematic imagery
+- NOT a book cover - just the artistic background design
+- Think: watercolor splash, gradient patterns, thematic imagery, artistic textures
+- The design will be cropped and used as fill for a book cover frame
+- Professional, artistic, evocative of the themes
+- Rich colors and visual interest"""
 
         # Generate image with DALL-E (returns base64 directly)
         result = await self.openai_client.generate_image(

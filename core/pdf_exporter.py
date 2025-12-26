@@ -111,7 +111,8 @@ class PDFExporter:
             for idx, page in enumerate(pages):
                 # Page 1 is the title page (cover), so actual content starts at page 2
                 content_page_number = idx + 1
-                temp_file = self._create_content_page_natural(pdf, page, content_page_number)
+                is_first_content_page = (idx == 0)
+                temp_file = self._create_content_page_natural(pdf, page, content_page_number, is_first_content_page)
                 if temp_file:
                     temp_files.append(temp_file)
 
@@ -173,8 +174,11 @@ class PDFExporter:
         pdf.set_line_width(1.5)
         pdf.line(30, pdf.get_y() + 3, self.page_width - 30, pdf.get_y() + 3)
 
-    def _create_content_page_natural(self, pdf: FPDF, page_data: Dict, page_num: int) -> Optional[str]:
+    def _create_content_page_natural(self, pdf: FPDF, page_data: Dict, page_num: int, is_first: bool = False) -> Optional[str]:
         """Create content page with natural flow - content can span multiple PDF pages
+
+        Args:
+            is_first: If True, don't add a new page (cover already started one)
 
         Returns:
             Optional[str]: Path to temporary image file if one was created, None otherwise
@@ -184,8 +188,10 @@ class PDFExporter:
         section = self._clean_text(page_data.get('section', ''))
         illustration_url = page_data.get('illustration_url')
 
-        # Start a new page for this content section
-        pdf.add_page()
+        # Add new page ONLY if not the first content page
+        # (The cover page already added the first page)
+        if not is_first:
+            pdf.add_page()
 
         # Elegant top border
         pdf.set_draw_color(*self.primary_color)

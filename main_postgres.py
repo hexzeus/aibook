@@ -1807,11 +1807,14 @@ async def generate_illustration_endpoint(
             raise HTTPException(status_code=503, detail="OpenAI API not configured. Please set OPEN_AI_ID or OPENAI_API_KEY environment variable.")
 
         # Enhance the prompt for better book illustrations
+        # IMPORTANT: No text/words in the image!
         enhanced_prompt = f"""Book illustration in a professional, artistic style: {prompt}
 
+CRITICAL: NO TEXT, NO WORDS, NO LETTERS of any kind in the image.
 Style: Digital art, clean composition, suitable for book publishing
 Quality: High detail, professional book illustration quality
-Mood: Appropriate for the context described"""
+Mood: Appropriate for the context described
+The illustration should be pure visual art without any written text or typography."""
 
         # Generate image with DALL-E 3
         response = openai_client.images.generate(
