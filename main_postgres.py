@@ -2055,6 +2055,95 @@ async def bulk_export_endpoint(
 
 
 # ============================================================================
+# PUBLISHING & VALIDATION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/books/validate-epub")
+async def validate_epub(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Validate EPUB for marketplace compliance"""
+    from core.epub_validator import EPUBValidator
+
+    book_id = request.get('book_id')
+    if not book_id:
+        raise HTTPException(status_code=400, detail="book_id required")
+
+    # Get book data
+    book_repo = BookRepository(db)
+    book_data = book_repo.get_book_with_pages(uuid.UUID(book_id), user.user_id)
+    if not book_data:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    try:
+        # Generate EPUB
+        exporter = EnhancedEPUBExporter()
+        epub_buffer = exporter.export_book(book_data)
+
+        # Validate
+        validator = EPUBValidator()
+        result = validator.validate(epub_buffer)
+
+        return {
+            'success': True,
+            'validation': result,
+            'ready_to_publish': result['valid'] and result['score'] >= 90
+        }
+
+    except Exception as e:
+        print(f"[EPUB VALIDATION ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}")
+
+
+@app.post("/api/books/check-readiness")
+async def check_marketplace_readiness(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Check book readiness for marketplace publishing"""
+    from core.epub_validator import MarketplaceReadinessChecker
+
+    book_id = request.get('book_id')
+    validate_epub = request.get('validate_epub', False)  # Optional full EPUB validation
+
+    if not book_id:
+        raise HTTPException(status_code=400, detail="book_id required")
+
+    # Get book data
+    book_repo = BookRepository(db)
+    book_data = book_repo.get_book_with_pages(uuid.UUID(book_id), user.user_id)
+    if not book_data:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    try:
+        # Generate EPUB if validation requested
+        epub_buffer = None
+        if validate_epub:
+            exporter = EnhancedEPUBExporter()
+            epub_buffer = exporter.export_book(book_data)
+
+        # Check readiness
+        checker = MarketplaceReadinessChecker()
+        result = checker.check_readiness(book_data, epub_buffer)
+
+        return {
+            'success': True,
+            **result
+        }
+
+    except Exception as e:
+        print(f"[READINESS CHECK ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Readiness check failed: {str(e)}")
+
+
+# ============================================================================
 # USER PROFILE ENDPOINTS
 # ============================================================================
 
