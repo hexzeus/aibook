@@ -15,6 +15,8 @@ import {
   Copy,
   Image,
   Palette,
+  Undo2,
+  Redo2,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -26,6 +28,7 @@ import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
 import { useToastStore } from '../store/toastStore';
+import { useUndoRedo } from '../hooks/useUndoRedo';
 import { triggerConfetti } from '../utils/confetti';
 import { countWords, formatWordCount, estimateReadingTime } from '../utils/textUtils';
 
@@ -39,7 +42,7 @@ export default function Editor() {
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [editMode, setEditMode] = useState(false);
-  const [editContent, setEditContent] = useState('');
+  const undoRedo = useUndoRedo('');
   const [userGuidance, setUserGuidance] = useState('');
   const [isEditBookModalOpen, setIsEditBookModalOpen] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
@@ -64,7 +67,7 @@ export default function Editor() {
 
   useEffect(() => {
     if (currentPage && !editMode) {
-      setEditContent(currentPage.content);
+      undoRedo.reset(currentPage.content);
     }
   }, [currentPage, editMode]);
 
@@ -73,7 +76,7 @@ export default function Editor() {
     if (!editMode || !currentPage) return;
 
     // Don't auto-save if content hasn't changed
-    if (editContent === currentPage.content) return;
+    if (undoRedo.value === currentPage.content) return;
 
     setSaveStatus('idle');
 
@@ -83,7 +86,7 @@ export default function Editor() {
         {
           book_id: bookId!,
           page_number: currentPage.page_number,
-          content: editContent,
+          content: undoRedo.value,
         },
         {
           onSuccess: () => {
@@ -98,7 +101,7 @@ export default function Editor() {
     }, 2000); // Auto-save after 2 seconds of no typing
 
     return () => clearTimeout(timer);
-  }, [editContent, editMode, currentPage, bookId]);
+  }, [undoRedo.value, editMode, currentPage, bookId]);
 
   const generatePageMutation = useMutation({
     mutationFn: (data: { book_id: string; page_number: number; user_input?: string }) =>
@@ -319,7 +322,7 @@ n  const applyStyleMutation = useMutation({
     updatePageMutation.mutate({
       book_id: book.book_id,
       page_number: currentPage.page_number,
-      content: editContent,
+      content: undoRedo.value,
     });
   };
 
@@ -531,7 +534,7 @@ n  const applyStyleMutation = useMutation({
                     <button
                       onClick={() => {
                         if (editMode) {
-                          setEditContent(currentPage.content);
+                          undoRedo.reset(currentPage.content);
                         }
                         setEditMode(!editMode);
                       }}
@@ -583,13 +586,43 @@ n  const applyStyleMutation = useMutation({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <AutoSaveIndicator status={saveStatus} lastSaved={lastSaved} />
-                      <span className="text-xs text-gray-400">
-                        {countWords(editContent)} words
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={undoRedo.undo}
+                            disabled={!undoRedo.canUndo}
+                            className="p-1.5 hover:bg-white/10 rounded transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Undo (Ctrl+Z)"
+                          >
+                            <Undo2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={undoRedo.redo}
+                            disabled={!undoRedo.canRedo}
+                            className="p-1.5 hover:bg-white/10 rounded transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Redo (Ctrl+Y)"
+                          >
+                            <Redo2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {countWords(undoRedo.value)} words
+                        </span>
+                      </div>
                     </div>
                     <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
+                      value={undoRedo.value}
+                      onChange={(e) => undoRedo.set(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Handle Ctrl+Z (undo) and Ctrl+Y (redo)
+                        if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+                          e.preventDefault();
+                          undoRedo.undo();
+                        } else if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+                          e.preventDefault();
+                          undoRedo.redo();
+                        }
+                      }}
                       className="input-field min-h-96 font-serif text-base leading-relaxed resize-none"
                     />
                     <button
