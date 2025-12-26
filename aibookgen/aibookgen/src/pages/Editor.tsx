@@ -742,22 +742,38 @@ export default function Editor() {
             <div className="card">
               <h3 className="font-semibold mb-4">Book Structure</h3>
               <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
-                {book.structure?.sections?.map((section, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all cursor-pointer"
-                    onClick={() => {
-                      const sectionPages = pages.filter(p => p.section === section.title);
-                      if (sectionPages.length > 0) {
-                        const index = pages.indexOf(sectionPages[0]);
-                        setCurrentPageIndex(index);
-                      }
-                    }}
-                  >
-                    <div className="font-medium text-sm mb-1">{section.title}</div>
-                    <div className="text-xs text-gray-400">{section.pages} pages</div>
+                {(() => {
+                  // Group pages by section and calculate unique sections
+                  const sectionMap = new Map<string, number>();
+                  pages.forEach(page => {
+                    if (page.section) {
+                      sectionMap.set(page.section, (sectionMap.get(page.section) || 0) + 1);
+                    }
+                  });
+
+                  // Convert to array and render
+                  return Array.from(sectionMap.entries()).map(([sectionTitle, pageCount]) => (
+                    <div
+                      key={sectionTitle}
+                      className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+                      onClick={() => {
+                        const sectionPages = pages.filter(p => p.section === sectionTitle);
+                        if (sectionPages.length > 0) {
+                          const index = pages.indexOf(sectionPages[0]);
+                          setCurrentPageIndex(index);
+                        }
+                      }}
+                    >
+                      <div className="font-medium text-sm mb-1">{sectionTitle}</div>
+                      <div className="text-xs text-gray-400">{pageCount} {pageCount === 1 ? 'page' : 'pages'}</div>
+                    </div>
+                  ));
+                })()}
+                {pages.length === 0 && (
+                  <div className="text-sm text-gray-500 text-center py-4">
+                    No sections yet. Generate pages to see structure.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 

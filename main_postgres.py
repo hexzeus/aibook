@@ -705,24 +705,29 @@ async def list_in_progress_books(
     book_repo = BookRepository(db)
     books = book_repo.list_in_progress_books(user.user_id, limit=limit, offset=offset)
 
+    # Calculate actual page counts from pages relationship
+    books_data = []
+    for b in books:
+        actual_page_count = len([p for p in b.pages if not p.is_deleted])
+        completion = int((actual_page_count / b.target_pages * 100)) if b.target_pages > 0 else 0
+
+        books_data.append({
+            'book_id': str(b.book_id),
+            'title': b.title,
+            'description': b.description,
+            'book_type': b.book_type,
+            'target_pages': b.target_pages,
+            'page_count': actual_page_count,
+            'pages_generated': actual_page_count,
+            'completion_percentage': completion,
+            'status': 'in_progress',
+            'created_at': b.created_at.isoformat(),
+            'updated_at': b.updated_at.isoformat()
+        })
+
     return {
         "success": True,
-        "books": [
-            {
-                'book_id': str(b.book_id),
-                'title': b.title,
-                'description': b.description,
-                'book_type': b.book_type,
-                'target_pages': b.target_pages,
-                'page_count': b.current_page_count,
-                'pages_generated': b.current_page_count,
-                'completion_percentage': b.completion_percentage,
-                'status': 'in_progress',
-                'created_at': b.created_at.isoformat(),
-                'updated_at': b.updated_at.isoformat()
-            }
-            for b in books
-        ],
+        "books": books_data,
         "total": len(books)
     }
 
@@ -748,9 +753,9 @@ async def list_completed_books(
                 'book_type': b.book_type,
                 'status': b.status,
                 'is_completed': b.is_completed,
-                'pages_generated': b.current_page_count,
+                'pages_generated': len([p for p in b.pages if not p.is_deleted]),
                 'total_pages': b.target_pages,
-                'page_count': b.current_page_count,
+                'page_count': len([p for p in b.pages if not p.is_deleted]),
                 'cover_svg': b.cover_svg,
                 'completed_at': b.completed_at.isoformat() if b.completed_at else None,
                 'created_at': b.created_at.isoformat()
