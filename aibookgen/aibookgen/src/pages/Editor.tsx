@@ -685,7 +685,7 @@ export default function Editor() {
                               title: 'Delete Illustration?',
                               message: 'Are you sure you want to delete this illustration? You can generate a new one afterwards.',
                               confirmText: 'Delete',
-                              confirmVariant: 'danger'
+                              variant: 'danger'
                             })) {
                               deleteIllustrationMutation.mutate(currentPage.page_number);
                             }
