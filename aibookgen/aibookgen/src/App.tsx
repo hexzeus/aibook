@@ -5,6 +5,7 @@ import { useAuthStore } from './store/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/ToastContainer';
 import LoadingScreen from './components/LoadingScreen';
+import OfflineIndicator from './components/OfflineIndicator';
 
 // Eager load critical pages
 import Auth from './pages/Auth';
@@ -28,8 +29,14 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: 3, // Retry failed requests 3 times
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
       staleTime: 30000,
+      refetchOnReconnect: true, // Refetch when internet connection is restored
+    },
+    mutations: {
+      retry: 2, // Retry failed mutations 2 times
+      retryDelay: 1000, // 1 second delay between retries
     },
   },
 });
@@ -142,6 +149,7 @@ export default function App() {
         </Routes>
         </Suspense>
         <ToastContainer />
+        <OfflineIndicator />
       </BrowserRouter>
     </QueryClientProvider>
     </ErrorBoundary>
