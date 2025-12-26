@@ -1911,6 +1911,139 @@ CRITICAL RULES:
         raise HTTPException(status_code=500, detail=f"Illustration generation failed: {str(e)}")
 
 
+@app.delete("/api/premium/delete-illustration")
+async def delete_illustration_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete illustration from a book page"""
+    book_id = request.get('book_id')
+    page_number = request.get('page_number')
+
+    if not all([book_id, page_number]):
+        raise HTTPException(status_code=400, detail="Missing book_id or page_number")
+
+    # Verify book ownership
+    book_repo = BookRepository(db)
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get the page
+    page = book_repo.get_page_by_number(uuid.UUID(book_id), page_number)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Clear the illustration
+    page.illustration_url = None
+    page.updated_at = datetime.utcnow()
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Illustration deleted successfully"
+    }
+
+
+@app.post("/api/books/{book_id}/regenerate-cover")
+async def regenerate_cover_endpoint(
+    book_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Regenerate book cover (costs 2 credits, same as complete book)"""
+    print(f"[REGENERATE COVER] Starting for book_id={book_id}", flush=True)
+    user_repo = UserRepository(db)
+    book_repo = BookRepository(db)
+
+    # Check credits
+    if user.credits_remaining < 2:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits. Need 2 for cover, have {user.credits_remaining}"
+        )
+
+    # Get book
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Extract book data
+    book_title = book.title
+    book_subtitle = book.subtitle if hasattr(book, 'subtitle') else None
+    book_themes = book.structure.get('themes', []) if book.structure else []
+    book_tone = book.structure.get('tone', 'engaging') if book.structure else 'engaging'
+    book_type = book.book_type
+
+    # Consume credits
+    user_repo.consume_credits(user.user_id, 2)
+    db.commit()
+
+    try:
+        # Generate new cover
+        print(f"[REGENERATE COVER] Generating cover BACKGROUND with DALL-E...", flush=True)
+        from core.book_generator import BookGenerator
+
+        preferred_model = user.preferred_model or 'claude'
+        generator = BookGenerator(api_key=None, model_provider=preferred_model)
+
+        cover_background_base64 = await generator.generate_book_cover_image(
+            book_title=book_title,
+            book_themes=book_themes,
+            book_tone=book_tone,
+            book_type=book_type
+        )
+        print(f"[REGENERATE COVER] Cover background generated", flush=True)
+
+        # Overlay text
+        print(f"[REGENERATE COVER] Adding title text overlay...", flush=True)
+        from core.cover_text_overlay import CoverTextOverlay
+        overlay_engine = CoverTextOverlay()
+
+        cover_image_base64 = overlay_engine.add_text_to_cover(
+            background_base64=cover_background_base64,
+            title=book_title,
+            subtitle=book_subtitle,
+            author=None
+        )
+        print(f"[REGENERATE COVER] Text overlay complete", flush=True)
+
+        # Store as data URL
+        cover_svg = f"data:image/jpeg;base64,{cover_image_base64}"
+
+        # Update book
+        book.cover_svg = cover_svg
+        book.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Log usage
+        usage_repo = UsageRepository(db)
+        usage_repo.log_action(
+            user_id=user.user_id,
+            action_type='cover_regenerated',
+            credits_consumed=2,
+            book_id=uuid.UUID(book_id)
+        )
+        db.commit()
+
+        return {
+            "success": True,
+            "cover_svg": cover_svg,
+            "message": "Cover regenerated successfully!"
+        }
+
+    except Exception as e:
+        # Refund credits on failure
+        db.rollback()
+        user_repo.refund_credits(user.user_id, 2)
+        db.commit()
+        print(f"[REGENERATE COVER ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Cover regeneration failed: {str(e)}")
+
+
 @app.post("/api/premium/apply-style")
 async def apply_custom_style_endpoint(
     request: dict,
