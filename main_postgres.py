@@ -45,10 +45,15 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS
+# CORS - Restrict to production frontend
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://aibooktool.netlify.app")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        FRONTEND_URL,
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative dev port
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,6 +104,18 @@ class ExportBookRequest(BaseModel):
 
 class CompleteBookRequest(BaseModel):
     book_id: str
+
+
+class UpdateBookRequest(BaseModel):
+    book_id: str
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    description: Optional[str] = None
+
+
+class DeletePageRequest(BaseModel):
+    book_id: str
+    page_id: str
 
 
 # Dependency to get current user
@@ -553,6 +570,33 @@ async def update_page(
     }
 
 
+@app.delete("/api/books/page")
+async def delete_page(
+    request: DeletePageRequest,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete page - FREE (soft delete)"""
+    book_repo = BookRepository(db)
+
+    # Verify book belongs to user
+    book = book_repo.get_book(uuid.UUID(request.book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Delete the page (soft delete)
+    deleted = book_repo.delete_page(uuid.UUID(request.page_id), soft_delete=True)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Page deleted successfully"
+    }
+
+
 @app.get("/api/books")
 async def list_books(
     user = Depends(get_current_user),
@@ -674,6 +718,42 @@ async def get_book(
     return {
         "success": True,
         "book": book_data
+    }
+
+
+@app.put("/api/books/{book_id}")
+async def update_book(
+    book_id: str,
+    request: UpdateBookRequest,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update book metadata (title, subtitle, description) - FREE"""
+    book_repo = BookRepository(db)
+
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Update only the fields that were provided
+    if request.title is not None:
+        book.title = request.title
+    if request.subtitle is not None:
+        book.subtitle = request.subtitle
+    if request.description is not None:
+        book.description = request.description
+
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Book updated successfully",
+        "book": {
+            "book_id": str(book.book_id),
+            "title": book.title,
+            "subtitle": book.subtitle,
+            "description": book.description
+        }
     }
 
 
