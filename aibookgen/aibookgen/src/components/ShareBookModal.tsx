@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Share2, Copy, Check, Mail, MessageCircle, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { X, Share2, Copy, Check, Mail, Facebook, Twitter, Linkedin } from 'lucide-react';
 import { copyToClipboard, shareContent } from '../utils/clipboard';
 
 interface ShareBookModalProps {
@@ -121,7 +121,7 @@ export default function ShareBookModal({ isOpen, onClose, bookTitle, bookId }: S
         </div>
 
         {/* Native Share Button (mobile-friendly) */}
-        {navigator.share && (
+        {typeof navigator !== 'undefined' && typeof navigator.share !== 'undefined' && (
           <button
             onClick={handleNativeShare}
             className="w-full btn-secondary flex items-center justify-center gap-2 mb-6"

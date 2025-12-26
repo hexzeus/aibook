@@ -1084,14 +1084,20 @@ async def export_book(
         db.commit()
     except Exception as e:
         db.rollback()
+        print(f"[EXPORT ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
     filename = f"{book_data['title'].replace(' ', '_')}.epub"
 
+    # Reset buffer position to start before streaming
+    epub_buffer.seek(0)
+
     return StreamingResponse(
         epub_buffer,
         media_type="application/epub+zip",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
 
@@ -1739,6 +1745,10 @@ async def bulk_export_endpoint(
     db: Session = Depends(get_db)
 ):
     """Bulk export book to multiple formats (Premium feature - 1 credit per format)"""
+    import zipfile
+    from io import BytesIO
+    from core.pdf_exporter import PDFExporter
+
     book_id = request.get('book_id')
     formats = request.get('formats', [])
 
@@ -1747,8 +1757,9 @@ async def bulk_export_endpoint(
 
     # Verify book ownership
     book_repo = BookRepository(db)
-    book = book_repo.get_book(book_id, user.user_id)
-    if not book:
+    usage_repo = UsageRepository(db)
+    book_data = book_repo.get_book_with_pages(uuid.UUID(book_id), user.user_id)
+    if not book_data:
         raise HTTPException(status_code=404, detail="Book not found")
 
     credits_needed = len(formats)
@@ -1760,25 +1771,86 @@ async def bulk_export_endpoint(
 
     # Consume credits
     user_repo.consume_credits(user.user_id, credits_needed)
-    db.commit()
 
     try:
-        # TODO: Implement actual export functionality
-        # For now, return placeholder URLs
-        download_urls = {}
-        for fmt in formats:
-            download_urls[fmt] = f"https://placeholder.com/{book_id}.{fmt}"
+        # Create ZIP file with all formats
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            base_filename = book_data['title'].replace(' ', '_')
 
-        return {
-            "success": True,
-            "download_urls": download_urls,
-            "message": "Bulk export coming soon"
-        }
+            for fmt in formats:
+                try:
+                    if fmt.lower() == 'epub':
+                        exporter = EnhancedEPUBExporter()
+                        file_buffer = exporter.export_book(book_data)
+                        file_buffer.seek(0)
+                        zip_file.writestr(f"{base_filename}.epub", file_buffer.read())
+
+                    elif fmt.lower() == 'pdf':
+                        exporter = PDFExporter()
+                        file_buffer = exporter.export_book(book_data)
+                        file_buffer.seek(0)
+                        zip_file.writestr(f"{base_filename}.pdf", file_buffer.read())
+
+                    elif fmt.lower() == 'txt':
+                        # Simple text export
+                        text_content = f"{book_data['title']}\n"
+                        text_content += f"by {book_data.get('author_name', 'Unknown')}\n\n"
+                        text_content += "=" * 50 + "\n\n"
+                        for page in book_data.get('pages', []):
+                            if page.get('section'):
+                                text_content += f"\n## {page['section']}\n\n"
+                            text_content += page.get('content', '') + "\n\n"
+                        zip_file.writestr(f"{base_filename}.txt", text_content.encode('utf-8'))
+
+                    elif fmt.lower() == 'docx':
+                        # For now, export as RTF (simple format)
+                        rtf_content = "{\\rtf1\\ansi\\deff0\n"
+                        rtf_content += "{\\fonttbl{\\f0 Times New Roman;}}\n"
+                        rtf_content += f"{{\\title {book_data['title']}}}\n"
+                        rtf_content += f"{{\\author {book_data.get('author_name', 'Unknown')}}}\n"
+                        for page in book_data.get('pages', []):
+                            if page.get('section'):
+                                rtf_content += f"\\par\\b {page['section']}\\b0\\par\n"
+                            content = page.get('content', '').replace('\n', '\\par\n')
+                            rtf_content += f"{content}\\par\n"
+                        rtf_content += "}"
+                        zip_file.writestr(f"{base_filename}.rtf", rtf_content.encode('utf-8'))
+
+                    # Log each export
+                    usage_repo.log_action(
+                        user_id=user.user_id,
+                        action_type='book_exported',
+                        credits_consumed=1,
+                        book_id=uuid.UUID(book_id),
+                        metadata={'format': fmt.lower(), 'bulk': True}
+                    )
+
+                except Exception as format_error:
+                    print(f"[BULK EXPORT] Failed to export {fmt}: {str(format_error)}")
+                    # Continue with other formats
+
+        db.commit()
+
+        # Reset buffer and return ZIP
+        zip_buffer.seek(0)
+        filename = f"{book_data['title'].replace(' ', '_')}_bulk_export.zip"
+
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
     except Exception as e:
+        db.rollback()
         # Refund credits on failure
         user_repo.refund_credits(user.user_id, credits_needed)
         db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[BULK EXPORT ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Bulk export failed: {str(e)}")
 
 
 # ============================================================================

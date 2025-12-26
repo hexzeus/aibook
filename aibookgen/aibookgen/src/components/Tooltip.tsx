@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
@@ -11,8 +11,8 @@ interface TooltipProps {
 export default function Tooltip({ content, children, position = 'top', delay = 500 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
-  const triggerRef = useRef<HTMLElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     return () => {
@@ -63,17 +63,18 @@ export default function Tooltip({ content, children, position = 'top', delay = 5
     setIsVisible(false);
   };
 
-  const child = React.cloneElement(children, {
-    ref: triggerRef,
-    onMouseEnter: showTooltip,
-    onMouseLeave: hideTooltip,
-    onFocus: showTooltip,
-    onBlur: hideTooltip,
-  });
-
   return (
     <>
-      {child}
+      <div
+        ref={triggerRef}
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
+        style={{ display: 'inline-block' }}
+      >
+        {children}
+      </div>
       {isVisible &&
         createPortal(
           <div

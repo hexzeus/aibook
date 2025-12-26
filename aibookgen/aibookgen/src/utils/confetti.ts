@@ -57,6 +57,8 @@ export function triggerConfetti(duration = 3000) {
   let animationFrame: number;
 
   function animate() {
+    if (!ctx) return;
+
     const elapsed = Date.now() - startTime;
     if (elapsed > duration) {
       document.body.removeChild(canvas);

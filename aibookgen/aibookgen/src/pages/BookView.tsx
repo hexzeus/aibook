@@ -271,9 +271,11 @@ export default function BookView() {
 
       {showReorderModal && (
         <PageReorderModal
+          isOpen={showReorderModal}
           pages={pages}
           onClose={() => setShowReorderModal(false)}
           onReorder={(pageOrder) => reorderPagesMutation.mutate(pageOrder)}
+          isSaving={reorderPagesMutation.isPending}
         />
       )}
 

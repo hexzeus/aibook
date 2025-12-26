@@ -178,7 +178,8 @@ export default function Editor() {
       toast.error(error?.response?.data?.detail || 'Failed to generate illustration');
     },
   });
-n  const applyStyleMutation = useMutation({
+
+  const applyStyleMutation = useMutation({
     mutationFn: ({ pageNumber, style }: { pageNumber: number; style: string }) =>
       premiumApi.applyStyle(bookId!, style, [pageNumber]),
     onSuccess: () => {
@@ -856,6 +857,8 @@ n  const applyStyleMutation = useMutation({
             </div>
           </div>
         </div>
+      )}
+
       {showStyleModal && currentPage && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-morphism rounded-2xl p-6 max-w-md w-full border border-white/10 animate-scale-in">
@@ -923,8 +926,6 @@ n  const applyStyleMutation = useMutation({
         isExporting={bulkExportMutation.isPending}
         bookTitle={book?.title || ''}
       />
-
-      )}
     </Layout>
   );
 }
