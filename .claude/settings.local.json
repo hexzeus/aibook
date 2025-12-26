@@ -11,7 +11,11 @@
       "Bash(taskkill //F //PID 17044)",
       "Bash(curl:*)",
       "Bash(taskkill:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)"
     ]
   }
 }

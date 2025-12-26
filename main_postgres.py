@@ -757,13 +757,107 @@ async def update_book(
     }
 
 
+@app.post("/api/books/{book_id}/archive")
+async def archive_book(
+    book_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Archive book (soft delete, can be restored) - FREE"""
+    book_repo = BookRepository(db)
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    book.is_deleted = True
+    book.deleted_at = datetime.utcnow()
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Book archived successfully"
+    }
+
+
+@app.post("/api/books/{book_id}/restore")
+async def restore_book(
+    book_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Restore archived book - FREE"""
+    book_repo = BookRepository(db)
+
+    # Get book even if deleted
+    book = db.query(Book).filter(
+        Book.book_id == uuid.UUID(book_id),
+        Book.user_id == user.user_id
+    ).first()
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    book.is_deleted = False
+    book.deleted_at = None
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Book restored successfully"
+    }
+
+
+@app.get("/api/books/archived")
+async def get_archived_books(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all archived books"""
+    archived = db.query(Book).filter(
+        Book.user_id == user.user_id,
+        Book.is_deleted == True
+    ).order_by(Book.deleted_at.desc()).all()
+
+    books_data = []
+    for book in archived:
+        pages = [p for p in book.pages if not p.is_deleted]
+        page_count = len(pages)
+        pages_generated = page_count
+        completion_percentage = int((pages_generated / book.target_pages * 100)) if book.target_pages > 0 else 0
+
+        books_data.append({
+            'book_id': str(book.book_id),
+            'title': book.title,
+            'subtitle': book.subtitle,
+            'description': book.description,
+            'book_type': book.book_type,
+            'target_pages': book.target_pages,
+            'page_count': page_count,
+            'pages_generated': pages_generated,
+            'completion_percentage': completion_percentage,
+            'status': book.status,
+            'is_completed': book.is_completed,
+            'cover_svg': book.cover_svg,
+            'created_at': book.created_at.isoformat() if book.created_at else None,
+            'updated_at': book.updated_at.isoformat() if book.updated_at else None,
+            'completed_at': book.completed_at.isoformat() if book.completed_at else None,
+            'deleted_at': book.deleted_at.isoformat() if book.deleted_at else None,
+        })
+
+    return {
+        "success": True,
+        "books": books_data
+    }
+
+
 @app.delete("/api/books/{book_id}")
 async def delete_book(
     book_id: str,
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Delete book - FREE"""
+    """Delete book permanently - FREE"""
     book_repo = BookRepository(db)
     deleted = book_repo.delete_book(uuid.UUID(book_id), user.user_id, soft_delete=True)
 
