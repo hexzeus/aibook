@@ -248,7 +248,7 @@ class Page(Base):
     notes = Column(Text)
 
     # Premium features
-    illustration_url = Column(String(1000))  # URL to generated illustration image
+    illustration_url = Column(Text)  # Base64 data URL for illustration image (can be >100KB)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
