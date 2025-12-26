@@ -87,6 +87,7 @@ export interface Page {
   word_count?: number;
   created_at: string;
   notes?: string;
+  illustration_url?: string;
 }
 
 export interface Credits {

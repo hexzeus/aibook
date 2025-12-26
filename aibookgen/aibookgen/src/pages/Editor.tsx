@@ -656,6 +656,15 @@ export default function Editor() {
                   </div>
                 ) : (
                   <div className="prose prose-invert prose-lg max-w-none">
+                    {currentPage.illustration_url && (
+                      <div className="mb-6 rounded-lg overflow-hidden border border-white/10">
+                        <img
+                          src={currentPage.illustration_url}
+                          alt={`Illustration for page ${currentPage.page_number}`}
+                          className="w-full h-auto"
+                        />
+                      </div>
+                    )}
                     <div className="whitespace-pre-wrap font-serif text-base leading-relaxed">
                       {currentPage.content}
                     </div>
