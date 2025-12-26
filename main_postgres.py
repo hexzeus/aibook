@@ -101,6 +101,7 @@ class UpdatePageRequest(BaseModel):
 
 class ExportBookRequest(BaseModel):
     book_id: str
+    format: str = 'epub'  # epub, pdf, docx, txt
 
 
 class CompleteBookRequest(BaseModel):
@@ -1037,12 +1038,19 @@ async def export_book(
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Export book to EPUB - Costs 1 credit (premium feature)"""
+    """Export book in multiple formats - Costs 1 credit per export"""
+    from core.pdf_exporter import PDFExporter
+
     user_repo = UserRepository(db)
     book_repo = BookRepository(db)
     usage_repo = UsageRepository(db)
 
-    # Check credits (1 credit for professional EPUB export)
+    # Normalize format
+    export_format = request.format.lower()
+    if export_format not in ['epub', 'pdf', 'docx', 'txt']:
+        raise HTTPException(status_code=400, detail=f"Unsupported format: {export_format}")
+
+    # Check credits
     if user.credits_remaining < 1:
         raise HTTPException(
             status_code=402,
@@ -1057,16 +1065,58 @@ async def export_book(
     user_repo.consume_credits(user.user_id, 1)
 
     try:
-        # Generate EPUB
-        exporter = EnhancedEPUBExporter()
-        epub_buffer = exporter.export_book(book_data)
+        # Generate file based on format
+        if export_format == 'epub':
+            exporter = EnhancedEPUBExporter()
+            file_buffer = exporter.export_book(book_data)
+            media_type = "application/epub+zip"
+            extension = "epub"
+
+        elif export_format == 'pdf':
+            exporter = PDFExporter()
+            file_buffer = exporter.export_book(book_data)
+            media_type = "application/pdf"
+            extension = "pdf"
+
+        elif export_format == 'txt':
+            # Simple text export
+            text_content = f"{book_data['title']}\n"
+            text_content += f"by {book_data.get('author_name', 'Unknown')}\n\n"
+            text_content += "=" * 50 + "\n\n"
+            for page in book_data.get('pages', []):
+                if page.get('section'):
+                    text_content += f"\n## {page['section']}\n\n"
+                text_content += page.get('content', '') + "\n\n"
+
+            from io import BytesIO
+            file_buffer = BytesIO(text_content.encode('utf-8'))
+            media_type = "text/plain"
+            extension = "txt"
+
+        elif export_format == 'docx':
+            # Export as RTF (compatible with Word)
+            rtf_content = "{\\rtf1\\ansi\\deff0\n"
+            rtf_content += "{\\fonttbl{\\f0 Times New Roman;}}\n"
+            rtf_content += f"{{\\title {book_data['title']}}}\n"
+            rtf_content += f"{{\\author {book_data.get('author_name', 'Unknown')}}}\n"
+            for page in book_data.get('pages', []):
+                if page.get('section'):
+                    rtf_content += f"\\par\\b {page['section']}\\b0\\par\n"
+                content = page.get('content', '').replace('\n', '\\par\n')
+                rtf_content += f"{content}\\par\n"
+            rtf_content += "}"
+
+            from io import BytesIO
+            file_buffer = BytesIO(rtf_content.encode('utf-8'))
+            media_type = "application/rtf"
+            extension = "rtf"
 
         # Log export
         usage_repo.create_export(
             book_id=uuid.UUID(request.book_id),
             user_id=user.user_id,
-            format='epub',
-            file_size_bytes=epub_buffer.getbuffer().nbytes
+            format=export_format,
+            file_size_bytes=file_buffer.getbuffer().nbytes
         )
 
         # Log usage
@@ -1075,7 +1125,7 @@ async def export_book(
             action_type='book_exported',
             credits_consumed=1,
             book_id=uuid.UUID(request.book_id),
-            metadata={'format': 'epub'}
+            metadata={'format': export_format}
         )
 
         # Update stats
@@ -1089,14 +1139,14 @@ async def export_book(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
-    filename = f"{book_data['title'].replace(' ', '_')}.epub"
+    filename = f"{book_data['title'].replace(' ', '_')}.{extension}"
 
     # Reset buffer position to start before streaming
-    epub_buffer.seek(0)
+    file_buffer.seek(0)
 
     return StreamingResponse(
-        epub_buffer,
-        media_type="application/epub+zip",
+        file_buffer,
+        media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 

@@ -221,8 +221,11 @@ export const booksApi = {
     return response.data;
   },
 
-  exportBook: async (bookId: string): Promise<Blob> => {
-    const response = await api.post('/api/books/export', { book_id: bookId }, {
+  exportBook: async (bookId: string, format: 'epub' | 'pdf' | 'docx' = 'epub'): Promise<Blob> => {
+    const response = await api.post('/api/books/export', {
+      book_id: bookId,
+      format: format
+    }, {
       responseType: 'blob',
     });
     return response.data;

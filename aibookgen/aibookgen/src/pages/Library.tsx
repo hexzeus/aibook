@@ -87,7 +87,7 @@ export default function Library() {
   });
 
   const exportBookMutation = useMutation({
-    mutationFn: booksApi.exportBook,
+    mutationFn: (bookId: string) => booksApi.exportBook(bookId, 'epub'),
     onSuccess: (blob, bookId) => {
       const book = filteredBooks?.find(b => b.book_id === bookId);
       const url = window.URL.createObjectURL(blob);

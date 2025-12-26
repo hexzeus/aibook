@@ -230,7 +230,17 @@ export default function Editor() {
 
   const bulkExportMutation = useMutation({
     mutationFn: (formats: string[]) => premiumApi.bulkExport(bookId!, formats),
-    onSuccess: () => {
+    onSuccess: (blob: Blob) => {
+      // Create download link for ZIP file
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book?.title.replace(/\s+/g, '_')}_bulk_export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       setShowBulkExportModal(false);
       toast.success('Bulk export completed! Check your downloads folder.');

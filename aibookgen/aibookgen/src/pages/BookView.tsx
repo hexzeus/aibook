@@ -8,7 +8,9 @@ import ShareBookModal from '../components/ShareBookModal';
 import ConfirmModal from '../components/ConfirmModal';
 import BookStats from '../components/BookStats';
 import QuickActionsMenu, { createBookActions } from '../components/QuickActionsMenu';
-import { booksApi } from '../lib/api';
+import ExportDropdown from '../components/ExportDropdown';
+import BulkExportModal from '../components/BulkExportModal';
+import { booksApi, premiumApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
 import { useConfirm } from '../hooks/useConfirm';
 import { countWords, estimateReadingTime } from '../utils/textUtils';
@@ -22,6 +24,8 @@ export default function BookView() {
   const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm();
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showBulkExportModal, setShowBulkExportModal] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<'epub' | 'pdf' | 'docx'>('epub');
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -30,17 +34,43 @@ export default function BookView() {
   });
 
   const exportBookMutation = useMutation({
-    mutationFn: (bookId: string) => booksApi.exportBook(bookId),
+    mutationFn: (format: 'epub' | 'pdf' | 'docx') => booksApi.exportBook(bookId!, format),
     onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${book?.title}.epub`;
+      const extension = selectedFormat === 'docx' ? 'rtf' : selectedFormat;
+      a.download = `${book?.title.replace(/\s+/g, '_')}.${extension}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       queryClient.invalidateQueries({ queryKey: ['credits'] });
+      toast.success(`Book exported as ${selectedFormat.toUpperCase()} successfully!`);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Export failed');
+    },
+  });
+
+  const bulkExportMutation = useMutation({
+    mutationFn: (formats: string[]) => premiumApi.bulkExport(bookId!, formats),
+    onSuccess: (blob: Blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${book?.title.replace(/\s+/g, '_')}_bulk_export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      setShowBulkExportModal(false);
+      toast.success('Bulk export completed! Check your downloads folder.');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Bulk export failed');
     },
   });
 
@@ -188,23 +218,16 @@ export default function BookView() {
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={() => exportBookMutation.mutate(book.book_id)}
-                  disabled={exportBookMutation.isPending}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  {exportBookMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5" />
-                      Download EPUB
-                    </>
-                  )}
-                </button>
+                <ExportDropdown
+                  bookId={book.book_id}
+                  bookTitle={book.title}
+                  isExporting={exportBookMutation.isPending}
+                  onExport={(format) => {
+                    setSelectedFormat(format);
+                    exportBookMutation.mutate(format);
+                  }}
+                  onBulkExport={() => setShowBulkExportModal(true)}
+                />
                 <button
                   onClick={() => navigate(`/editor/${book.book_id}`)}
                   className="btn-secondary flex items-center gap-2"
@@ -284,6 +307,14 @@ export default function BookView() {
         onClose={() => setShowShareModal(false)}
         bookTitle={book?.title || ''}
         bookId={bookId || ''}
+      />
+
+      <BulkExportModal
+        isOpen={showBulkExportModal}
+        onClose={() => setShowBulkExportModal(false)}
+        onExport={(formats) => bulkExportMutation.mutate(formats)}
+        isExporting={bulkExportMutation.isPending}
+        bookTitle={book?.title || ''}
       />
 
       {isOpen && (
