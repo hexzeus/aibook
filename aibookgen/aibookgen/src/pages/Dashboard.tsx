@@ -9,6 +9,7 @@ import EmailCaptureModal from '../components/EmailCaptureModal';
 import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal';
 import OnboardingModal from '../components/OnboardingModal';
 import ResumeGenerationBanner from '../components/ResumeGenerationBanner';
+import LowCreditWarning from '../components/LowCreditWarning';
 import { DashboardStatsSkeleton, BookCardSkeleton } from '../components/Skeleton';
 import { useToastStore } from '../store/toastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dismissedResumeBook, setDismissedResumeBook] = useState<string | null>(null);
+  const [dismissedLowCredit, setDismissedLowCredit] = useState(false);
 
   useKeyboardShortcuts([
     { key: 'n', ctrl: true, action: () => setShowCreateModal(true), description: 'Create new book' },
@@ -114,6 +116,13 @@ export default function Dashboard() {
               ))
             }
           </>
+        )}
+
+        {!dismissedLowCredit && stats && (
+          <LowCreditWarning
+            remainingCredits={stats.credits.remaining}
+            onDismiss={() => setDismissedLowCredit(true)}
+          />
         )}
 
         {isLoadingStats ? (

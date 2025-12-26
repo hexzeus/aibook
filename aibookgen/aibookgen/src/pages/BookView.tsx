@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen } from 'lucide-react';
 import Layout from '../components/Layout';
 import PageReorderModal from '../components/PageReorderModal';
+import BookStats from '../components/BookStats';
 import { booksApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
+import { countWords, estimateReadingTime } from '../utils/textUtils';
 
 export default function BookView() {
   const { bookId } = useParams();
@@ -147,6 +149,15 @@ export default function BookView() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mb-6">
+          <BookStats
+            totalWords={pages.reduce((sum, page) => sum + countWords(page.content), 0)}
+            readingTime={estimateReadingTime(pages.reduce((sum, page) => sum + countWords(page.content), 0))}
+            pageCount={pages.length}
+            completionDate={book.completed_at}
+          />
         </div>
 
         <div className="card">
