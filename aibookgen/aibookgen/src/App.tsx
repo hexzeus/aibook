@@ -1,24 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/ToastContainer';
 import LoadingScreen from './components/LoadingScreen';
+
+// Eager load critical pages
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
-import Editor from './pages/Editor';
-import Library from './pages/Library';
-import Credits from './pages/Credits';
-import Affiliate from './pages/Affiliate';
-import Settings from './pages/Settings';
-import Subscriptions from './pages/Subscriptions';
-import BookView from './pages/BookView';
-import NotFound from './pages/NotFound';
-import TermsOfService from './pages/TermsOfService';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import FAQ from './pages/FAQ';
-import ExportHistory from './pages/ExportHistory';
+
+// Lazy load other pages for code splitting
+const Editor = lazy(() => import('./pages/Editor'));
+const Library = lazy(() => import('./pages/Library'));
+const Credits = lazy(() => import('./pages/Credits'));
+const Affiliate = lazy(() => import('./pages/Affiliate'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Subscriptions = lazy(() => import('./pages/Subscriptions'));
+const BookView = lazy(() => import('./pages/BookView'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const ExportHistory = lazy(() => import('./pages/ExportHistory'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +59,7 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route
@@ -135,6 +140,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>

@@ -10,14 +10,48 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'query': ['@tanstack/react-query'],
-          'store': ['zustand'],
-        },
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
       },
     },
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'query';
+            }
+            if (id.includes('zustand')) {
+              return 'store';
+            }
+            if (id.includes('axios')) {
+              return 'api';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+            // Other node_modules
+            return 'vendor';
+          }
+
+          // Page chunks for code splitting
+          if (id.includes('/pages/')) {
+            const pageName = id.split('/pages/')[1].split('.')[0];
+            return `page-${pageName.toLowerCase()}`;
+          }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 })
