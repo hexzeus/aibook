@@ -712,23 +712,23 @@ class EnhancedEPUBExporter:
                     print(f"[EPUB] Resizing cover from {img.width}x{img.height} to {kdp_width}x{kdp_height} for Amazon KDP", flush=True)
                     img = img.resize((kdp_width, kdp_height), Image.Resampling.LANCZOS)
 
-                # Compress with quality 85
+                # Start with quality 70 to ensure we stay under 127KB
                 img_buffer = BytesIO()
-                img.save(img_buffer, format='JPEG', quality=85, optimize=True)
+                img.save(img_buffer, format='JPEG', quality=70, optimize=True)
                 compressed_cover = img_buffer.getvalue()
 
-                # If still too large, compress to quality 70
+                # If still too large, compress to quality 60
                 if len(compressed_cover) > 127 * 1024:
-                    print(f"[EPUB] Cover too large ({len(compressed_cover)//1024}KB), compressing to quality 70", flush=True)
+                    print(f"[EPUB] Cover too large ({len(compressed_cover)//1024}KB), compressing to quality 60", flush=True)
                     img_buffer = BytesIO()
-                    img.save(img_buffer, format='JPEG', quality=70, optimize=True)
+                    img.save(img_buffer, format='JPEG', quality=60, optimize=True)
                     compressed_cover = img_buffer.getvalue()
 
-                # Final fallback - very aggressive compression
+                # Final fallback - very aggressive compression at quality 50
                 if len(compressed_cover) > 127 * 1024:
-                    print(f"[EPUB] Still too large ({len(compressed_cover)//1024}KB), compressing to quality 55", flush=True)
+                    print(f"[EPUB] Still too large ({len(compressed_cover)//1024}KB), compressing to quality 50", flush=True)
                     img_buffer = BytesIO()
-                    img.save(img_buffer, format='JPEG', quality=55, optimize=True)
+                    img.save(img_buffer, format='JPEG', quality=50, optimize=True)
                     compressed_cover = img_buffer.getvalue()
 
                 # Add cover image
