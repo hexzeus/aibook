@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen, Share2 } from 'lucide-react';
+import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen, Share2, Rocket } from 'lucide-react';
 import Layout from '../components/Layout';
 import PageReorderModal from '../components/PageReorderModal';
 import ShareBookModal from '../components/ShareBookModal';
@@ -10,6 +10,8 @@ import BookStats from '../components/BookStats';
 import QuickActionsMenu, { createBookActions } from '../components/QuickActionsMenu';
 import ExportDropdown from '../components/ExportDropdown';
 import BulkExportModal from '../components/BulkExportModal';
+import ReadinessCard from '../components/ReadinessCard';
+import ValidationResults from '../components/ValidationResults';
 import { booksApi, premiumApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
 import { useConfirm } from '../hooks/useConfirm';
@@ -25,6 +27,7 @@ export default function BookView() {
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showBulkExportModal, setShowBulkExportModal] = useState(false);
+  const [showValidationResults, setShowValidationResults] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<'epub' | 'pdf' | 'docx'>('epub');
 
   const { data, isLoading } = useQuery({
@@ -210,7 +213,15 @@ export default function BookView() {
               <p className="text-gray-400 mb-6">{book.description}</p>
 
               <div className="flex items-center gap-4 mb-6 text-sm text-gray-400">
-                <span>{pages.length} pages</span>
+                <span>{pages.length} {pages.length === 1 ? 'section' : 'sections'}</span>
+                <span>•</span>
+                {book.epub_page_count && (
+                  <>
+                    <span>~{book.epub_page_count} EPUB pages</span>
+                    <span>•</span>
+                  </>
+                )}
+                <span>{pages.reduce((sum, page) => sum + countWords(page.content), 0).toLocaleString()} words</span>
                 <span>•</span>
                 <span>{book.book_type}</span>
                 <span>•</span>
@@ -218,6 +229,13 @@ export default function BookView() {
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => setShowValidationResults(true)}
+                  className="btn-primary flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  <Rocket className="w-5 h-5" />
+                  Publish
+                </button>
                 <ExportDropdown
                   bookId={book.book_id}
                   bookTitle={book.title}
@@ -257,13 +275,16 @@ export default function BookView() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <BookStats
-            totalWords={pages.reduce((sum, page) => sum + countWords(page.content), 0)}
-            readingTime={estimateReadingTime(pages.reduce((sum, page) => sum + countWords(page.content), 0))}
-            pageCount={pages.length}
-            completionDate={book.completed_at}
-          />
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <BookStats
+              totalWords={pages.reduce((sum, page) => sum + countWords(page.content), 0)}
+              readingTime={estimateReadingTime(pages.reduce((sum, page) => sum + countWords(page.content), 0))}
+              pageCount={pages.length}
+              completionDate={book.completed_at}
+            />
+          </div>
+          <ReadinessCard bookId={book.book_id} bookTitle={book.title} bookData={book} />
         </div>
 
         <div className="card">
@@ -316,6 +337,15 @@ export default function BookView() {
         isExporting={bulkExportMutation.isPending}
         bookTitle={book?.title || ''}
       />
+
+      {showValidationResults && (
+        <ValidationResults
+          bookId={bookId!}
+          bookTitle={book?.title}
+          bookData={book}
+          onClose={() => setShowValidationResults(false)}
+        />
+      )}
 
       {isOpen && (
         <ConfirmModal

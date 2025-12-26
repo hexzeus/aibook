@@ -65,6 +65,7 @@ export interface Book {
   status: string;
   is_completed: boolean;
   cover_svg?: string;
+  epub_page_count?: number;  // Actual EPUB page count (estimated)
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -254,6 +255,19 @@ export const booksApi = {
 
   duplicateBook: async (bookId: string) => {
     const response = await api.post(`/api/books/${bookId}/duplicate`);
+    return response.data;
+  },
+
+  validateEPUB: async (bookId: string) => {
+    const response = await api.post('/api/books/validate-epub', { book_id: bookId });
+    return response.data;
+  },
+
+  checkReadiness: async (bookId: string, validateEpub: boolean = false) => {
+    const response = await api.post('/api/books/check-readiness', {
+      book_id: bookId,
+      validate_epub: validateEpub
+    });
     return response.data;
   },
 

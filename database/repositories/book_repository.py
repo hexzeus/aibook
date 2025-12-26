@@ -121,7 +121,7 @@ class BookRepository:
         self.session.flush()
         return book
 
-    def complete_book(self, book_id: uuid.UUID, cover_svg: str) -> Optional[Book]:
+    def complete_book(self, book_id: uuid.UUID, cover_svg: str, epub_page_count: Optional[int] = None) -> Optional[Book]:
         """Mark book as completed"""
         print(f"[REPO] complete_book called for {book_id}", flush=True)
         book = self.get_book(book_id)
@@ -133,6 +133,11 @@ class BookRepository:
         book.cover_svg = cover_svg
         book.completed_at = datetime.utcnow()
         book.completion_percentage = 100
+
+        # Store EPUB page count if available
+        if epub_page_count is not None:
+            book.epub_page_count = epub_page_count
+            print(f"[REPO] Set EPUB page count to {epub_page_count}", flush=True)
 
         print(f"[REPO] Book marked as complete, skipping flush (will commit later)", flush=True)
         # Don't flush here - causes session locks. Will commit at endpoint level.

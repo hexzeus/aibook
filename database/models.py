@@ -130,6 +130,7 @@ class Book(Base):
     genre = Column(String(100))
     target_pages = Column(Integer, nullable=False)
     current_page_count = Column(Integer, default=0)
+    epub_page_count = Column(Integer)  # Actual EPUB page count (estimated)
 
     # Language support
     language = Column(String(10), default='en')

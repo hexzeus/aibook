@@ -1010,9 +1010,36 @@ async def complete_book(
         # Store as data URL for easier frontend display
         cover_svg = f"data:image/png;base64,{cover_image_base64}"
 
+        # Generate EPUB and count pages in background
+        print(f"[COMPLETE] Generating EPUB to count pages...", flush=True)
+        epub_page_count = None
+        try:
+            from core.epub_exporter_v2 import EnhancedEPUBExporter
+            from core.epub_page_counter import EPUBPageCounter
+
+            # Get book data for EPUB export
+            book_data = book_repo.get_book_with_pages(uuid.UUID(book_id_str), uuid.UUID(user_id_str))
+
+            # Generate EPUB
+            exporter = EnhancedEPUBExporter()
+            epub_buffer = exporter.export_book(book_data)
+
+            # Count pages
+            counter = EPUBPageCounter()
+            epub_page_count = counter.count_pages(epub_buffer)
+
+            if epub_page_count:
+                print(f"[COMPLETE] EPUB page count: {epub_page_count} pages", flush=True)
+            else:
+                print(f"[COMPLETE] Could not calculate EPUB page count", flush=True)
+
+        except Exception as e:
+            print(f"[COMPLETE] Error counting EPUB pages: {str(e)}", flush=True)
+            # Continue anyway - page count is optional
+
         # Now save the results to database (get fresh session)
         print(f"[COMPLETE] Marking book as complete in database...", flush=True)
-        book_repo.complete_book(uuid.UUID(book_id_str), cover_svg)
+        book_repo.complete_book(uuid.UUID(book_id_str), cover_svg, epub_page_count)
         print(f"[COMPLETE] Book marked as complete", flush=True)
 
         # Log usage
@@ -1781,11 +1808,29 @@ Mood: Appropriate for the context described"""
 
         illustration_url = response.data[0].url
 
-        # Store illustration URL in page metadata
-        if not page.illustration_url:
-            page.illustration_url = illustration_url
-        else:
-            # If page already has illustration, update it
+        # Download and store the image as base64 (DALL-E URLs are temporary!)
+        print(f"[ILLUSTRATION] Downloading image from DALL-E URL...", flush=True)
+        import httpx
+        import base64
+
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                img_response = client.get(illustration_url)
+                img_response.raise_for_status()
+                img_data = img_response.content
+
+            # Convert to base64 data URL for storage
+            img_base64 = base64.b64encode(img_data).decode('utf-8')
+            data_url = f"data:image/png;base64,{img_base64}"
+
+            print(f"[ILLUSTRATION] Image downloaded and converted to base64 ({len(img_base64)} bytes)", flush=True)
+
+            # Store as data URL (permanent, not temporary!)
+            page.illustration_url = data_url
+
+        except Exception as e:
+            print(f"[ILLUSTRATION] Failed to download image: {str(e)}", flush=True)
+            # Fall back to storing URL (will expire, but better than nothing)
             page.illustration_url = illustration_url
 
         page.updated_at = datetime.utcnow()

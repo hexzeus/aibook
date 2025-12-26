@@ -571,18 +571,28 @@ class EnhancedEPUBExporter:
         Download and optimize image for EPUB embedding
 
         Args:
-            image_url: URL of the image to download
+            image_url: URL or data URL of the image
             page_num: Page number for naming
 
         Returns:
             tuple: (image_data, filename, mime_type) or None if failed
         """
         try:
-            # Download image with timeout
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(image_url)
-                response.raise_for_status()
-                img_data = response.content
+            # Check if it's a data URL (base64 encoded)
+            if image_url.startswith('data:image/'):
+                print(f"[EPUB] Processing base64 data URL for page {page_num}", flush=True)
+                import base64
+                # Extract base64 data from data URL
+                # Format: data:image/png;base64,iVBORw0KGgoAAAANS...
+                header, encoded = image_url.split(',', 1)
+                img_data = base64.b64decode(encoded)
+            else:
+                # Regular URL - download it
+                print(f"[EPUB] Downloading image from URL for page {page_num}", flush=True)
+                with httpx.Client(timeout=30.0) as client:
+                    response = client.get(image_url)
+                    response.raise_for_status()
+                    img_data = response.content
 
             # Open with PIL for optimization
             img = Image.open(BytesIO(img_data))

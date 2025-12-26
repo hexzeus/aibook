@@ -45,15 +45,27 @@ class PDFExporter:
     def _download_and_prepare_image(self, image_url: str) -> Optional[str]:
         """Download and prepare image for PDF embedding
 
+        Args:
+            image_url: URL or data URL of the image
+
         Returns:
             str: Path to temporary image file, or None if failed
         """
         try:
-            # Download image
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(image_url)
-                response.raise_for_status()
-                img_data = response.content
+            # Check if it's a data URL (base64 encoded)
+            if image_url.startswith('data:image/'):
+                print(f"[PDF] Processing base64 data URL", flush=True)
+                import base64
+                # Extract base64 data from data URL
+                header, encoded = image_url.split(',', 1)
+                img_data = base64.b64decode(encoded)
+            else:
+                # Regular URL - download it
+                print(f"[PDF] Downloading image from URL", flush=True)
+                with httpx.Client(timeout=30.0) as client:
+                    response = client.get(image_url)
+                    response.raise_for_status()
+                    img_data = response.content
 
             # Open with PIL
             img = Image.open(BytesIO(img_data))
