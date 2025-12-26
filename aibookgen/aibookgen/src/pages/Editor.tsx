@@ -14,6 +14,7 @@ import {
   Trash2,
   Copy,
   Image,
+  Palette,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -43,6 +44,8 @@ export default function Editor() {
   const [selectedFormat, setSelectedFormat] = useState<'epub' | 'pdf' | 'docx'>('epub');
   const [showIllustrationModal, setShowIllustrationModal] = useState(false);
   const [illustrationPrompt, setIllustrationPrompt] = useState('');
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [stylePrompt, setStylePrompt] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -133,6 +136,20 @@ export default function Editor() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.detail || 'Failed to generate illustration');
+    },
+  });
+n  const applyStyleMutation = useMutation({
+    mutationFn: ({ pageNumber, style }: { pageNumber: number; style: string }) =>
+      premiumApi.applyStyle(bookId!, style, [pageNumber]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["book", bookId] });
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
+      setShowStyleModal(false);
+      setStylePrompt("");
+      toast.success("Writing style applied successfully! (2 credits used)");
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || "Failed to apply style");
     },
   });
 
@@ -539,6 +556,14 @@ export default function Editor() {
                       <Image className="w-4 h-4" />
                       Generate Illustration
                       <span className="text-xs text-brand-400">(3 credits)</span>
+                    <button
+                      onClick={() => setShowStyleModal(true)}
+                      className="btn-secondary flex items-center gap-2 text-sm"
+                    >
+                      <Palette className="w-4 h-4" />
+                      Apply Style
+                      <span className="text-xs text-brand-400">(2 credits)</span>
+                    </button>
                     </button>
                   </div>
                 )}
@@ -727,6 +752,66 @@ export default function Editor() {
             </div>
           </div>
         </div>
+      {showStyleModal && currentPage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-morphism rounded-2xl p-6 max-w-md w-full border border-white/10 animate-scale-in">
+            <div className="flex items-center gap-3 mb-4">
+              <Palette className="w-6 h-6 text-purple-400" />
+              <h3 className="text-xl font-bold">Apply Writing Style</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              Transform page {currentPage.page_number} with a custom writing style. This feature costs 2 credits.
+            </p>
+            <textarea
+              value={stylePrompt}
+              onChange={(e) => setStylePrompt(e.target.value)}
+              placeholder="Describe the writing style... (e.g., 'Write in the style of Ernest Hemingway - short, direct sentences')" 
+              className="input-field mb-4 min-h-32 resize-none"
+              autoFocus
+              disabled={applyStyleMutation.isPending}
+            />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (stylePrompt.trim()) {
+                    applyStyleMutation.mutate({
+                      pageNumber: currentPage.page_number,
+                      style: stylePrompt,
+                    });
+                  } else {
+                    toast.error('Please enter a style description');
+                  }
+                }}
+                disabled={applyStyleMutation.isPending || !stylePrompt.trim()}
+                className="btn-primary flex items-center gap-2 flex-1"
+              >
+                {applyStyleMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Apply Style (2 credits)
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowStyleModal(false);
+                  setStylePrompt('');
+                }}
+                disabled={applyStyleMutation.isPending}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       )}
     </Layout>
   );
