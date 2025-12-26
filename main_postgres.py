@@ -998,14 +998,30 @@ async def complete_book(
         generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
         # Always use DALL-E for image generation (better quality than SVG)
-        print(f"[COMPLETE] Generating cover image with DALL-E (this may take 10-30 seconds)...", flush=True)
-        cover_image_base64 = await generator.generate_book_cover_image(
+        print(f"[COMPLETE] Generating cover BACKGROUND with DALL-E (this may take 10-30 seconds)...", flush=True)
+        cover_background_base64 = await generator.generate_book_cover_image(
             book_title=book_title,
             book_themes=book_themes,
             book_tone=book_tone,
             book_type=book_type
         )
-        print(f"[COMPLETE] Cover generated successfully", flush=True)
+        print(f"[COMPLETE] Cover background generated successfully", flush=True)
+
+        # Overlay text on cover background (perfect typography, no AI spelling errors!)
+        print(f"[COMPLETE] Adding title text overlay to cover...", flush=True)
+        from core.cover_text_overlay import CoverTextOverlay
+        overlay_engine = CoverTextOverlay()
+
+        # Get subtitle for cover
+        book_subtitle = book.subtitle if hasattr(book, 'subtitle') else None
+
+        cover_image_base64 = overlay_engine.add_text_to_cover(
+            background_base64=cover_background_base64,
+            title=book_title,
+            subtitle=book_subtitle,
+            author=None  # Can add author name later if needed
+        )
+        print(f"[COMPLETE] Text overlay complete - cover ready!", flush=True)
 
         # Store as data URL for easier frontend display
         cover_svg = f"data:image/png;base64,{cover_image_base64}"

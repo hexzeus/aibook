@@ -204,6 +204,10 @@ export default function Editor() {
       toast.success('Book completed! Cover generated successfully.');
       // Trigger confetti celebration
       triggerConfetti(4000);
+      // Navigate to book view to show the cover immediately
+      setTimeout(() => {
+        navigate(`/book/${bookId}`);
+      }, 1500); // Short delay to let confetti start before navigation
     },
     onError: () => {
       setCompletingBook(false);
