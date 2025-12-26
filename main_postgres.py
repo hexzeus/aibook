@@ -1715,9 +1715,15 @@ async def generate_illustration_endpoint(
 
     # Verify book ownership
     book_repo = BookRepository(db)
-    book = book_repo.get_book(book_id, user.user_id)
+    page_repo = PageRepository(db)
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get the page to add illustration to
+    page = page_repo.get_page(uuid.UUID(book_id), page_number)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
 
     # Check credits
     user_repo = UserRepository(db)
@@ -1729,20 +1735,67 @@ async def generate_illustration_endpoint(
     db.commit()
 
     try:
-        # TODO: Integrate with DALL-E or Stable Diffusion API
-        # For now, return placeholder
-        illustration_url = f"https://via.placeholder.com/800x600.png?text={prompt[:50]}"
+        # Generate illustration using DALL-E 3 via OpenAI
+        if not openai_client:
+            raise HTTPException(status_code=503, detail="OpenAI API not configured. Please set OPENAI_API_KEY environment variable.")
+
+        # Enhance the prompt for better book illustrations
+        enhanced_prompt = f"""Book illustration in a professional, artistic style: {prompt}
+
+Style: Digital art, clean composition, suitable for book publishing
+Quality: High detail, professional book illustration quality
+Mood: Appropriate for the context described"""
+
+        # Generate image with DALL-E 3
+        response = openai_client.images.generate(
+            model="dall-e-3",
+            prompt=enhanced_prompt,
+            size="1024x1024",  # DALL-E 3 supports 1024x1024, 1792x1024, or 1024x1792
+            quality="standard",  # or "hd" for higher quality (costs more)
+            n=1,
+        )
+
+        illustration_url = response.data[0].url
+
+        # Store illustration URL in page metadata
+        if not page.illustration_url:
+            page.illustration_url = illustration_url
+        else:
+            # If page already has illustration, update it
+            page.illustration_url = illustration_url
+
+        page.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Log the action
+        usage_repo = UsageRepository(db)
+        usage_repo.log_action(
+            user_id=user.user_id,
+            action_type='illustration_generated',
+            credits_consumed=3,
+            book_id=uuid.UUID(book_id),
+            metadata={
+                'page_number': page_number,
+                'prompt': prompt[:200]  # Truncate for storage
+            }
+        )
+        db.commit()
 
         return {
             "success": True,
             "illustration_url": illustration_url,
-            "message": "Illustration generation coming soon"
+            "message": "Illustration generated successfully!",
+            "prompt_used": enhanced_prompt
         }
     except Exception as e:
         # Refund credits on failure
+        db.rollback()
         user_repo.refund_credits(user.user_id, 3)
         db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[ILLUSTRATION ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Illustration generation failed: {str(e)}")
 
 
 @app.post("/api/premium/apply-style")
@@ -1761,9 +1814,15 @@ async def apply_custom_style_endpoint(
 
     # Verify book ownership
     book_repo = BookRepository(db)
-    book = book_repo.get_book(book_id, user.user_id)
+    page_repo = PageRepository(db)
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get the page to rewrite
+    page = page_repo.get_page(uuid.UUID(book_id), page_number)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
 
     # Check credits
     user_repo = UserRepository(db)
@@ -1775,17 +1834,86 @@ async def apply_custom_style_endpoint(
     db.commit()
 
     try:
-        # TODO: Implement style application with Claude API
-        # For now, return placeholder
+        # Use Claude to rewrite in the requested style
+        claude_client = claude_ai_client or openai_client
+
+        # Create style rewriting prompt
+        style_prompt = f"""You are a professional author and editor. Your task is to rewrite the following text in a specific writing style while preserving the core meaning, plot points, and information.
+
+ORIGINAL TEXT:
+{page.content}
+
+REQUESTED STYLE:
+{style}
+
+INSTRUCTIONS:
+1. Rewrite the text completely in the requested style
+2. Maintain all key information, plot points, and character details
+3. Adjust vocabulary, sentence structure, tone, and pacing to match the style
+4. Keep the same approximate length (within 20%)
+5. Do not add new plot points or remove important details
+6. Return ONLY the rewritten text, no explanations or meta-commentary
+
+REWRITTEN TEXT:"""
+
+        if claude_client:
+            # Use Claude API
+            response = claude_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=4000,
+                temperature=0.7,
+                messages=[{
+                    "role": "user",
+                    "content": style_prompt
+                }]
+            )
+            rewritten_content = response.content[0].text.strip()
+        else:
+            # Fallback to OpenAI if available
+            response = openai_client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                max_tokens=4000,
+                temperature=0.7,
+                messages=[{
+                    "role": "user",
+                    "content": style_prompt
+                }]
+            )
+            rewritten_content = response.choices[0].message.content.strip()
+
+        # Update the page with rewritten content
+        page.content = rewritten_content
+        page.updated_at = datetime.utcnow()
+        db.commit()
+
+        # Log the action
+        usage_repo = UsageRepository(db)
+        usage_repo.log_action(
+            user_id=user.user_id,
+            action_type='style_applied',
+            credits_consumed=2,
+            book_id=uuid.UUID(book_id),
+            metadata={
+                'page_number': page_number,
+                'style': style[:100]  # Truncate for storage
+            }
+        )
+        db.commit()
+
         return {
             "success": True,
-            "message": "Custom style application coming soon"
+            "message": "Writing style applied successfully!",
+            "new_content": rewritten_content
         }
     except Exception as e:
         # Refund credits on failure
+        db.rollback()
         user_repo.refund_credits(user.user_id, 2)
         db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[STYLE ERROR] {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Style application failed: {str(e)}")
 
 
 @app.post("/api/premium/bulk-export")

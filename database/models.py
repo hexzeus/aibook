@@ -246,6 +246,9 @@ class Page(Base):
     # User notes/annotations
     notes = Column(Text)
 
+    # Premium features
+    illustration_url = Column(String(1000))  # URL to generated illustration image
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
