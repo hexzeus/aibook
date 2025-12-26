@@ -1057,6 +1057,48 @@ async def export_book(
     )
 
 
+@app.get("/api/exports/history")
+async def get_export_history(
+    limit: int = 50,
+    offset: int = 0,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's export history - FREE"""
+    usage_repo = UsageRepository(db)
+    book_repo = BookRepository(db)
+
+    # Get exports for this user
+    exports = usage_repo.list_exports(
+        user_id=user.user_id,
+        limit=limit,
+        offset=offset
+    )
+
+    export_data = []
+    for export in exports:
+        # Get book details
+        book = book_repo.get_book(export.book_id, user.user_id)
+
+        export_data.append({
+            'export_id': str(export.export_id),
+            'book_id': str(export.book_id),
+            'book_title': book.title if book else 'Unknown Book',
+            'format': export.format,
+            'file_size_bytes': export.file_size_bytes,
+            'download_count': export.download_count,
+            'export_status': export.export_status,
+            'created_at': export.created_at.isoformat() if export.created_at else None,
+            'last_downloaded_at': export.last_downloaded_at.isoformat() if export.last_downloaded_at else None,
+        })
+
+    return {
+        "success": True,
+        "exports": export_data,
+        "total": len(export_data)
+    }
+
+
 # Error handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):

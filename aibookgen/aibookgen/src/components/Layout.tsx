@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, CreditCard, Home, LogOut, Settings, TrendingUp, Users } from 'lucide-react';
+import { BookOpen, CreditCard, Home, LogOut, Settings, TrendingUp, Users, Download } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
 import { creditsApi } from '../lib/api';
@@ -28,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: BookOpen, label: 'Library', path: '/library' },
+    { icon: Download, label: 'Exports', path: '/exports' },
     { icon: CreditCard, label: 'Credits', path: '/credits' },
     { icon: Users, label: 'Affiliate', path: '/affiliate' },
     { icon: Settings, label: 'Settings', path: '/settings' },

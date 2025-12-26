@@ -18,6 +18,7 @@ import NotFound from './pages/NotFound';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import FAQ from './pages/FAQ';
+import ExportHistory from './pages/ExportHistory';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +118,14 @@ export default function App() {
             element={
               <PrivateRoute>
                 <Subscriptions />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/exports"
+            element={
+              <PrivateRoute>
+                <ExportHistory />
               </PrivateRoute>
             }
           />
