@@ -20,6 +20,8 @@ import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import EditBookModal from '../components/EditBookModal';
 import PageNotes from '../components/PageNotes';
+import BulkExportModal from '../components/BulkExportModal';
+import AutoSaveIndicator, { SaveStatus } from '../components/AutoSaveIndicator';
 import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
@@ -46,6 +48,9 @@ export default function Editor() {
   const [illustrationPrompt, setIllustrationPrompt] = useState('');
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [stylePrompt, setStylePrompt] = useState("");
+  const [showBulkExportModal, setShowBulkExportModal] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [lastSaved, setLastSaved] = useState<Date>();
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -62,6 +67,38 @@ export default function Editor() {
       setEditContent(currentPage.content);
     }
   }, [currentPage, editMode]);
+
+  // Auto-save functionality with debounce
+  useEffect(() => {
+    if (!editMode || !currentPage) return;
+
+    // Don't auto-save if content hasn't changed
+    if (editContent === currentPage.content) return;
+
+    setSaveStatus('idle');
+
+    const timer = setTimeout(() => {
+      setSaveStatus('saving');
+      updatePageMutation.mutate(
+        {
+          book_id: bookId!,
+          page_number: currentPage.page_number,
+          content: editContent,
+        },
+        {
+          onSuccess: () => {
+            setSaveStatus('saved');
+            setLastSaved(new Date());
+          },
+          onError: () => {
+            setSaveStatus('error');
+          },
+        }
+      );
+    }, 2000); // Auto-save after 2 seconds of no typing
+
+    return () => clearTimeout(timer);
+  }, [editContent, editMode, currentPage, bookId]);
 
   const generatePageMutation = useMutation({
     mutationFn: (data: { book_id: string; page_number: number; user_input?: string }) =>
@@ -184,6 +221,18 @@ n  const applyStyleMutation = useMutation({
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       setShowExportOptions(false);
       toast.success(`Book exported as ${selectedFormat.toUpperCase()} successfully!`);
+    },
+  });
+
+  const bulkExportMutation = useMutation({
+    mutationFn: (formats: string[]) => premiumApi.bulkExport(bookId!, formats),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      setShowBulkExportModal(false);
+      toast.success('Bulk export completed! Check your downloads folder.');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Failed to export books');
     },
   });
 
@@ -386,7 +435,7 @@ n  const applyStyleMutation = useMutation({
 
                   {showExportOptions && !exportBookMutation.isPending && (
                     <div className="absolute top-full right-0 mt-2 w-48 glass-morphism rounded-xl p-2 shadow-glow border border-white/10 z-10 animate-scale-in">
-                      <div className="text-xs text-gray-400 px-3 py-2 font-semibold">Select Format</div>
+                      <div className="text-xs text-gray-400 px-3 py-2 font-semibold">Quick Export</div>
                       {[
                         { value: 'epub' as const, label: 'EPUB', desc: 'E-reader format' },
                         { value: 'pdf' as const, label: 'PDF', desc: 'Universal format' },
@@ -413,6 +462,22 @@ n  const applyStyleMutation = useMutation({
                           )}
                         </button>
                       ))}
+                      <div className="border-t border-white/10 my-2"></div>
+                      <button
+                        onClick={() => {
+                          setShowExportOptions(false);
+                          setShowBulkExportModal(true);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg transition-all hover:bg-gradient-to-r hover:from-brand-500/20 hover:to-accent-purple/20 text-gray-300"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-brand-400" />
+                          <div>
+                            <div className="font-medium text-brand-400">Bulk Export</div>
+                            <div className="text-xs text-gray-500">Multiple formats</div>
+                          </div>
+                        </div>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -516,6 +581,12 @@ n  const applyStyleMutation = useMutation({
 
                 {editMode ? (
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <AutoSaveIndicator status={saveStatus} lastSaved={lastSaved} />
+                      <span className="text-xs text-gray-400">
+                        {countWords(editContent)} words
+                      </span>
+                    </div>
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -811,6 +882,14 @@ n  const applyStyleMutation = useMutation({
           </div>
         </div>
       )}
+
+      <BulkExportModal
+        isOpen={showBulkExportModal}
+        onClose={() => setShowBulkExportModal(false)}
+        onExport={(formats) => bulkExportMutation.mutate(formats)}
+        isExporting={bulkExportMutation.isPending}
+        bookTitle={book?.title || ''}
+      />
 
       )}
     </Layout>
