@@ -6,6 +6,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ToastContainer from './components/ToastContainer';
 import LoadingScreen from './components/LoadingScreen';
 import OfflineIndicator from './components/OfflineIndicator';
+import WhatsNewModal from './components/WhatsNewModal';
+import SessionTimeoutWarning from './components/SessionTimeoutWarning';
 
 // Eager load critical pages
 import Auth from './pages/Auth';
@@ -150,6 +152,8 @@ export default function App() {
         </Suspense>
         <ToastContainer />
         <OfflineIndicator />
+        <WhatsNewModal />
+        <SessionTimeoutWarning />
       </BrowserRouter>
     </QueryClientProvider>
     </ErrorBoundary>
