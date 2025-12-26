@@ -683,6 +683,22 @@ class EnhancedEPUBExporter:
         )
         book.add_item(style)
 
+        # Add cover image if available
+        cover_svg = book_data.get('cover_svg')
+        if cover_svg and cover_svg.startswith('data:image/'):
+            try:
+                print(f"[EPUB] Adding cover image to EPUB", flush=True)
+                import base64
+                # Extract base64 data from data URL
+                header, encoded = cover_svg.split(',', 1)
+                cover_data = base64.b64decode(encoded)
+
+                # Add cover image
+                book.set_cover("Images/cover.jpg", cover_data)
+                print(f"[EPUB] Cover image added successfully", flush=True)
+            except Exception as e:
+                print(f"[EPUB] Failed to add cover image: {str(e)}", flush=True)
+
         # Create title page
         title_html = f'''
         <div class="title-page">
