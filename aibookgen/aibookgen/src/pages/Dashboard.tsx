@@ -7,6 +7,7 @@ import { booksApi, creditsApi } from '../lib/api';
 import CreateBookModal from '../components/CreateBookModal';
 import EmailCaptureModal from '../components/EmailCaptureModal';
 import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal';
+import OnboardingModal from '../components/OnboardingModal';
 import { DashboardStatsSkeleton, BookCardSkeleton } from '../components/Skeleton';
 import { useToastStore } from '../store/toastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -18,12 +19,21 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useKeyboardShortcuts([
     { key: 'n', ctrl: true, action: () => setShowCreateModal(true), description: 'Create new book' },
     { key: 'k', ctrl: true, action: () => navigate('/library'), description: 'Search books' },
     { key: '?', shift: true, action: () => setShowShortcuts(true), description: 'Show shortcuts' },
   ]);
+
+  // Show onboarding for first-time users
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('onboarding_completed');
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   // Show email capture modal for new users after 5 seconds
   useEffect(() => {
@@ -35,6 +45,11 @@ export default function Dashboard() {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  const handleOnboardingClose = () => {
+    localStorage.setItem('onboarding_completed', 'true');
+    setShowOnboarding(false);
+  };
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['credits'],
@@ -262,6 +277,11 @@ export default function Dashboard() {
           loading={createBookMutation.isPending}
         />
       )}
+
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleOnboardingClose}
+      />
 
       <EmailCaptureModal
         isOpen={showEmailCapture}
