@@ -1,8 +1,12 @@
 from fpdf import FPDF
 from io import BytesIO
-from typing import Dict, List
+from typing import Dict, List, Optional
 import unicodedata
 import re
+import httpx
+from PIL import Image
+import tempfile
+import os
 
 
 class PDFExporter:
@@ -38,6 +42,41 @@ class PDFExporter:
         text = text.encode('ascii', 'ignore').decode('ascii')
         return text
 
+    def _download_and_prepare_image(self, image_url: str) -> Optional[str]:
+        """Download and prepare image for PDF embedding
+
+        Returns:
+            str: Path to temporary image file, or None if failed
+        """
+        try:
+            # Download image
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(image_url)
+                response.raise_for_status()
+                img_data = response.content
+
+            # Open with PIL
+            img = Image.open(BytesIO(img_data))
+
+            # Convert to RGB if needed
+            if img.mode == 'RGBA':
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[3])
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Save to temporary file (FPDF needs file path)
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+            img.save(temp_file.name, format='JPEG', quality=90, optimize=True)
+            temp_file.close()
+
+            return temp_file.name
+
+        except Exception as e:
+            print(f"[PDF] Failed to download/prepare image: {str(e)}")
+            return None
+
     def export_book(self, book_data: Dict) -> BytesIO:
         """Export book to professional PDF with natural page breaks"""
 
@@ -47,26 +86,39 @@ class PDFExporter:
         pdf.set_margins(self.margin_left, self.margin_top, self.margin_right)
 
         pages = book_data.get('pages', [])
+        temp_files = []  # Track temp files for cleanup
 
-        # Create cover page (title page)
-        self._create_cover_page(pdf, book_data)
+        try:
+            # Create cover page (title page)
+            self._create_cover_page(pdf, book_data)
 
-        # Track actual PDF page number for footer
-        self.pdf_page_number = 1
+            # Track actual PDF page number for footer
+            self.pdf_page_number = 1
 
-        # Add each content page - allow natural flow
-        for idx, page in enumerate(pages):
-            # Page 1 is the title page (cover), so actual content starts at page 2
-            content_page_number = idx + 1
-            self._create_content_page_natural(pdf, page, content_page_number)
+            # Add each content page - allow natural flow
+            for idx, page in enumerate(pages):
+                # Page 1 is the title page (cover), so actual content starts at page 2
+                content_page_number = idx + 1
+                temp_file = self._create_content_page_natural(pdf, page, content_page_number)
+                if temp_file:
+                    temp_files.append(temp_file)
 
-        # Output to buffer
-        buffer = BytesIO()
-        pdf_bytes = pdf.output()
-        buffer.write(pdf_bytes)
-        buffer.seek(0)
+            # Output to buffer
+            buffer = BytesIO()
+            pdf_bytes = pdf.output()
+            buffer.write(pdf_bytes)
+            buffer.seek(0)
 
-        return buffer
+            return buffer
+
+        finally:
+            # Clean up temporary image files
+            for temp_file in temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.unlink(temp_file)
+                except Exception as e:
+                    print(f"[PDF] Failed to delete temp file {temp_file}: {str(e)}")
 
     def _create_cover_page(self, pdf: FPDF, book_data: Dict):
         """Create elegant professional cover page"""
@@ -109,11 +161,16 @@ class PDFExporter:
         pdf.set_line_width(1.5)
         pdf.line(30, pdf.get_y() + 3, self.page_width - 30, pdf.get_y() + 3)
 
-    def _create_content_page_natural(self, pdf: FPDF, page_data: Dict, page_num: int):
-        """Create content page with natural flow - content can span multiple PDF pages"""
+    def _create_content_page_natural(self, pdf: FPDF, page_data: Dict, page_num: int) -> Optional[str]:
+        """Create content page with natural flow - content can span multiple PDF pages
+
+        Returns:
+            Optional[str]: Path to temporary image file if one was created, None otherwise
+        """
 
         content = self._clean_text(page_data.get('content', ''))
         section = self._clean_text(page_data.get('section', ''))
+        illustration_url = page_data.get('illustration_url')
 
         # Start a new page for this content section
         pdf.add_page()
@@ -132,8 +189,32 @@ class PDFExporter:
             pdf.cell(0, 8, section, align='L', ln=True)
             pdf.ln(3)
 
+        # Add illustration if present (at top of page - marketplace standard)
+        temp_img_file = None
+        if illustration_url:
+            temp_img_file = self._download_and_prepare_image(illustration_url)
+            if temp_img_file:
+                try:
+                    # Calculate image dimensions to fit in content area
+                    # Max width: content_width (150mm)
+                    # Leave room for text below
+                    max_img_width = self.content_width
+                    max_img_height = 100  # mm - leave space for text
+
+                    # Add image centered
+                    pdf.image(temp_img_file,
+                             x=self.margin_left,
+                             y=pdf.get_y(),
+                             w=max_img_width)
+                    pdf.ln(10)  # Space after image
+
+                except Exception as e:
+                    print(f"[PDF] Failed to add image to PDF: {str(e)}")
+
         # Render content with natural markdown formatting
         self._render_markdown_content(pdf, content, page_num)
+
+        return temp_img_file
 
     def _render_markdown_content(self, pdf: FPDF, content: str, page_num: int):
         """Render content with proper markdown formatting and natural page breaks"""

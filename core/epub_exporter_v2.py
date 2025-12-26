@@ -9,6 +9,8 @@ import unicodedata
 import uuid
 import re
 from datetime import datetime
+import httpx
+from PIL import Image
 
 
 class EnhancedEPUBExporter:
@@ -564,6 +566,63 @@ class EnhancedEPUBExporter:
         '''
         return copyright_html
 
+    def _download_and_optimize_image(self, image_url: str, page_num: int) -> Optional[tuple]:
+        """
+        Download and optimize image for EPUB embedding
+
+        Args:
+            image_url: URL of the image to download
+            page_num: Page number for naming
+
+        Returns:
+            tuple: (image_data, filename, mime_type) or None if failed
+        """
+        try:
+            # Download image with timeout
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(image_url)
+                response.raise_for_status()
+                img_data = response.content
+
+            # Open with PIL for optimization
+            img = Image.open(BytesIO(img_data))
+
+            # Convert RGBA to RGB if needed (for JPEG)
+            if img.mode == 'RGBA':
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[3])  # Use alpha channel as mask
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Resize to max 800px width for e-readers (Amazon KDP requirement)
+            max_width = 800
+            if img.width > max_width:
+                ratio = max_width / img.width
+                new_height = int(img.height * ratio)
+                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+            # Compress and save as JPEG
+            img_buffer = BytesIO()
+            img.save(img_buffer, format='JPEG', quality=90, optimize=True)
+            img_data = img_buffer.getvalue()
+
+            # Ensure under 127KB (Amazon KDP soft limit)
+            if len(img_data) > 127 * 1024:
+                # Try with lower quality
+                img_buffer = BytesIO()
+                img.save(img_buffer, format='JPEG', quality=75, optimize=True)
+                img_data = img_buffer.getvalue()
+
+            filename = f'Images/page_{page_num}.jpg'
+            mime_type = 'image/jpeg'
+
+            return (img_data, filename, mime_type)
+
+        except Exception as e:
+            print(f"[EPUB] Failed to download/optimize image for page {page_num}: {str(e)}")
+            return None
+
     def export_book(self, book_data: Dict, author_name: Optional[str] = None) -> BytesIO:
         """
         Export book to professional EPUB 3.0 format
@@ -652,15 +711,40 @@ class EnhancedEPUBExporter:
             page_num = page.get('page_number', idx)
             section = page.get('section', f'Chapter {page_num}')
             content = page.get('content', '')
+            illustration_url = page.get('illustration_url')
+
+            # Download and embed illustration if present
+            illustration_html = ''
+            if illustration_url:
+                img_result = self._download_and_optimize_image(illustration_url, page_num)
+                if img_result:
+                    img_data, img_filename, img_mime = img_result
+
+                    # Create image item
+                    img_item = epub.EpubItem(
+                        uid=f"img_{page_num}",
+                        file_name=img_filename,
+                        media_type=img_mime,
+                        content=img_data
+                    )
+                    book.add_item(img_item)
+
+                    # Create HTML for illustration (at top of page - marketplace standard)
+                    illustration_html = f'''
+                    <div class="illustration" style="text-align: center; margin: 2em 0 3em 0; page-break-inside: avoid;">
+                        <img src="../{img_filename}" alt="Illustration for {self._clean_text(section)}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;"/>
+                    </div>
+                    '''
 
             # Convert markdown to HTML
             html_content = self._markdown_to_html(content, is_first_in_chapter=True)
 
-            # Create chapter with proper structure
+            # Create chapter with proper structure (illustration at top)
             chapter_html = f'''
             <div class="chapter chapter-start">
                 <p class="chapter-number">Chapter {page_num}</p>
                 <h1 class="chapter-title">{self._clean_text(section)}</h1>
+                {illustration_html}
                 {html_content}
             </div>
             '''
