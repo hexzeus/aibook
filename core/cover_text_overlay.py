@@ -64,20 +64,35 @@ class CoverTextOverlay:
         box_height = 600
         box_y2 = box_y1 + box_height
 
-        # Draw semi-transparent text box with border
-        # This creates a clean, readable area for text
+        # Draw semi-transparent text box with fancy ornamental border
+        # This creates a clean, readable area for text with a picture-frame aesthetic
         box_bg_color = (0, 0, 0, 200)  # Semi-transparent black
-        border_color = (255, 255, 255, 230)  # White border
 
-        # Draw outer border (decorative)
-        border_width = 3
+        # Fancy border colors - gold/white gradient effect
+        outer_border_color = (255, 215, 0, 255)  # Gold
+        mid_border_color = (255, 255, 255, 230)  # White
+        inner_border_color = (255, 215, 0, 200)  # Semi-transparent gold
+
+        # Multi-layer ornamental border (creates depth like a picture frame)
+        # Layer 1: Outermost gold border (8px)
         draw.rectangle(
-            [box_x1 - border_width, box_y1 - border_width,
-             box_x2 + border_width, box_y2 + border_width],
-            fill=border_color
+            [box_x1 - 8, box_y1 - 8, box_x2 + 8, box_y2 + 8],
+            fill=outer_border_color
         )
 
-        # Draw inner box
+        # Layer 2: White separator (6px)
+        draw.rectangle(
+            [box_x1 - 6, box_y1 - 6, box_x2 + 6, box_y2 + 6],
+            fill=mid_border_color
+        )
+
+        # Layer 3: Inner gold accent (3px)
+        draw.rectangle(
+            [box_x1 - 3, box_y1 - 3, box_x2 + 3, box_y2 + 3],
+            fill=inner_border_color
+        )
+
+        # Draw inner box (text background)
         draw.rectangle(
             [box_x1, box_y1, box_x2, box_y2],
             fill=box_bg_color
@@ -107,10 +122,29 @@ class CoverTextOverlay:
 
         # Center text within the box
         center_x = self.COVER_WIDTH // 2
-        text_y = box_y1 + 80  # Start position within box
 
-        # Wrap and draw title
-        wrapped_title = self._wrap_text(title, title_font, draw, max_width=box_x2 - box_x1 - 80)
+        # First, calculate total height of all text to center it vertically
+        wrapped_title = self._wrap_text(title, title_font, draw, max_width=box_x2 - box_x1 - 100)
+
+        # Calculate title height
+        total_height = 0
+        for line in wrapped_title:
+            bbox = draw.textbbox((0, 0), line, font=title_font)
+            total_height += (bbox[3] - bbox[1]) + 20
+
+        # Add subtitle height if exists
+        if subtitle:
+            total_height += 30  # Gap between title and subtitle
+            wrapped_subtitle = self._wrap_text(subtitle, subtitle_font, draw, max_width=box_x2 - box_x1 - 100)
+            for line in wrapped_subtitle:
+                bbox = draw.textbbox((0, 0), line, font=subtitle_font)
+                total_height += (bbox[3] - bbox[1]) + 15
+
+        # Calculate starting Y to center text vertically (excluding author which stays at bottom)
+        available_height = box_height - 140 if author else box_height - 60  # Leave space for author
+        text_y = box_y1 + (available_height - total_height) // 2 + 30
+
+        # Draw title
 
         for line in wrapped_title:
             bbox = draw.textbbox((0, 0), line, font=title_font)

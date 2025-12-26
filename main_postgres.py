@@ -535,6 +535,14 @@ async def generate_page(
             book.structure = updated_structure
             print(f"[COHERENCE] Updated book structure with tracking data", flush=True)
 
+        # Update book progress (current_page_count and completion_percentage)
+        book = book_repo.get_book(book_id, user_id)
+        current_pages = len([p for p in book.pages if not p.is_deleted])
+        book.current_page_count = current_pages
+        if book.target_pages > 0:
+            book.completion_percentage = int((current_pages / book.target_pages) * 100)
+        print(f"[PROGRESS] Book {book_id}: {current_pages}/{book.target_pages} pages ({book.completion_percentage}%)", flush=True)
+
         # Log usage
         usage_repo.log_action(
             user_id=user_id,

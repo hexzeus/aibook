@@ -689,6 +689,7 @@ export default function Editor() {
                           >
                             <Sparkles className="w-3 h-3" />
                             Regenerate
+                            <span className="text-xs text-brand-400">(3 credits)</span>
                           </button>
                           <button
                             onClick={async () => {
