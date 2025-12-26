@@ -8,6 +8,7 @@ import CreateBookModal from '../components/CreateBookModal';
 import EmailCaptureModal from '../components/EmailCaptureModal';
 import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal';
 import OnboardingModal from '../components/OnboardingModal';
+import ResumeGenerationBanner from '../components/ResumeGenerationBanner';
 import { DashboardStatsSkeleton, BookCardSkeleton } from '../components/Skeleton';
 import { useToastStore } from '../store/toastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [dismissedResumeBook, setDismissedResumeBook] = useState<string | null>(null);
 
   useKeyboardShortcuts([
     { key: 'n', ctrl: true, action: () => setShowCreateModal(true), description: 'Create new book' },
@@ -89,6 +91,30 @@ export default function Dashboard() {
             Create, manage, and export your AI-powered books
           </p>
         </div>
+
+        {!isLoadingInProgress && inProgressBooks && inProgressBooks.books.length > 0 && (
+          <>
+            {inProgressBooks.books
+              .filter(book =>
+                !book.is_completed &&
+                book.pages_generated < book.target_pages &&
+                book.book_id !== dismissedResumeBook
+              )
+              .slice(0, 1)
+              .map(book => (
+                <ResumeGenerationBanner
+                  key={book.book_id}
+                  bookId={book.book_id}
+                  bookTitle={book.title}
+                  currentPages={book.pages_generated}
+                  targetPages={book.target_pages}
+                  onResume={() => navigate(`/editor/${book.book_id}`)}
+                  onDismiss={() => setDismissedResumeBook(book.book_id)}
+                />
+              ))
+            }
+          </>
+        )}
 
         {isLoadingStats ? (
           <DashboardStatsSkeleton />

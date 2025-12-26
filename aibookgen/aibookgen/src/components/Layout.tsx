@@ -2,9 +2,11 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, CreditCard, Home, LogOut, Settings, TrendingUp, Users, Download } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useRateLimitStore } from '../store/rateLimitStore';
 import { useQuery } from '@tanstack/react-query';
 import { creditsApi } from '../lib/api';
 import Footer from './Footer';
+import RateLimitBanner from './RateLimitBanner';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +16,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
+  const { isRateLimited, resetTime, clearRateLimit } = useRateLimitStore();
   const { data: credits } = useQuery({
     queryKey: ['credits'],
     queryFn: creditsApi.getCredits,
@@ -109,7 +112,14 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </div>
 
-      <main className="flex-1 pb-24 md:pb-8">{children}</main>
+      <main className="flex-1 pb-24 md:pb-8">
+        {isRateLimited && resetTime && (
+          <div className="page-container pt-4">
+            <RateLimitBanner resetTime={resetTime} onDismiss={clearRateLimit} />
+          </div>
+        )}
+        {children}
+      </main>
 
       <Footer />
     </div>
