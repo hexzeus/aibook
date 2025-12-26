@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Search, Filter, Trash2, Download, Eye, Clock, CheckCircle, Archive, ArchiveRestore } from 'lucide-react';
+import { BookOpen, Search, Filter, Trash2, Download, Eye, Clock, CheckCircle, Archive, ArchiveRestore, Copy } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import { LibraryGridSkeleton } from '../components/Skeleton';
@@ -71,6 +71,18 @@ export default function Library() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
       toast.success('Book restored successfully');
+    },
+  });
+
+  const duplicateBookMutation = useMutation({
+    mutationFn: booksApi.duplicateBook,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      toast.success('Book duplicated successfully');
+      // Navigate to the new duplicate book in editor
+      if (data.book_id) {
+        navigate(`/editor/${data.book_id}`);
+      }
     },
   });
 
@@ -249,6 +261,28 @@ export default function Library() {
                       title="Export EPUB"
                     >
                       <Download className="w-4 h-4 text-brand-400" />
+                    </button>
+                  )}
+
+                  {filterStatus !== 'archived' && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const confirmed = await confirm({
+                          title: 'Duplicate Book',
+                          message: `Create a copy of "${book.title}"? All pages will be duplicated.`,
+                          confirmText: 'Duplicate',
+                          cancelText: 'Cancel',
+                        });
+                        if (confirmed) {
+                          duplicateBookMutation.mutate(book.book_id);
+                        }
+                      }}
+                      disabled={duplicateBookMutation.isPending}
+                      className="p-2 hover:bg-blue-500/20 rounded-lg transition-all"
+                      title="Duplicate Book"
+                    >
+                      <Copy className="w-4 h-4 text-blue-400" />
                     </button>
                   )}
 

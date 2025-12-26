@@ -14,6 +14,7 @@ import uuid
 from dotenv import load_dotenv
 
 from database import initialize_database, get_db
+from database.models import Book, Page
 from database.repositories import UserRepository, BookRepository, UsageRepository
 from core.gumroad_v2 import GumroadValidator
 from core.book_generator import BookGenerator
@@ -1055,6 +1056,79 @@ async def export_book(
         media_type="application/epub+zip",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@app.post("/api/books/{book_id}/duplicate")
+async def duplicate_book(
+    book_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Duplicate a book - FREE (no credits consumed)"""
+    book_repo = BookRepository(db)
+
+    # Get original book
+    original_book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not original_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Create new book as duplicate
+    new_book = Book(
+        user_id=user.user_id,
+        title=f"{original_book.title} (Copy)",
+        subtitle=original_book.subtitle,
+        description=original_book.description,
+        author_name=original_book.author_name,
+        book_type=original_book.book_type,
+        genre=original_book.genre,
+        target_pages=original_book.target_pages,
+        current_page_count=0,
+        language=original_book.language,
+        structure=original_book.structure,
+        tone=original_book.tone,
+        style=original_book.style,
+        themes=original_book.themes,
+        status='draft',
+        is_completed=False,
+        completion_percentage=0,
+        cover_svg=original_book.cover_svg,
+        parent_book_id=original_book.book_id,
+        version=1
+    )
+    db.add(new_book)
+    db.flush()
+
+    # Duplicate all pages
+    pages_to_copy = [p for p in original_book.pages if not p.is_deleted]
+    for original_page in pages_to_copy:
+        new_page = Page(
+            book_id=new_book.book_id,
+            page_number=original_page.page_number,
+            section=original_page.section,
+            chapter_number=original_page.chapter_number,
+            content=original_page.content,
+            content_html=original_page.content_html,
+            word_count=original_page.word_count,
+            is_title_page=original_page.is_title_page,
+            is_toc=original_page.is_toc,
+            is_dedication=original_page.is_dedication,
+            is_acknowledgments=original_page.is_acknowledgments,
+            ai_model_used=original_page.ai_model_used,
+            version=1
+        )
+        db.add(new_page)
+
+    # Update new book's page count
+    new_book.current_page_count = len(pages_to_copy)
+    new_book.completion_percentage = int((len(pages_to_copy) / new_book.target_pages * 100)) if new_book.target_pages > 0 else 0
+
+    db.commit()
+
+    return {
+        "success": True,
+        "book_id": str(new_book.book_id),
+        "message": f"Book duplicated successfully. {len(pages_to_copy)} pages copied."
+    }
 
 
 @app.get("/api/exports/history")
