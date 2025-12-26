@@ -1023,8 +1023,8 @@ async def complete_book(
         )
         print(f"[COMPLETE] Text overlay complete - cover ready!", flush=True)
 
-        # Store as data URL for easier frontend display
-        cover_svg = f"data:image/png;base64,{cover_image_base64}"
+        # Store as data URL for easier frontend display (JPEG for smaller size)
+        cover_svg = f"data:image/jpeg;base64,{cover_image_base64}"
 
         # Generate EPUB and count pages in background
         print(f"[COMPLETE] Generating EPUB to count pages...", flush=True)

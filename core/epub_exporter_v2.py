@@ -685,21 +685,46 @@ class EnhancedEPUBExporter:
         )
         book.add_item(style)
 
-        # Add cover image if available
+        # Add cover image if available (with compression for Amazon KDP)
         cover_svg = book_data.get('cover_svg')
         if cover_svg and cover_svg.startswith('data:image/'):
             try:
                 print(f"[EPUB] Adding cover image to EPUB", flush=True)
                 import base64
+                from PIL import Image
+                from io import BytesIO
+
                 # Extract base64 data from data URL
                 header, encoded = cover_svg.split(',', 1)
                 cover_data = base64.b64decode(encoded)
 
+                # Compress cover image to meet Amazon KDP requirements (<127KB recommended)
+                img = Image.open(BytesIO(cover_data))
+
+                # Ensure RGB mode
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+                # Compress
+                img_buffer = BytesIO()
+                img.save(img_buffer, format='JPEG', quality=85, optimize=True)
+                compressed_cover = img_buffer.getvalue()
+
+                # If still too large, compress more
+                if len(compressed_cover) > 127 * 1024:
+                    print(f"[EPUB] Cover too large ({len(compressed_cover)//1024}KB), compressing further...", flush=True)
+                    img_buffer = BytesIO()
+                    img.save(img_buffer, format='JPEG', quality=70, optimize=True)
+                    compressed_cover = img_buffer.getvalue()
+                    print(f"[EPUB] Cover compressed to {len(compressed_cover)//1024}KB", flush=True)
+
                 # Add cover image
-                book.set_cover("Images/cover.jpg", cover_data)
-                print(f"[EPUB] Cover image added successfully", flush=True)
+                book.set_cover("Images/cover.jpg", compressed_cover)
+                print(f"[EPUB] Cover image added successfully ({len(compressed_cover)//1024}KB)", flush=True)
             except Exception as e:
                 print(f"[EPUB] Failed to add cover image: {str(e)}", flush=True)
+                import traceback
+                print(f"[EPUB] Traceback: {traceback.format_exc()}", flush=True)
 
         # Create title page
         title_html = f'''

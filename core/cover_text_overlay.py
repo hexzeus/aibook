@@ -144,9 +144,10 @@ class CoverTextOverlay:
 
             draw.text((text_x, author_y), author, font=author_font, fill=text_color)
 
-        # Convert to base64
+        # Convert to base64 with JPEG compression for smaller file size
+        # Amazon KDP recommends <127KB per image
         buffer = BytesIO()
-        cover.save(buffer, format='PNG', optimize=True, quality=95)
+        cover.save(buffer, format='JPEG', quality=85, optimize=True)
         img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         return img_base64
