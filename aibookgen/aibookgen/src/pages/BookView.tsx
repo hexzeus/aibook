@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen } from 'lucide-react';
+import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen, Share2 } from 'lucide-react';
 import Layout from '../components/Layout';
 import PageReorderModal from '../components/PageReorderModal';
+import ShareBookModal from '../components/ShareBookModal';
 import BookStats from '../components/BookStats';
 import { booksApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
@@ -15,6 +16,7 @@ export default function BookView() {
   const queryClient = useQueryClient();
   const toast = useToastStore();
   const [showReorderModal, setShowReorderModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -146,6 +148,14 @@ export default function BookView() {
                   <GripVertical className="w-5 h-5" />
                   Reorder
                 </button>
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="btn-secondary flex items-center gap-2"
+                  title="Share this book"
+                >
+                  <Share2 className="w-5 h-5" />
+                  Share
+                </button>
               </div>
             </div>
           </div>
@@ -193,6 +203,13 @@ export default function BookView() {
           onReorder={(pageOrder) => reorderPagesMutation.mutate(pageOrder)}
         />
       )}
+
+      <ShareBookModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        bookTitle={book?.title || ''}
+        bookId={bookId || ''}
+      />
     </Layout>
   );
 }
