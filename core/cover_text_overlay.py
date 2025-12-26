@@ -144,17 +144,31 @@ class CoverTextOverlay:
 
             draw.text((text_x, author_y), author, font=author_font, fill=text_color)
 
+        # Amazon KDP recommends max 800px width and <127KB file size
+        # Resize to Amazon KDP dimensions first, then compress
+        kdp_width = 800
+        kdp_height = int(self.COVER_HEIGHT * (kdp_width / self.COVER_WIDTH))
+
+        print(f"[COVER] Resizing from {self.COVER_WIDTH}x{self.COVER_HEIGHT} to {kdp_width}x{kdp_height} for Amazon KDP", flush=True)
+        cover_resized = cover.resize((kdp_width, kdp_height), Image.Resampling.LANCZOS)
+
         # Convert to base64 with JPEG compression for smaller file size
-        # Amazon KDP recommends <127KB per image - use aggressive compression
         buffer = BytesIO()
-        cover.save(buffer, format='JPEG', quality=75, optimize=True)
+        cover_resized.save(buffer, format='JPEG', quality=85, optimize=True)
         cover_data = buffer.getvalue()
 
-        # If still too large, compress even more
+        # If still too large, compress more aggressively
         if len(cover_data) > 127 * 1024:
-            print(f"[COVER] Cover too large ({len(cover_data)//1024}KB), compressing to quality 60", flush=True)
+            print(f"[COVER] Cover too large ({len(cover_data)//1024}KB), compressing to quality 70", flush=True)
             buffer = BytesIO()
-            cover.save(buffer, format='JPEG', quality=60, optimize=True)
+            cover_resized.save(buffer, format='JPEG', quality=70, optimize=True)
+            cover_data = buffer.getvalue()
+
+        # Final fallback - very aggressive compression
+        if len(cover_data) > 127 * 1024:
+            print(f"[COVER] Still too large ({len(cover_data)//1024}KB), compressing to quality 55", flush=True)
+            buffer = BytesIO()
+            cover_resized.save(buffer, format='JPEG', quality=55, optimize=True)
             cover_data = buffer.getvalue()
 
         print(f"[COVER] Final cover size: {len(cover_data)//1024}KB", flush=True)

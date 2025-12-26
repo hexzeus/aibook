@@ -698,25 +698,38 @@ class EnhancedEPUBExporter:
                 header, encoded = cover_svg.split(',', 1)
                 cover_data = base64.b64decode(encoded)
 
-                # Compress cover image to meet Amazon KDP requirements (<127KB recommended)
+                # Compress cover image to meet Amazon KDP requirements (<127KB recommended, max 800px width)
                 img = Image.open(BytesIO(cover_data))
 
                 # Ensure RGB mode
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
 
-                # Compress
+                # Resize to Amazon KDP max dimensions (800px width)
+                if img.width > 800:
+                    kdp_width = 800
+                    kdp_height = int(img.height * (kdp_width / img.width))
+                    print(f"[EPUB] Resizing cover from {img.width}x{img.height} to {kdp_width}x{kdp_height} for Amazon KDP", flush=True)
+                    img = img.resize((kdp_width, kdp_height), Image.Resampling.LANCZOS)
+
+                # Compress with quality 85
                 img_buffer = BytesIO()
                 img.save(img_buffer, format='JPEG', quality=85, optimize=True)
                 compressed_cover = img_buffer.getvalue()
 
-                # If still too large, compress more
+                # If still too large, compress to quality 70
                 if len(compressed_cover) > 127 * 1024:
-                    print(f"[EPUB] Cover too large ({len(compressed_cover)//1024}KB), compressing further...", flush=True)
+                    print(f"[EPUB] Cover too large ({len(compressed_cover)//1024}KB), compressing to quality 70", flush=True)
                     img_buffer = BytesIO()
                     img.save(img_buffer, format='JPEG', quality=70, optimize=True)
                     compressed_cover = img_buffer.getvalue()
-                    print(f"[EPUB] Cover compressed to {len(compressed_cover)//1024}KB", flush=True)
+
+                # Final fallback - very aggressive compression
+                if len(compressed_cover) > 127 * 1024:
+                    print(f"[EPUB] Still too large ({len(compressed_cover)//1024}KB), compressing to quality 55", flush=True)
+                    img_buffer = BytesIO()
+                    img.save(img_buffer, format='JPEG', quality=55, optimize=True)
+                    compressed_cover = img_buffer.getvalue()
 
                 # Add cover image
                 book.set_cover("Images/cover.jpg", compressed_cover)
