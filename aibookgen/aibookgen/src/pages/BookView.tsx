@@ -5,16 +5,21 @@ import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen, Share2 } fr
 import Layout from '../components/Layout';
 import PageReorderModal from '../components/PageReorderModal';
 import ShareBookModal from '../components/ShareBookModal';
+import ConfirmModal from '../components/ConfirmModal';
 import BookStats from '../components/BookStats';
+import QuickActionsMenu, { createBookActions } from '../components/QuickActionsMenu';
 import { booksApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
+import { useConfirm } from '../hooks/useConfirm';
 import { countWords, estimateReadingTime } from '../utils/textUtils';
+import { printBook, downloadBookHTML } from '../utils/print';
 
 export default function BookView() {
   const { bookId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToastStore();
+  const { confirm, isOpen, options, handleConfirm, handleCancel } = useConfirm();
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -54,6 +59,71 @@ export default function BookView() {
   const book = data?.book;
   const pages = book?.pages || [];
 
+  const deleteBookMutation = useMutation({
+    mutationFn: booksApi.deleteBook,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      toast.success('Book deleted successfully');
+      navigate('/library');
+    },
+  });
+
+  const archiveBookMutation = useMutation({
+    mutationFn: booksApi.archiveBook,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      toast.success('Book archived successfully');
+      navigate('/library');
+    },
+  });
+
+  const duplicateBookMutation = useMutation({
+    mutationFn: booksApi.duplicateBook,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      toast.success('Book duplicated successfully!');
+      navigate(`/book/${data.book.book_id}`);
+    },
+  });
+
+  const handleDeleteBook = async () => {
+    if (!book) return;
+    const confirmed = await confirm({
+      title: 'Delete Book',
+      message: `Are you sure you want to delete "${book.title}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      deleteBookMutation.mutate(book.book_id);
+    }
+  };
+
+  const handleArchiveBook = async () => {
+    if (!book) return;
+    const confirmed = await confirm({
+      title: 'Archive Book',
+      message: `Archive "${book.title}"? You can restore it later from the Library.`,
+      confirmText: 'Archive',
+      cancelText: 'Cancel',
+      variant: 'info',
+    });
+    if (confirmed) {
+      archiveBookMutation.mutate(book.book_id);
+    }
+  };
+
+  const quickActions = book
+    ? [
+        createBookActions.print(() => printBook(book.title, book.subtitle, pages)),
+        createBookActions.downloadHTML(() => downloadBookHTML(book.title, book.subtitle, pages)),
+        createBookActions.duplicate(() => duplicateBookMutation.mutate(book.book_id)),
+        createBookActions.archive(handleArchiveBook),
+        createBookActions.delete(handleDeleteBook),
+      ]
+    : [];
+
   if (isLoading) {
     return (
       <Layout>
@@ -80,13 +150,16 @@ export default function BookView() {
     <Layout>
       <div className="page-container max-w-5xl">
         <div className="mb-6">
-          <button
-            onClick={() => navigate('/library')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Library
-          </button>
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => navigate('/library')}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Library
+            </button>
+            <QuickActionsMenu actions={quickActions} />
+          </div>
 
           <div className="flex flex-col md:flex-row gap-8">
             {book.cover_svg && (
@@ -210,6 +283,19 @@ export default function BookView() {
         bookTitle={book?.title || ''}
         bookId={bookId || ''}
       />
+
+      {isOpen && (
+        <ConfirmModal
+          isOpen={isOpen}
+          title={options.title}
+          message={options.message}
+          confirmText={options.confirmText}
+          cancelText={options.cancelText}
+          variant={options.variant}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
     </Layout>
   );
 }

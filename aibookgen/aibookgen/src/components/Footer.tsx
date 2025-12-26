@@ -41,8 +41,11 @@ export default function Footer() {
             </a>
           </div>
 
-          <div className="text-sm text-gray-500">
-            © {new Date().getFullYear()} AI Book Generator. All rights reserved.
+          <div className="text-sm text-gray-500 flex flex-col items-center md:items-end gap-1">
+            <div>© {new Date().getFullYear()} AI Book Generator. All rights reserved.</div>
+            <div className="text-xs text-gray-600">
+              v1.2.0 • Built with React & FastAPI
+            </div>
           </div>
         </div>
       </div>
