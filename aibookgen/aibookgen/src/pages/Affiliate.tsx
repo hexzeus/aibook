@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Copy, DollarSign, TrendingUp, Mail, CheckCircle } from 'lucide-react';
 import Layout from '../components/Layout';
+import SocialShareButtons from '../components/SocialShareButtons';
 import { affiliateApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
 
@@ -119,7 +120,14 @@ export default function Affiliate() {
                 )}
               </button>
             </div>
-            <div className="mt-4 text-sm text-gray-400">
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <SocialShareButtons
+                url={`${window.location.origin}?ref=${stats.affiliate_code}`}
+                title="Check out AI Book Generator - Create AI-powered books!"
+                description="I'm using AI Book Generator to create amazing books. Join me and earn 1000 free credits with my referral link!"
+              />
+            </div>
+            <div className="mt-3 text-sm text-gray-400">
               Share this link to earn 30% commission on every sale
             </div>
           </div>
