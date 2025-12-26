@@ -179,6 +179,18 @@ export default function Editor() {
     },
   });
 
+  const deleteIllustrationMutation = useMutation({
+    mutationFn: (pageNumber: number) =>
+      premiumApi.deleteIllustration(bookId!, pageNumber),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      toast.success('Illustration deleted successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Failed to delete illustration');
+    },
+  });
+
   const applyStyleMutation = useMutation({
     mutationFn: ({ pageNumber, style }: { pageNumber: number; style: string }) =>
       premiumApi.applyStyle(bookId!, style, [pageNumber]),
@@ -661,12 +673,28 @@ export default function Editor() {
                 ) : (
                   <div className="prose prose-invert prose-lg max-w-none">
                     {currentPage.illustration_url && (
-                      <div className="mb-6 rounded-lg overflow-hidden border border-white/10">
+                      <div className="mb-6 rounded-lg overflow-hidden border border-white/10 relative group">
                         <img
                           src={currentPage.illustration_url}
                           alt={`Illustration for page ${currentPage.page_number}`}
                           className="w-full h-auto"
                         />
+                        <button
+                          onClick={async () => {
+                            if (await confirm({
+                              title: 'Delete Illustration?',
+                              message: 'Are you sure you want to delete this illustration? You can generate a new one afterwards.',
+                              confirmText: 'Delete',
+                              confirmVariant: 'danger'
+                            })) {
+                              deleteIllustrationMutation.mutate(currentPage.page_number);
+                            }
+                          }}
+                          className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete illustration"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
                     <div className="whitespace-pre-wrap font-serif text-base leading-relaxed">

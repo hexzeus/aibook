@@ -353,6 +353,16 @@ export const premiumApi = {
     return response.data;
   },
 
+  deleteIllustration: async (bookId: string, pageNumber: number) => {
+    const response = await api.delete('/api/premium/delete-illustration', {
+      data: {
+        book_id: bookId,
+        page_number: pageNumber,
+      }
+    });
+    return response.data;
+  },
+
   applyStyle: async (bookId: string, stylePrompt: string, targetPages?: number[]) => {
     const response = await api.post('/api/premium/apply-style', {
       book_id: bookId,
