@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from database import initialize_database, get_db
 from database.models import Book, Page
-from database.repositories import UserRepository, BookRepository, UsageRepository, PageRepository
+from database.repositories import UserRepository, BookRepository, UsageRepository
 from core.gumroad_v2 import GumroadValidator
 from core.book_generator import BookGenerator
 from core.epub_exporter_v2 import EnhancedEPUBExporter
@@ -1740,13 +1740,12 @@ async def generate_illustration_endpoint(
 
     # Verify book ownership
     book_repo = BookRepository(db)
-    page_repo = PageRepository(db)
     book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
     # Get the page to add illustration to
-    page = page_repo.get_page(uuid.UUID(book_id), page_number)
+    page = book_repo.get_page_by_number(uuid.UUID(book_id), page_number)
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
 
@@ -1839,13 +1838,12 @@ async def apply_custom_style_endpoint(
 
     # Verify book ownership
     book_repo = BookRepository(db)
-    page_repo = PageRepository(db)
     book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
     # Get the page to rewrite
-    page = page_repo.get_page(uuid.UUID(book_id), page_number)
+    page = book_repo.get_page_by_number(uuid.UUID(book_id), page_number)
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
 
