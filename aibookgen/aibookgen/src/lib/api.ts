@@ -285,6 +285,11 @@ export const booksApi = {
     const response = await api.put(`/api/books/${bookId}/pages/${pageId}/notes`, { notes });
     return response.data;
   },
+
+  regenerateCover: async (bookId: string) => {
+    const response = await api.post(`/api/books/${bookId}/regenerate-cover`);
+    return response.data;
+  },
 };
 
 export const subscriptionApi = {

@@ -110,6 +110,18 @@ export default function BookView() {
     },
   });
 
+  const regenerateCoverMutation = useMutation({
+    mutationFn: (bookId: string) => booksApi.regenerateCover(bookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      toast.success('Cover regenerated successfully! (2 credits used)');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Failed to regenerate cover');
+    },
+  });
+
   const duplicateBookMutation = useMutation({
     mutationFn: booksApi.duplicateBook,
     onSuccess: (data) => {
@@ -200,8 +212,34 @@ export default function BookView() {
                 <img
                   src={book.cover_svg}
                   alt={book.title}
-                  className="w-full rounded-2xl shadow-2xl"
+                  className="w-full rounded-2xl shadow-2xl mb-3"
                 />
+                <button
+                  onClick={async () => {
+                    if (await confirm({
+                      title: 'Regenerate Cover?',
+                      message: 'This will create a new AI-generated cover design and costs 2 credits.',
+                      confirmText: 'Regenerate',
+                      variant: 'info'
+                    })) {
+                      regenerateCoverMutation.mutate(book.book_id);
+                    }
+                  }}
+                  disabled={regenerateCoverMutation.isPending}
+                  className="w-full btn-secondary flex items-center justify-center gap-2 text-sm"
+                >
+                  {regenerateCoverMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="w-4 h-4" />
+                      Regenerate Cover (2 credits)
+                    </>
+                  )}
+                </button>
               </div>
             )}
 
