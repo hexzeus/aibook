@@ -630,7 +630,9 @@ class EnhancedEPUBExporter:
             return (img_data, filename, mime_type)
 
         except Exception as e:
-            print(f"[EPUB] Failed to download/optimize image for page {page_num}: {str(e)}")
+            print(f"[EPUB] Failed to download/optimize image for page {page_num}: {str(e)}", flush=True)
+            import traceback
+            print(f"[EPUB] Traceback: {traceback.format_exc()}", flush=True)
             return None
 
     def export_book(self, book_data: Dict, author_name: Optional[str] = None) -> BytesIO:

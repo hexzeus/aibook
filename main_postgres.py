@@ -1806,15 +1806,17 @@ async def generate_illustration_endpoint(
         if not openai_client:
             raise HTTPException(status_code=503, detail="OpenAI API not configured. Please set OPEN_AI_ID or OPENAI_API_KEY environment variable.")
 
-        # Enhance the prompt for better book illustrations
-        # IMPORTANT: No text/words in the image!
-        enhanced_prompt = f"""Book illustration in a professional, artistic style: {prompt}
+        # Enhance the prompt - create artistic scene/imagery WITHOUT any text
+        # NEVER mention "book" or "illustration" - ChatGPT adds text to those!
+        enhanced_prompt = f"""Create a detailed artistic scene: {prompt}
 
-CRITICAL: NO TEXT, NO WORDS, NO LETTERS of any kind in the image.
-Style: Digital art, clean composition, suitable for book publishing
-Quality: High detail, professional book illustration quality
-Mood: Appropriate for the context described
-The illustration should be pure visual art without any written text or typography."""
+CRITICAL RULES:
+- This is a desktop wallpaper / artistic photograph / scene design
+- ABSOLUTELY NO text, letters, words, signs, labels, or writing of ANY kind
+- NO books, posters, newspapers, or any objects with text
+- Pure visual imagery only - scenery, objects, characters, atmosphere
+- Professional digital art quality
+- Clean, detailed composition"""
 
         # Generate image with DALL-E 3
         response = openai_client.images.generate(

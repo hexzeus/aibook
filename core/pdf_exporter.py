@@ -86,7 +86,9 @@ class PDFExporter:
             return temp_file.name
 
         except Exception as e:
-            print(f"[PDF] Failed to download/prepare image: {str(e)}")
+            print(f"[PDF] Failed to download/prepare image: {str(e)}", flush=True)
+            import traceback
+            print(f"[PDF] Traceback: {traceback.format_exc()}", flush=True)
             return None
 
     def export_book(self, book_data: Dict) -> BytesIO:
