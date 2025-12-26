@@ -72,10 +72,30 @@ print(f"[STARTUP] Terminated {terminated} idle transactions", flush=True)
 # Initialize services
 gumroad = GumroadValidator()
 
+# Initialize AI clients for premium features
+try:
+    from openai import OpenAI
+    openai_api_key = os.getenv("OPEN_AI_ID") or os.getenv("OPENAI_API_KEY")
+    openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
+    print(f"[INIT] OpenAI Client: {'Configured' if openai_client else 'Not available'}")
+except Exception as e:
+    openai_client = None
+    print(f"[INIT] OpenAI Client: Failed to initialize - {str(e)}")
+
+try:
+    from anthropic import Anthropic
+    claude_ai_client = Anthropic(api_key=ANTHROPIC_KEY) if ANTHROPIC_KEY else None
+    print(f"[INIT] Claude Client: {'Configured' if claude_ai_client else 'Not available'}")
+except Exception as e:
+    claude_ai_client = None
+    print(f"[INIT] Claude Client: Failed to initialize - {str(e)}")
+
 print("=" * 80)
 print("AI BOOK GENERATOR v2.0 - POSTGRESQL + CREDITS")
 print(f"Database: Connected")
 print(f"Credit System: Active")
+print(f"OpenAI: {'Ready' if openai_client else 'Not configured'}")
+print(f"Claude: {'Ready' if claude_ai_client else 'Not configured'}")
 print(f"Started: {datetime.utcnow().isoformat()}")
 print("=" * 80)
 
@@ -1737,7 +1757,7 @@ async def generate_illustration_endpoint(
     try:
         # Generate illustration using DALL-E 3 via OpenAI
         if not openai_client:
-            raise HTTPException(status_code=503, detail="OpenAI API not configured. Please set OPENAI_API_KEY environment variable.")
+            raise HTTPException(status_code=503, detail="OpenAI API not configured. Please set OPEN_AI_ID or OPENAI_API_KEY environment variable.")
 
         # Enhance the prompt for better book illustrations
         enhanced_prompt = f"""Book illustration in a professional, artistic style: {prompt}
