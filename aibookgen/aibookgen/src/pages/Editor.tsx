@@ -17,6 +17,7 @@ import {
   Palette,
   Undo2,
   Redo2,
+  BookOpen,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -805,38 +806,109 @@ export default function Editor() {
 
           <div className="space-y-6 order-1 lg:order-2">
             <div className="card">
-              <h3 className="font-semibold mb-4">Book Structure</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-brand-400" />
+                Table of Contents
+              </h3>
+              <div className="space-y-1 max-h-96 overflow-y-auto scrollbar-hide">
                 {(() => {
-                  // Group pages by section and calculate unique sections
-                  const sectionMap = new Map<string, number>();
-                  pages.forEach(page => {
+                  // Group pages by section with page ranges
+                  const sections: { title: string; startPage: number; endPage: number; pageCount: number }[] = [];
+                  const sectionMap = new Map<string, { pages: number[]; startIdx: number }>();
+
+                  pages.forEach((page, idx) => {
                     if (page.section) {
-                      sectionMap.set(page.section, (sectionMap.get(page.section) || 0) + 1);
+                      if (!sectionMap.has(page.section)) {
+                        sectionMap.set(page.section, { pages: [], startIdx: idx });
+                      }
+                      sectionMap.get(page.section)!.pages.push(page.page_number);
                     }
                   });
 
-                  // Convert to array and render
-                  return Array.from(sectionMap.entries()).map(([sectionTitle, pageCount]) => (
-                    <div
-                      key={sectionTitle}
-                      className="p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-all cursor-pointer"
-                      onClick={() => {
-                        const sectionPages = pages.filter(p => p.section === sectionTitle);
-                        if (sectionPages.length > 0) {
-                          const index = pages.indexOf(sectionPages[0]);
-                          setCurrentPageIndex(index);
-                        }
-                      }}
-                    >
-                      <div className="font-medium text-sm mb-1">{sectionTitle}</div>
-                      <div className="text-xs text-gray-400">{pageCount} {pageCount === 1 ? 'page' : 'pages'}</div>
-                    </div>
-                  ));
+                  // Convert to sorted array
+                  sectionMap.forEach((data, title) => {
+                    const sortedPages = data.pages.sort((a, b) => a - b);
+                    sections.push({
+                      title,
+                      startPage: sortedPages[0],
+                      endPage: sortedPages[sortedPages.length - 1],
+                      pageCount: sortedPages.length,
+                    });
+                  });
+
+                  // Sort by start page
+                  sections.sort((a, b) => a.startPage - b.startPage);
+
+                  return sections.map((section, idx) => {
+                    const isFirst = idx === 0;
+                    const isLast = idx === sections.length - 1;
+
+                    return (
+                      <div
+                        key={section.title}
+                        className="group relative"
+                      >
+                        {/* Tree line */}
+                        <div className="absolute left-3 top-0 bottom-0 w-px bg-gradient-to-b from-brand-500/30 to-brand-500/10" />
+
+                        {/* Clickable section */}
+                        <div
+                          className="relative pl-8 pr-3 py-2.5 hover:bg-white/5 rounded-lg transition-all cursor-pointer flex items-center gap-3"
+                          onClick={() => {
+                            const sectionPages = pages.filter(p => p.section === section.title);
+                            if (sectionPages.length > 0) {
+                              const index = pages.indexOf(sectionPages[0]);
+                              setCurrentPageIndex(index);
+                            }
+                          }}
+                        >
+                          {/* Tree branch */}
+                          <div className="absolute left-3 top-1/2 w-4 h-px bg-brand-500/30" />
+
+                          {/* Icon */}
+                          <div className="flex-shrink-0">
+                            {section.title.toLowerCase().includes('title') || section.title.toLowerCase().includes('cover') ? (
+                              <span className="text-base">📄</span>
+                            ) : section.title.toLowerCase().includes('copyright') ? (
+                              <span className="text-base">©️</span>
+                            ) : section.title.toLowerCase().includes('table of contents') || section.title.toLowerCase().includes('toc') ? (
+                              <span className="text-base">📑</span>
+                            ) : section.title.toLowerCase().includes('introduction') || section.title.toLowerCase().includes('preface') ? (
+                              <span className="text-base">📖</span>
+                            ) : section.title.toLowerCase().includes('conclusion') || section.title.toLowerCase().includes('epilogue') ? (
+                              <span className="text-base">🏁</span>
+                            ) : section.title.toLowerCase().includes('appendix') ? (
+                              <span className="text-base">📋</span>
+                            ) : (
+                              <span className="text-base">📘</span>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-white truncate group-hover:text-brand-400 transition-colors">
+                              {section.title}
+                            </div>
+                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                              {section.pageCount === 1 ? (
+                                <span>Page {section.startPage}</span>
+                              ) : (
+                                <span>Pages {section.startPage}-{section.endPage}</span>
+                              )}
+                              <span>•</span>
+                              <span className="text-brand-400">{section.pageCount} {section.pageCount === 1 ? 'page' : 'pages'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
                 })()}
                 {pages.length === 0 && (
-                  <div className="text-sm text-gray-500 text-center py-4">
-                    No sections yet. Generate pages to see structure.
+                  <div className="text-sm text-gray-500 text-center py-8">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                    <p>No pages yet</p>
+                    <p className="text-xs mt-1">Generate pages to see your book's structure</p>
                   </div>
                 )}
               </div>
