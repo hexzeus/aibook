@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from database import initialize_database, get_db
 from database.models import Book, Page
-from database.repositories import UserRepository, BookRepository, UsageRepository
+from database.repositories import UserRepository, BookRepository, UsageRepository, PageRepository
 from core.gumroad_v2 import GumroadValidator
 from core.book_generator import BookGenerator
 from core.epub_exporter_v2 import EnhancedEPUBExporter
