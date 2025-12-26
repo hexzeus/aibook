@@ -1131,6 +1131,121 @@ async def duplicate_book(
     }
 
 
+@app.post("/api/books/{book_id}/reorder-pages")
+async def reorder_pages(
+    book_id: str,
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reorder pages in a book - FREE"""
+    book_repo = BookRepository(db)
+
+    # Get book
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get new page order (list of page_ids in desired order)
+    page_order = request.get('page_order', [])
+
+    if not page_order:
+        raise HTTPException(status_code=400, detail="page_order is required")
+
+    # Update page numbers based on new order
+    for idx, page_id in enumerate(page_order, start=1):
+        page = db.query(Page).filter(
+            Page.page_id == uuid.UUID(page_id),
+            Page.book_id == uuid.UUID(book_id)
+        ).first()
+
+        if page:
+            page.page_number = idx
+
+    db.commit()
+
+    return {
+        "success": True,
+        "message": "Pages reordered successfully"
+    }
+
+
+@app.post("/api/books/{book_id}/pages/{page_id}/duplicate")
+async def duplicate_page(
+    book_id: str,
+    page_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Duplicate a single page - FREE"""
+    book_repo = BookRepository(db)
+
+    # Get book
+    book = book_repo.get_book(uuid.UUID(book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Get original page
+    original_page = db.query(Page).filter(
+        Page.page_id == uuid.UUID(page_id),
+        Page.book_id == uuid.UUID(book_id),
+        Page.is_deleted == False
+    ).first()
+
+    if not original_page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Don't allow duplicating title page
+    if original_page.is_title_page:
+        raise HTTPException(status_code=400, detail="Cannot duplicate title page")
+
+    # Get all non-deleted pages ordered by page_number
+    all_pages = db.query(Page).filter(
+        Page.book_id == uuid.UUID(book_id),
+        Page.is_deleted == False
+    ).order_by(Page.page_number).all()
+
+    # Find the position to insert (right after the original page)
+    insert_position = original_page.page_number + 1
+
+    # Shift all subsequent pages up by 1
+    for page in all_pages:
+        if page.page_number >= insert_position:
+            page.page_number += 1
+
+    # Create the duplicate page
+    new_page = Page(
+        book_id=book.book_id,
+        page_number=insert_position,
+        section=original_page.section,
+        chapter_number=original_page.chapter_number,
+        content=original_page.content,
+        content_html=original_page.content_html,
+        word_count=original_page.word_count,
+        is_title_page=False,
+        is_toc=original_page.is_toc,
+        is_dedication=original_page.is_dedication,
+        is_acknowledgments=original_page.is_acknowledgments,
+        ai_model_used=original_page.ai_model_used,
+        version=1
+    )
+    db.add(new_page)
+
+    # Update book's page count
+    book.current_page_count = len(all_pages) + 1
+    if book.target_pages > 0:
+        book.completion_percentage = int((book.current_page_count / book.target_pages) * 100)
+
+    db.commit()
+    db.refresh(new_page)
+
+    return {
+        "success": True,
+        "page_id": str(new_page.page_id),
+        "message": f"Page {original_page.page_number} duplicated successfully"
+    }
+
+
 @app.get("/api/exports/history")
 async def get_export_history(
     limit: int = 50,

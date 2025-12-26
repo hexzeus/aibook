@@ -12,11 +12,13 @@ import {
   Edit3,
   Loader2,
   Trash2,
+  Copy,
+  Image,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import EditBookModal from '../components/EditBookModal';
-import { booksApi } from '../lib/api';
+import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
 import { useToastStore } from '../store/toastStore';
@@ -38,6 +40,8 @@ export default function Editor() {
   const [isEditBookModalOpen, setIsEditBookModalOpen] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<'epub' | 'pdf' | 'docx'>('epub');
+  const [showIllustrationModal, setShowIllustrationModal] = useState(false);
+  const [illustrationPrompt, setIllustrationPrompt] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -102,6 +106,32 @@ export default function Editor() {
         setCurrentPageIndex(currentPageIndex - 1);
       }
       toast.success('Page deleted successfully!');
+    },
+  });
+
+  const duplicatePageMutation = useMutation({
+    mutationFn: ({ pageId }: { pageId: string }) => booksApi.duplicatePage(bookId!, pageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      // Move to the duplicated page (which is right after current)
+      setCurrentPageIndex(currentPageIndex + 1);
+      toast.success('Page duplicated successfully!');
+    },
+  });
+
+  const generateIllustrationMutation = useMutation({
+    mutationFn: ({ pageNumber, prompt }: { pageNumber: number; prompt: string }) =>
+      premiumApi.generateIllustration(bookId!, pageNumber, prompt),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      setShowIllustrationModal(false);
+      setIllustrationPrompt('');
+      toast.success('Illustration generated successfully! (3 credits used)');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.detail || 'Failed to generate illustration');
     },
   });
 
@@ -182,6 +212,28 @@ export default function Editor() {
 
     if (confirmed) {
       deletePageMutation.mutate({ pageId: currentPage.page_id });
+    }
+  };
+
+  const handleDuplicatePage = async () => {
+    if (!currentPage || !book) return;
+
+    // Don't allow duplicating the title page
+    if (currentPage.is_title_page) {
+      toast.error('Cannot duplicate the title page');
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: 'Duplicate Page',
+      message: `Duplicate page ${currentPage.page_number}? A copy will be inserted right after this page.`,
+      confirmText: 'Duplicate',
+      cancelText: 'Cancel',
+      variant: 'info',
+    });
+
+    if (confirmed) {
+      duplicatePageMutation.mutate({ pageId: currentPage.page_id });
     }
   };
 
@@ -406,14 +458,24 @@ export default function Editor() {
                       {editMode ? 'Cancel' : 'Edit'}
                     </button>
                     {!currentPage.is_title_page && (
-                      <button
-                        onClick={handleDeletePage}
-                        disabled={deletePageMutation.isPending}
-                        className="p-2 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20"
-                        title="Delete Page"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-400" />
-                      </button>
+                      <>
+                        <button
+                          onClick={handleDuplicatePage}
+                          disabled={duplicatePageMutation.isPending}
+                          className="p-2 hover:bg-brand-500/20 rounded-lg transition-all border border-brand-500/20"
+                          title="Duplicate Page"
+                        >
+                          <Copy className="w-4 h-4 text-brand-400" />
+                        </button>
+                        <button
+                          onClick={handleDeletePage}
+                          disabled={deletePageMutation.isPending}
+                          className="p-2 hover:bg-red-500/20 rounded-lg transition-all border border-red-500/20"
+                          title="Delete Page"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -459,6 +521,19 @@ export default function Editor() {
                     <div className="whitespace-pre-wrap font-serif text-base leading-relaxed">
                       {currentPage.content}
                     </div>
+                  </div>
+                )}
+
+                {!editMode && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <button
+                      onClick={() => setShowIllustrationModal(true)}
+                      className="btn-secondary flex items-center gap-2 text-sm"
+                    >
+                      <Image className="w-4 h-4" />
+                      Generate Illustration
+                      <span className="text-xs text-brand-400">(3 credits)</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -588,6 +663,65 @@ export default function Editor() {
         onSave={(data) => updateBookMutation.mutate(data)}
         isSaving={updateBookMutation.isPending}
       />
+
+      {showIllustrationModal && currentPage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-morphism rounded-2xl p-6 max-w-md w-full border border-white/10 animate-scale-in">
+            <div className="flex items-center gap-3 mb-4">
+              <Image className="w-6 h-6 text-brand-400" />
+              <h3 className="text-xl font-bold">Generate Illustration</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              Create an AI-generated illustration for page {currentPage.page_number}. This feature costs 3 credits.
+            </p>
+            <textarea
+              value={illustrationPrompt}
+              onChange={(e) => setIllustrationPrompt(e.target.value)}
+              placeholder="Describe the illustration you want to generate... (e.g., 'A mystical forest at sunset with glowing fireflies')"
+              className="input-field mb-4 min-h-32 resize-none"
+              autoFocus
+            />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (illustrationPrompt.trim()) {
+                    generateIllustrationMutation.mutate({
+                      pageNumber: currentPage.page_number,
+                      prompt: illustrationPrompt,
+                    });
+                  } else {
+                    toast.error('Please enter an illustration description');
+                  }
+                }}
+                disabled={generateIllustrationMutation.isPending || !illustrationPrompt.trim()}
+                className="btn-primary flex items-center gap-2 flex-1"
+              >
+                {generateIllustrationMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Generate (3 credits)
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowIllustrationModal(false);
+                  setIllustrationPrompt('');
+                }}
+                disabled={generateIllustrationMutation.isPending}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

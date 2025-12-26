@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Download, Edit, Loader2, BookOpen } from 'lucide-react';
+import { ArrowLeft, Download, Edit, GripVertical, Loader2, BookOpen } from 'lucide-react';
 import Layout from '../components/Layout';
+import PageReorderModal from '../components/PageReorderModal';
 import { booksApi } from '../lib/api';
+import { useToastStore } from '../store/toastStore';
 
 export default function BookView() {
   const { bookId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToastStore();
+  const [showReorderModal, setShowReorderModal] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -27,6 +32,18 @@ export default function BookView() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       queryClient.invalidateQueries({ queryKey: ['credits'] });
+    },
+  });
+
+  const reorderPagesMutation = useMutation({
+    mutationFn: (pageOrder: string[]) => booksApi.reorderPages(bookId!, pageOrder),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      setShowReorderModal(false);
+      toast.success('Pages reordered successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to reorder pages');
     },
   });
 
@@ -93,7 +110,7 @@ export default function BookView() {
                 <span>Completed</span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => exportBookMutation.mutate(book.book_id)}
                   disabled={exportBookMutation.isPending}
@@ -117,6 +134,15 @@ export default function BookView() {
                 >
                   <Edit className="w-5 h-5" />
                   Edit
+                </button>
+                <button
+                  onClick={() => setShowReorderModal(true)}
+                  disabled={pages.length < 2}
+                  className="btn-secondary flex items-center gap-2"
+                  title={pages.length < 2 ? 'Need at least 2 pages to reorder' : 'Reorder pages'}
+                >
+                  <GripVertical className="w-5 h-5" />
+                  Reorder
                 </button>
               </div>
             </div>
@@ -148,6 +174,14 @@ export default function BookView() {
           </div>
         </div>
       </div>
+
+      {showReorderModal && (
+        <PageReorderModal
+          pages={pages}
+          onClose={() => setShowReorderModal(false)}
+          onReorder={(pageOrder) => reorderPagesMutation.mutate(pageOrder)}
+        />
+      )}
     </Layout>
   );
 }
