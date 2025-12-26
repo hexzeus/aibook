@@ -528,6 +528,13 @@ async def generate_page(
             ai_model_used='claude-3-5-sonnet-20241022'
         )
 
+        # Update book structure with coherence tracking if provided
+        if 'updated_structure' in next_page:
+            updated_structure = next_page['updated_structure']
+            book = book_repo.get_book(book_id, user_id)
+            book.structure = updated_structure
+            print(f"[COHERENCE] Updated book structure with tracking data", flush=True)
+
         # Log usage
         usage_repo.log_action(
             user_id=user_id,

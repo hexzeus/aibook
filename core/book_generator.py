@@ -2,6 +2,7 @@ from typing import AsyncGenerator, Dict, Optional
 import json
 from .claude_client import ClaudeClient
 from .openai_client import OpenAIClient
+from .story_coherence import StoryCoherenceTracker
 
 
 class BookGenerator:
@@ -26,6 +27,9 @@ class BookGenerator:
 
         # Always initialize OpenAI client for DALL-E image generation
         self.openai_client = OpenAIClient(api_key=api_key) if self.model_provider != "openai" else self.client
+
+        # Initialize story coherence tracker
+        self.coherence_tracker = StoryCoherenceTracker()
 
     async def generate_book_structure(
         self,
@@ -115,6 +119,10 @@ CRITICAL: Every page must serve a PURPOSE. Every transition must feel INEVITABLE
                 response = response[json_start:json_end].strip()
 
             structure = json.loads(response)
+
+            # Initialize coherence tracking in the structure
+            structure['coherence_tracking'] = self.coherence_tracker.initialize_tracking(structure)
+
             return structure
         except json.JSONDecodeError:
             # Fallback structure if parsing fails
@@ -252,9 +260,15 @@ Write the complete first page NOW. Make it unforgettable."""
             raise ValueError("Page number exceeds book outline")
 
         page_outline = book_structure['outline'][current_page]
+        page_number = page_outline['page_number']
 
-        # Build context from previous pages
-        context = self._build_page_context(previous_pages, max_pages=3)
+        # Build enhanced context from previous pages with coherence tracking
+        context = self._build_page_context(
+            previous_pages=previous_pages,
+            book_structure=book_structure,
+            current_page_number=page_number,
+            max_pages=10  # Expanded from 3 to 10 for better continuity
+        )
 
         system_prompt = f"""You are an AWARD-WINNING author and PROFESSIONAL EDITOR combined. Every page you write goes through an internal "autopublisher" quality filter.
 
@@ -337,12 +351,56 @@ Remember: This will be sold on marketplaces like Amazon and Etsy. It must compet
             temperature=0.8
         )
 
-        return {
+        page_data = {
             "page_number": page_outline['page_number'],
             "section": page_outline['section'],
             "content": content.strip(),
             "is_title_page": False
         }
+
+        # Extract story elements for coherence tracking (background task)
+        print(f"[COHERENCE] Extracting story elements from page {page_number}...", flush=True)
+        try:
+            extracted_elements = await self.coherence_tracker.extract_story_elements(
+                page_content=content.strip(),
+                page_number=page_number,
+                section=page_outline['section'],
+                ai_client=self.client
+            )
+
+            # Update coherence tracking in book structure
+            book_structure = self.coherence_tracker.update_tracking(
+                book_structure=book_structure,
+                page_number=page_number,
+                extracted_elements=extracted_elements
+            )
+
+            # Check if we should update the rolling summary
+            tracking = book_structure.get('coherence_tracking', {})
+            last_summary_page = tracking.get('last_summary_page', 0)
+
+            if self.coherence_tracker.should_update_summary(page_number, last_summary_page):
+                print(f"[COHERENCE] Updating story summary (page {page_number})...", flush=True)
+                updated_summary = await self.coherence_tracker.generate_rolling_summary(
+                    previous_pages=previous_pages + [page_data],  # Include current page
+                    current_summary=tracking.get('story_summary', ''),
+                    last_summary_page=last_summary_page,
+                    current_page=page_number,
+                    ai_client=self.client
+                )
+
+                book_structure['coherence_tracking']['story_summary'] = updated_summary
+                book_structure['coherence_tracking']['last_summary_page'] = page_number
+                print(f"[COHERENCE] Summary updated successfully", flush=True)
+
+            # Return updated structure along with page data
+            page_data['updated_structure'] = book_structure
+
+        except Exception as e:
+            print(f"[COHERENCE] Warning: Failed to extract story elements: {str(e)}", flush=True)
+            # Continue anyway - coherence is enhancement, not critical
+
+        return page_data
 
     async def generate_book_stream(
         self,
@@ -632,27 +690,30 @@ CRITICAL RULES:
         # Return the base64 image data directly from DALL-E
         return result["b64_json"]
 
-    def _build_page_context(self, previous_pages: list, max_pages: int = 3) -> str:
-        """Build context string from previous pages"""
+    def _build_page_context(
+        self,
+        previous_pages: list,
+        book_structure: Dict,
+        current_page_number: int,
+        max_pages: int = 10
+    ) -> str:
+        """
+        Build enhanced context string from previous pages using coherence tracking
 
-        if not previous_pages:
-            return "This is the first page of the book."
+        Args:
+            previous_pages: All previously generated pages
+            book_structure: Book structure with coherence tracking
+            current_page_number: Current page being generated
+            max_pages: Number of recent pages to include in detail (default: 10)
 
-        # Get last N pages for context (prioritize more recent pages)
-        recent_pages = previous_pages[-max_pages:]
+        Returns:
+            Enhanced context string with story summary, character tracking, etc.
+        """
 
-        context_parts = []
-        for page in recent_pages:
-            # Get full content for better context
-            content = page.get('content', '')
-
-            # Truncate only if extremely long (over 2000 chars)
-            if len(content) > 2000:
-                content = content[:2000] + "..."
-
-            context_parts.append(
-                f"Page {page.get('page_number', 'N/A')} - {page.get('section', 'Untitled')}:\n{content}"
-            )
-
-        context_str = "\n\n---\n\n".join(context_parts)
-        return f"Here is what has been written so far:\n\n{context_str}"
+        # Use coherence tracker to build comprehensive context
+        return self.coherence_tracker.build_enhanced_context(
+            previous_pages=previous_pages,
+            book_structure=book_structure,
+            current_page_number=current_page_number,
+            max_recent_pages=max_pages
+        )
