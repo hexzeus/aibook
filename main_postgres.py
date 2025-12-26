@@ -1807,11 +1807,14 @@ Mood: Appropriate for the context described"""
         )
 
         illustration_url = response.data[0].url
+        print(f"[ILLUSTRATION] DALL-E generated URL: {illustration_url[:100]}...", flush=True)
 
         # Download and store the image as base64 (DALL-E URLs are temporary!)
         print(f"[ILLUSTRATION] Downloading image from DALL-E URL...", flush=True)
         import httpx
         import base64
+
+        stored_url = None  # Track what we actually stored
 
         try:
             with httpx.Client(timeout=30.0) as client:
@@ -1823,18 +1826,36 @@ Mood: Appropriate for the context described"""
             img_base64 = base64.b64encode(img_data).decode('utf-8')
             data_url = f"data:image/png;base64,{img_base64}"
 
-            print(f"[ILLUSTRATION] Image downloaded and converted to base64 ({len(img_base64)} bytes)", flush=True)
+            print(f"[ILLUSTRATION] Image downloaded and converted to base64 ({len(img_base64)} chars)", flush=True)
 
             # Store as data URL (permanent, not temporary!)
             page.illustration_url = data_url
+            stored_url = data_url
+            print(f"[ILLUSTRATION] Set page.illustration_url to data URL (length: {len(data_url)})", flush=True)
 
         except Exception as e:
-            print(f"[ILLUSTRATION] Failed to download image: {str(e)}", flush=True)
+            print(f"[ILLUSTRATION] ERROR downloading image: {str(e)}", flush=True)
+            import traceback
+            print(f"[ILLUSTRATION] Traceback: {traceback.format_exc()}", flush=True)
             # Fall back to storing URL (will expire, but better than nothing)
             page.illustration_url = illustration_url
+            stored_url = illustration_url
+            print(f"[ILLUSTRATION] Fallback: stored temporary DALL-E URL", flush=True)
 
         page.updated_at = datetime.utcnow()
+
+        print(f"[ILLUSTRATION] Committing to database...", flush=True)
         db.commit()
+        print(f"[ILLUSTRATION] Database commit successful!", flush=True)
+
+        # Verify it was saved
+        db.refresh(page)
+        if page.illustration_url:
+            saved_length = len(page.illustration_url)
+            is_data_url = page.illustration_url.startswith('data:image/')
+            print(f"[ILLUSTRATION] VERIFIED: illustration_url saved (length: {saved_length}, is_data_url: {is_data_url})", flush=True)
+        else:
+            print(f"[ILLUSTRATION] WARNING: illustration_url is NULL after commit!", flush=True)
 
         # Log the action
         usage_repo = UsageRepository(db)
@@ -1850,11 +1871,13 @@ Mood: Appropriate for the context described"""
         )
         db.commit()
 
+        # Return the stored URL (data URL if successful, temporary URL if fallback)
         return {
             "success": True,
-            "illustration_url": illustration_url,
+            "illustration_url": stored_url,  # Return what we actually stored
             "message": "Illustration generated successfully!",
-            "prompt_used": enhanced_prompt
+            "prompt_used": enhanced_prompt,
+            "stored_as_data_url": stored_url.startswith('data:image/') if stored_url else False
         }
     except Exception as e:
         # Refund credits on failure
