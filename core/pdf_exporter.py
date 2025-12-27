@@ -215,18 +215,32 @@ class PDFExporter:
             temp_img_file = self._download_and_prepare_image(illustration_url)
             if temp_img_file:
                 try:
-                    # Calculate image dimensions to fit in content area
-                    # Max width: content_width (150mm)
-                    # Leave room for text below
-                    max_img_width = self.content_width
-                    max_img_height = 100  # mm - leave space for text
+                    # Open image to get dimensions
+                    from PIL import Image
+                    img = Image.open(temp_img_file)
+                    img_ratio = img.height / img.width
 
-                    # Add image centered
+                    # Calculate image dimensions to fit in content area
+                    max_img_width = self.content_width  # 150mm
+                    img_height = max_img_width * img_ratio
+
+                    # Limit height to leave space for text (max 100mm)
+                    if img_height > 100:
+                        img_height = 100
+                        max_img_width = img_height / img_ratio
+
+                    # Store Y position before image
+                    y_before = pdf.get_y()
+
+                    # Add image centered horizontally
+                    x_pos = self.margin_left + (self.content_width - max_img_width) / 2
                     pdf.image(temp_img_file,
-                             x=self.margin_left,
-                             y=pdf.get_y(),
+                             x=x_pos,
+                             y=y_before,
                              w=max_img_width)
-                    pdf.ln(10)  # Space after image
+
+                    # Move Y position AFTER the image height + spacing
+                    pdf.set_y(y_before + img_height + 10)  # 10mm spacing after image
 
                 except Exception as e:
                     print(f"[PDF] Failed to add image to PDF: {str(e)}")
