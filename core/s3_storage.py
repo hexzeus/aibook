@@ -81,11 +81,12 @@ class S3Storage:
             CacheControl='public, max-age=31536000'  # Cache for 1 year
         )
 
-        # Return URL (CloudFront if available, otherwise S3 direct)
+        # Return URL (CloudFront if available, otherwise S3 direct with region)
         if self.cloudfront_url:
             return f"{self.cloudfront_url}/{file_key}"
         else:
-            return f"https://{self.bucket_name}.s3.amazonaws.com/{file_key}"
+            region = os.getenv('AWS_REGION', 'us-east-1')
+            return f"https://{self.bucket_name}.s3.{region}.amazonaws.com/{file_key}"
 
     def delete_image(self, url: str) -> bool:
         """Delete image from S3 by URL"""
