@@ -286,7 +286,8 @@ class PDFExporter:
 
             # Bullet point (- or *)
             elif para.startswith('- ') or para.startswith('* '):
-                bullet = chr(8226) + ' '
+                # Use simple dash instead of bullet character (not supported in Arial)
+                bullet = '- '
                 para = bullet + para[2:].strip()
                 pdf.set_font('Arial', '', base_font_size)
                 pdf.set_x(self.margin_left + 5)

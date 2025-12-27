@@ -559,7 +559,7 @@ class EnhancedEPUBExporter:
             <p>This book is a work created with AI assistance.</p>
             <br/>
             <p>Generated with AI Book Generator</p>
-            <p>www.yourwebsite.com</p>
+            <p>https://aibooktool.netlify.app/</p>
             <br/>
             <p>First Edition: {datetime.now().strftime('%B %Y')}</p>
         </div>
@@ -612,17 +612,26 @@ class EnhancedEPUBExporter:
                 new_height = int(img.height * ratio)
                 img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
-            # Compress and save as JPEG
+            # Compress and save as JPEG (start with quality 70 to meet Amazon KDP <127KB requirement)
             img_buffer = BytesIO()
-            img.save(img_buffer, format='JPEG', quality=90, optimize=True)
+            img.save(img_buffer, format='JPEG', quality=70, optimize=True)
             img_data = img_buffer.getvalue()
 
             # Ensure under 127KB (Amazon KDP soft limit)
             if len(img_data) > 127 * 1024:
-                # Try with lower quality
+                # Try with quality 60
                 img_buffer = BytesIO()
-                img.save(img_buffer, format='JPEG', quality=75, optimize=True)
+                img.save(img_buffer, format='JPEG', quality=60, optimize=True)
                 img_data = img_buffer.getvalue()
+
+            # Final fallback - very aggressive compression at quality 50
+            if len(img_data) > 127 * 1024:
+                print(f"[EPUB] Page {page_num} image still too large ({len(img_data)//1024}KB), compressing to quality 50", flush=True)
+                img_buffer = BytesIO()
+                img.save(img_buffer, format='JPEG', quality=50, optimize=True)
+                img_data = img_buffer.getvalue()
+
+            print(f"[EPUB] Page {page_num} final image size: {len(img_data)//1024}KB", flush=True)
 
             filename = f'Images/page_{page_num}.jpg'
             mime_type = 'image/jpeg'
