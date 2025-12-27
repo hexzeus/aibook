@@ -1246,10 +1246,12 @@ async def auto_generate_book(
                         print(f"[AUTO-GEN] Generating illustration for page {page_number}...", flush=True)
 
                         # Generate AI prompt for the illustration based on page content
+                        print(f"[AUTO-GEN] Generating illustration prompt for page {page_number}...", flush=True)
                         illustration_prompt = await generator.generate_illustration_prompt(
                             page_content=next_page['content'],
                             book_context=book_data['structure']
                         )
+                        print(f"[AUTO-GEN] Illustration prompt: {illustration_prompt[:100]}...", flush=True)
 
                         # Generate illustration using DALL-E
                         if not openai_client:
@@ -1266,6 +1268,11 @@ CRITICAL RULES:
 - Professional digital art quality
 - Clean, detailed composition"""
 
+                            # CRITICAL: Commit and expunge before DALL-E call to prevent SSL timeout
+                            db.commit()
+                            db.expunge_all()
+                            print(f"[AUTO-GEN] Calling DALL-E for page {page_number}...", flush=True)
+
                             response = openai_client.images.generate(
                                 model="dall-e-3",
                                 prompt=enhanced_prompt,
@@ -1275,11 +1282,13 @@ CRITICAL RULES:
                             )
 
                             illustration_url = response.data[0].url
+                            print(f"[AUTO-GEN] DALL-E returned URL for page {page_number}", flush=True)
 
                             # Download and convert to base64
                             import httpx
                             import base64
 
+                            print(f"[AUTO-GEN] Downloading illustration for page {page_number}...", flush=True)
                             with httpx.Client(timeout=30.0) as client:
                                 img_response = client.get(illustration_url)
                                 img_response.raise_for_status()
@@ -1287,8 +1296,10 @@ CRITICAL RULES:
 
                             img_base64 = base64.b64encode(img_data).decode('utf-8')
                             data_url = f"data:image/png;base64,{img_base64}"
+                            print(f"[AUTO-GEN] Converted to base64 ({len(data_url)} chars)", flush=True)
 
-                            # Store illustration
+                            # Store illustration - refresh session and get page
+                            print(f"[AUTO-GEN] Storing illustration for page {page_number}...", flush=True)
                             page = book_repo.get_page_by_number(book_id, page_number)
                             page.illustration_url = data_url
                             page.updated_at = datetime.utcnow()
@@ -1299,11 +1310,21 @@ CRITICAL RULES:
                                 'prompt': illustration_prompt
                             })
 
-                            print(f"[AUTO-GEN] Illustration for page {page_number} generated", flush=True)
+                            print(f"[AUTO-GEN] ✓ Illustration for page {page_number} generated successfully", flush=True)
 
                     except Exception as ill_error:
-                        print(f"[AUTO-GEN] Illustration error for page {page_number}: {str(ill_error)}", flush=True)
+                        print(f"[AUTO-GEN] ✗ Illustration error for page {page_number}: {str(ill_error)}", flush=True)
+                        import traceback
+                        print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
                         errors.append(f"Page {page_number} illustration: {str(ill_error)}")
+
+                        # CRITICAL: Rollback transaction to clear invalid state
+                        try:
+                            db.rollback()
+                            print(f"[AUTO-GEN] Transaction rolled back after illustration error", flush=True)
+                        except Exception as rb_error:
+                            print(f"[AUTO-GEN] Rollback error: {str(rb_error)}", flush=True)
+
                         # Continue with next page even if illustration fails
 
             except Exception as page_error:
@@ -1334,6 +1355,11 @@ CRITICAL RULES:
         book_themes = book.structure.get('themes', []) if book.structure else []
         book_tone = book.structure.get('tone', 'engaging') if book.structure else 'engaging'
         book_type = book.book_type
+
+        # CRITICAL: Commit and expunge before DALL-E call to prevent SSL timeout
+        db.commit()
+        db.expunge_all()
+        print(f"[AUTO-GEN] Calling DALL-E for cover generation...", flush=True)
 
         # Generate cover background
         cover_background_base64 = await generator.generate_book_cover_image(
