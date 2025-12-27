@@ -2386,20 +2386,44 @@ async def regenerate_cover_endpoint(
     db.commit()
 
     try:
-        # Generate new cover
+        # Generate new cover with retry logic
         print(f"[REGENERATE COVER] Generating cover BACKGROUND with DALL-E...", flush=True)
         from core.book_generator import BookGenerator
+        import asyncio
 
         preferred_model = user.preferred_model or 'claude'
         generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
-        cover_background_base64 = await generator.generate_book_cover_image(
-            book_title=book_title,
-            book_themes=book_themes,
-            book_tone=book_tone,
-            book_type=book_type
-        )
-        print(f"[REGENERATE COVER] Cover background generated", flush=True)
+        # Retry logic for DALL-E API (3 attempts with exponential backoff)
+        max_retries = 3
+        cover_background_base64 = None
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                cover_background_base64 = await generator.generate_book_cover_image(
+                    book_title=book_title,
+                    book_themes=book_themes,
+                    book_tone=book_tone,
+                    book_type=book_type
+                )
+                print(f"[REGENERATE COVER] Cover background generated successfully", flush=True)
+                break
+            except Exception as e:
+                last_error = e
+                error_msg = str(e).lower()
+                # Only retry on server errors (500) or rate limits
+                if 'server had an error' in error_msg or 'rate' in error_msg or '500' in error_msg:
+                    wait_time = (2 ** attempt) * 2  # 2s, 4s, 8s
+                    print(f"[REGENERATE COVER] DALL-E error (attempt {attempt+1}/{max_retries}), retrying in {wait_time}s...", flush=True)
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(wait_time)
+                else:
+                    # Non-retryable error, fail immediately
+                    raise
+
+        if cover_background_base64 is None:
+            raise last_error or Exception("Failed to generate cover after retries")
 
         # Overlay text
         print(f"[REGENERATE COVER] Adding title text overlay...", flush=True)
