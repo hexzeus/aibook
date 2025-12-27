@@ -72,14 +72,13 @@ class S3Storage:
         # Generate unique filename
         file_key = f"{folder}/{uuid.uuid4()}.jpg"
 
-        # Upload to S3
+        # Upload to S3 (public access controlled by bucket policy, not ACL)
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=file_key,
             Body=img_data,
             ContentType='image/jpeg',
-            CacheControl='public, max-age=31536000',  # Cache for 1 year
-            ACL='public-read'  # Make publicly accessible
+            CacheControl='public, max-age=31536000'  # Cache for 1 year
         )
 
         # Return URL (CloudFront if available, otherwise S3 direct)
