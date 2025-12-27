@@ -1277,30 +1277,20 @@ CRITICAL RULES:
                             db.expunge_all()
                             print(f"[AUTO-GEN] Calling DALL-E for page {page_number}...", flush=True)
 
+                            # Request base64 format directly to avoid download authentication issues
                             response = openai_client.images.generate(
                                 model="dall-e-3",
                                 prompt=enhanced_prompt,
                                 size="1024x1024",
                                 quality="standard",
                                 n=1,
+                                response_format="b64_json"  # Get base64 directly instead of URL
                             )
 
-                            illustration_url = response.data[0].url
-                            print(f"[AUTO-GEN] DALL-E returned URL for page {page_number}", flush=True)
+                            img_base64 = response.data[0].b64_json
+                            print(f"[AUTO-GEN] DALL-E returned base64 image for page {page_number} ({len(img_base64)} chars)", flush=True)
 
-                            # Download and convert to base64
-                            import httpx
-                            import base64
-
-                            print(f"[AUTO-GEN] Downloading illustration for page {page_number}...", flush=True)
-                            with httpx.Client(timeout=30.0) as client:
-                                img_response = client.get(illustration_url)
-                                img_response.raise_for_status()
-                                img_data = img_response.content
-
-                            img_base64 = base64.b64encode(img_data).decode('utf-8')
                             data_url = f"data:image/png;base64,{img_base64}"
-                            print(f"[AUTO-GEN] Converted to base64 ({len(data_url)} chars)", flush=True)
 
                             # Store illustration - refresh session and get page
                             print(f"[AUTO-GEN] Storing illustration for page {page_number}...", flush=True)
