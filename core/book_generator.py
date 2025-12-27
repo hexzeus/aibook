@@ -668,27 +668,28 @@ The cover should look like it was designed by a professional for a published boo
         # Extract key visual concepts from book title
         themes_str = ', '.join(book_themes) if book_themes else 'inspiring story'
 
-        prompt = f"""Create a professional book cover illustration for "{book_title}".
+        prompt = f"""Create a stunning desktop wallpaper / artistic photograph inspired by the book "{book_title}".
 
 Visual Style: {style}
 Book Themes: {themes_str}
 Mood/Tone: {book_tone}
 
-Design a compelling cover scene that:
-- Visually represents the core themes and story of this book
-- Creates an emotional connection related to: {themes_str}
-- Uses symbolism, characters, settings, or scenes that capture the essence of "{book_title}"
+Design a compelling visual scene that:
+- Visually represents the core themes and atmosphere of: {themes_str}
+- Creates an emotional connection through pure imagery
+- Uses symbolism, characters, settings, or scenes that capture the essence of the story
 - Has strong composition with a clear focal point
 - Uses colors and lighting that match the {book_tone} mood
-- Feels like professional cover art you'd see in a bookstore
+- Feels like a professional digital art piece or cinematic photograph
 
 CRITICAL RULES:
+- This is a desktop wallpaper / artistic photograph / scene design
 - ABSOLUTELY NO text, letters, words, titles, signs, labels, or writing of ANY kind
-- NO books, newspapers, posters, billboards, or text-bearing objects
-- Create visual storytelling through imagery, scenes, characters, symbols, and atmosphere
-- Think: movie poster composition, dramatic lighting, rich detail
+- NO books, posters, newspapers, billboards, or any objects with text
+- Pure visual imagery only - scenery, objects, characters, atmosphere
 - Professional digital art quality
-- Portrait orientation perfect for a book cover"""
+- Clean, detailed composition
+- Portrait orientation (vertical wallpaper style)"""
 
         # Generate image with DALL-E (returns base64 directly)
         result = await self.openai_client.generate_image(

@@ -1239,13 +1239,28 @@ CRITICAL RULES:
                         img_base64 = response.data[0].b64_json
                         print(f"[AUTO-GEN] DALL-E returned base64 image for page 1 ({len(img_base64)} chars)", flush=True)
 
-                        data_url = f"data:image/png;base64,{img_base64}"
+                        # Upload to S3 if available, otherwise use base64
+                        if USE_S3 and s3_storage:
+                            print(f"[AUTO-GEN] Uploading page 1 illustration to S3...", flush=True)
+                            illustration_url = s3_storage.upload_image_base64(
+                                img_base64,
+                                folder='illustrations',
+                                optimize=True,
+                                max_width=800
+                            )
+                            print(f"[AUTO-GEN] Uploaded to S3: {illustration_url}", flush=True)
+                        else:
+                            illustration_url = f"data:image/png;base64,{img_base64}"
 
                         # Store illustration
                         print(f"[AUTO-GEN] Storing illustration for page 1...", flush=True)
                         page = book_repo.get_page_by_number(book_id, 1)
-                        page.illustration_url = data_url
+                        page.illustration_url = illustration_url
                         page.updated_at = datetime.utcnow()
+                        db.commit()
+
+                        # Charge for illustration (3 credits)
+                        user_repo.consume_credits(user_id, illustration_credits_per_page)
                         db.commit()
 
                         generated_illustrations.append({
@@ -1253,18 +1268,21 @@ CRITICAL RULES:
                             'prompt': illustration_prompt
                         })
 
-                        print(f"[AUTO-GEN] ✓ Illustration for page 1 generated successfully", flush=True)
+                        print(f"[AUTO-GEN] ✓ Illustration for page 1 generated successfully (3 credits charged)", flush=True)
 
                 except Exception as ill_error:
-                    print(f"[AUTO-GEN] ✗ Illustration error for page 1: {str(ill_error)}", flush=True)
+                    error_msg = str(ill_error)
+                    print(f"[AUTO-GEN] ✗ Illustration error for page 1: {error_msg}", flush=True)
                     import traceback
                     print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
-                    errors.append(f"Page 1 illustration: {str(ill_error)}")
-                    try:
-                        db.rollback()
-                        print(f"[AUTO-GEN] Transaction rolled back after page 1 illustration error", flush=True)
-                    except Exception as rb_error:
-                        print(f"[AUTO-GEN] Rollback error: {str(rb_error)}", flush=True)
+
+                    if 'content_policy_violation' in error_msg or 'content filter' in error_msg.lower():
+                        errors.append(f"Page 1 illustration blocked by content filters (page content saved)")
+                        print(f"[AUTO-GEN] Page 1 illustration blocked by content filters", flush=True)
+                    else:
+                        errors.append(f"Page 1 illustration: {error_msg}")
+
+                    # DO NOT rollback - page already exists and should stay
 
         # Generate all remaining pages
         print(f"[AUTO-GEN] Generating {remaining_pages} pages for book {book_id}", flush=True)
