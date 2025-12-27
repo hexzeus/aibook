@@ -28,6 +28,9 @@ Pillow>=10.4.0  # Image processing for covers (Python 3.13 compatible)
 openai>=1.0.0  # DALL-E 3 for illustration generation
 anthropic>=0.18.0  # Claude 3.5 Sonnet for style rewriting
 
+# AWS S3 Storage
+boto3>=1.42.0  # S3 image storage
+
 # Authentication and security (not needed for basic license key auth)
 # python-jose[cryptography]==3.3.0
 # passlib[bcrypt]==1.7.4
