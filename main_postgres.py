@@ -1140,6 +1140,9 @@ async def auto_generate_book(
     book_repo = BookRepository(db)
     usage_repo = UsageRepository(db)
 
+    print(f"[AUTO-GEN] Request received: book_id={request.book_id}, with_illustrations={request.with_illustrations}", flush=True)
+    print(f"[AUTO-GEN] OpenAI client available: {openai_client is not None}", flush=True)
+
     # Get book
     book = book_repo.get_book(uuid.UUID(request.book_id), user.user_id)
     if not book:
@@ -1241,6 +1244,7 @@ async def auto_generate_book(
                 print(f"[AUTO-GEN] Page {page_number} generated successfully", flush=True)
 
                 # Generate illustration if requested
+                print(f"[AUTO-GEN] Checking if illustrations requested: {request.with_illustrations}", flush=True)
                 if request.with_illustrations:
                     try:
                         print(f"[AUTO-GEN] Generating illustration for page {page_number}...", flush=True)
