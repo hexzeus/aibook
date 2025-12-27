@@ -1186,7 +1186,78 @@ async def auto_generate_book(
         # Initialize generator
         generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
-        # Generate all pages
+        # Check if page 1 exists but has no illustration (and we want illustrations)
+        if request.with_illustrations and current_pages >= 1:
+            first_page = book_repo.get_page_by_number(book_id, 1)
+            if first_page and not first_page.illustration_url:
+                print(f"[AUTO-GEN] Page 1 exists but missing illustration, generating now...", flush=True)
+                try:
+                    # Generate illustration prompt from page 1 content
+                    print(f"[AUTO-GEN] Generating illustration prompt for page 1...", flush=True)
+                    illustration_prompt = await generator.generate_illustration_prompt(
+                        page_content=first_page.content,
+                        book_context=book.structure
+                    )
+                    print(f"[AUTO-GEN] Illustration prompt: {illustration_prompt[:100]}...", flush=True)
+
+                    if not openai_client:
+                        print(f"[AUTO-GEN] OpenAI not configured, skipping page 1 illustration", flush=True)
+                    else:
+                        enhanced_prompt = f"""Create a detailed artistic scene: {illustration_prompt}
+
+CRITICAL RULES:
+- This is a desktop wallpaper / artistic photograph / scene design
+- ABSOLUTELY NO text, letters, words, signs, labels, or writing of ANY kind
+- NO books, posters, newspapers, or any objects with text
+- Pure visual imagery only - scenery, objects, characters, atmosphere
+- Professional digital art quality
+- Clean, detailed composition"""
+
+                        # Commit and expunge before DALL-E call
+                        db.commit()
+                        db.expunge_all()
+                        print(f"[AUTO-GEN] Calling DALL-E for page 1...", flush=True)
+
+                        response = openai_client.images.generate(
+                            model="dall-e-3",
+                            prompt=enhanced_prompt,
+                            size="1024x1024",
+                            quality="standard",
+                            n=1,
+                            response_format="b64_json"
+                        )
+
+                        img_base64 = response.data[0].b64_json
+                        print(f"[AUTO-GEN] DALL-E returned base64 image for page 1 ({len(img_base64)} chars)", flush=True)
+
+                        data_url = f"data:image/png;base64,{img_base64}"
+
+                        # Store illustration
+                        print(f"[AUTO-GEN] Storing illustration for page 1...", flush=True)
+                        page = book_repo.get_page_by_number(book_id, 1)
+                        page.illustration_url = data_url
+                        page.updated_at = datetime.utcnow()
+                        db.commit()
+
+                        generated_illustrations.append({
+                            'page_number': 1,
+                            'prompt': illustration_prompt
+                        })
+
+                        print(f"[AUTO-GEN] ✓ Illustration for page 1 generated successfully", flush=True)
+
+                except Exception as ill_error:
+                    print(f"[AUTO-GEN] ✗ Illustration error for page 1: {str(ill_error)}", flush=True)
+                    import traceback
+                    print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
+                    errors.append(f"Page 1 illustration: {str(ill_error)}")
+                    try:
+                        db.rollback()
+                        print(f"[AUTO-GEN] Transaction rolled back after page 1 illustration error", flush=True)
+                    except Exception as rb_error:
+                        print(f"[AUTO-GEN] Rollback error: {str(rb_error)}", flush=True)
+
+        # Generate all remaining pages
         print(f"[AUTO-GEN] Generating {remaining_pages} pages for book {book_id}", flush=True)
 
         for i in range(remaining_pages):
