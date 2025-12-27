@@ -24,6 +24,7 @@ export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBo
     onSubmit({ description, target_pages: targetPages, book_type: bookType });
   };
 
+  // Credit cost: 2 for structure/first page + 1 per additional page (illustrations optional later)
   const estimatedCredits = 2 + targetPages;
 
   return (
@@ -110,14 +111,13 @@ export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBo
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <div className="font-semibold mb-1">Credit Cost Estimate</div>
+                <div className="font-semibold mb-1">Initial Setup Cost</div>
                 <div className="text-sm text-gray-400">
                   • 2 credits for book structure + first page<br />
-                  • 1 credit per additional page ({targetPages - 1} pages)<br />
-                  • 2 credits for AI cover generation
+                  • (You'll auto-generate remaining pages later - optional illustrations +3 credits/page)
                 </div>
                 <div className="mt-3 pt-3 border-t border-white/10 font-semibold text-brand-400">
-                  Total: ~{estimatedCredits + 2} credits
+                  Total: 2 credits now
                 </div>
               </div>
             </div>

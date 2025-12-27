@@ -26,6 +26,7 @@ from core.gumroad_webhook import verify_gumroad_signature, process_gumroad_webho
 from core.subscription_manager import SubscriptionService, get_all_plans as get_subscription_plans, get_plan_by_id
 from core.stripe_integration import StripeIntegration
 from core.affiliate_system import AffiliateSystem
+from core.s3_storage import S3Storage
 
 # Load environment
 load_dotenv()
@@ -89,6 +90,16 @@ try:
 except Exception as e:
     claude_ai_client = None
     print(f"[INIT] Claude Client: Failed to initialize - {str(e)}")
+
+# Initialize S3 storage for images
+try:
+    s3_storage = S3Storage()
+    USE_S3 = True
+    print(f"[INIT] S3 Storage: Configured")
+except Exception as e:
+    s3_storage = None
+    USE_S3 = False
+    print(f"[INIT] S3 Storage: Not configured - using database storage - {str(e)}")
 
 print("=" * 80)
 print("AI BOOK GENERATOR v2.0 - POSTGRESQL + CREDITS")
@@ -1155,17 +1166,17 @@ async def auto_generate_book(
     if remaining_pages <= 0:
         raise HTTPException(status_code=400, detail="Book already has all pages generated")
 
-    # Calculate total credits needed
-    page_credits = remaining_pages * 1
-    illustration_credits = remaining_pages * 3 if request.with_illustrations else 0
+    # Calculate total credits needed for estimation
+    page_credits_per_page = 1
+    illustration_credits_per_page = 3 if request.with_illustrations else 0
     cover_credits = 2
-    total_credits = page_credits + illustration_credits + cover_credits
+    total_credits_estimate = (remaining_pages * (page_credits_per_page + illustration_credits_per_page)) + cover_credits
 
     # Check credits
-    if user.credits_remaining < total_credits:
+    if user.credits_remaining < total_credits_estimate:
         raise HTTPException(
             status_code=402,
-            detail=f"Insufficient credits. Need {total_credits} ({remaining_pages} pages + {illustration_credits} illustrations + 2 cover), have {user.credits_remaining}"
+            detail=f"Insufficient credits. Need ~{total_credits_estimate} ({remaining_pages} pages + {remaining_pages * illustration_credits_per_page} illustrations + 2 cover), have {user.credits_remaining}"
         )
 
     # Store user info
@@ -1173,10 +1184,8 @@ async def auto_generate_book(
     book_id = book.book_id
     preferred_model = user.preferred_model or 'claude'
 
-    # Consume all credits upfront and commit
-    user_repo.consume_credits(user_id, total_credits)
-    credits_after = user.credits_remaining - total_credits
-    db.commit()
+    # DO NOT consume credits upfront - charge per page as we go
+    # This prevents losing credits if server crashes mid-generation
 
     generated_pages = []
     generated_illustrations = []
@@ -1306,13 +1315,17 @@ CRITICAL RULES:
 
                 db.commit()
 
+                # Charge for page generation (1 credit per page)
+                user_repo.consume_credits(user_id, page_credits_per_page)
+                db.commit()
+
                 generated_pages.append({
                     'page_number': page_number,
                     'page_id': str(created_page.page_id),
                     'section': next_page['section']
                 })
 
-                print(f"[AUTO-GEN] Page {page_number} generated successfully", flush=True)
+                print(f"[AUTO-GEN] Page {page_number} generated successfully (1 credit charged)", flush=True)
 
                 # Generate illustration if requested
                 print(f"[AUTO-GEN] Checking if illustrations requested: {request.with_illustrations}", flush=True)
@@ -1361,13 +1374,28 @@ CRITICAL RULES:
                             img_base64 = response.data[0].b64_json
                             print(f"[AUTO-GEN] DALL-E returned base64 image for page {page_number} ({len(img_base64)} chars)", flush=True)
 
-                            data_url = f"data:image/png;base64,{img_base64}"
+                            # Upload to S3 if available, otherwise use base64
+                            if USE_S3 and s3_storage:
+                                print(f"[AUTO-GEN] Uploading illustration to S3...", flush=True)
+                                illustration_url = s3_storage.upload_image_base64(
+                                    img_base64,
+                                    folder='illustrations',
+                                    optimize=True,
+                                    max_width=800
+                                )
+                                print(f"[AUTO-GEN] Uploaded to S3: {illustration_url}", flush=True)
+                            else:
+                                illustration_url = f"data:image/png;base64,{img_base64}"
 
                             # Store illustration - refresh session and get page
                             print(f"[AUTO-GEN] Storing illustration for page {page_number}...", flush=True)
                             page = book_repo.get_page_by_number(book_id, page_number)
-                            page.illustration_url = data_url
+                            page.illustration_url = illustration_url
                             page.updated_at = datetime.utcnow()
+                            db.commit()
+
+                            # Charge for illustration (3 credits per illustration)
+                            user_repo.consume_credits(user_id, illustration_credits_per_page)
                             db.commit()
 
                             generated_illustrations.append({
@@ -1375,7 +1403,7 @@ CRITICAL RULES:
                                 'prompt': illustration_prompt
                             })
 
-                            print(f"[AUTO-GEN] ✓ Illustration for page {page_number} generated successfully", flush=True)
+                            print(f"[AUTO-GEN] ✓ Illustration for page {page_number} generated successfully (3 credits charged)", flush=True)
 
                     except Exception as ill_error:
                         error_msg = str(ill_error)
@@ -1393,23 +1421,32 @@ CRITICAL RULES:
                         # DO NOT rollback - the page content was already committed and should stay
                         # Just continue without the illustration for this page
 
+                # Memory cleanup every 10 pages to prevent OOM crashes
+                if page_number % 10 == 0:
+                    print(f"[AUTO-GEN] Memory cleanup at page {page_number}...", flush=True)
+                    db.commit()
+                    db.expunge_all()
+                    import gc
+                    gc.collect()
+                    print(f"[AUTO-GEN] Memory cleanup complete", flush=True)
+
             except Exception as page_error:
                 print(f"[AUTO-GEN] Page generation error: {str(page_error)}", flush=True)
                 errors.append(f"Page {page_number}: {str(page_error)}")
                 # Stop on page generation failure
                 raise page_error
 
-        # Log page generation
+        # Credits already charged per-page during generation, just log stats
         usage_repo.log_action(
             user_id=user_id,
             action_type='auto_generate_pages',
-            credits_consumed=page_credits + illustration_credits,
+            credits_consumed=0,  # Already charged per page
             book_id=book_id,
-            metadata={'pages_generated': remaining_pages, 'with_illustrations': request.with_illustrations}
+            metadata={'pages_generated': len(generated_pages), 'illustrations_generated': len(generated_illustrations), 'with_illustrations': request.with_illustrations}
         )
 
         # Update user stats
-        user_repo.increment_page_count(user_id, remaining_pages)
+        user_repo.increment_page_count(user_id, len(generated_pages))
         db.commit()
 
         # Now complete the book (generate cover)
@@ -1448,6 +1485,19 @@ CRITICAL RULES:
 
         print(f"[AUTO-GEN] Cover generated with text overlay ({len(cover_image_base64)} chars)", flush=True)
 
+        # Upload cover to S3 if available
+        if USE_S3 and s3_storage:
+            print(f"[AUTO-GEN] Uploading cover to S3...", flush=True)
+            cover_url = s3_storage.upload_image_base64(
+                cover_image_base64,
+                folder='covers',
+                optimize=True,
+                max_width=800
+            )
+            print(f"[AUTO-GEN] Cover uploaded to S3: {cover_url}", flush=True)
+        else:
+            cover_url = cover_image_base64
+
         # Calculate EPUB page count
         epub_page_count = None
         try:
@@ -1459,8 +1509,11 @@ CRITICAL RULES:
             print(f"[AUTO-GEN] Could not calculate EPUB page count: {str(e)}", flush=True)
 
         # Complete book
-        book_repo.complete_book(book_id, cover_image_base64, epub_page_count)
+        book_repo.complete_book(book_id, cover_url, epub_page_count)
         print(f"[AUTO-GEN] Book completed and cover stored ({len(cover_image_base64)} chars)", flush=True)
+
+        # Charge for cover generation (2 credits)
+        user_repo.consume_credits(user_id, cover_credits)
 
         # Log completion
         usage_repo.log_action(
@@ -1474,11 +1527,13 @@ CRITICAL RULES:
 
         print(f"[AUTO-GEN] Book auto-generation complete!", flush=True)
 
+        # Calculate actual credits consumed
+        actual_credits = (len(generated_pages) * page_credits_per_page) + (len(generated_illustrations) * illustration_credits_per_page) + cover_credits
+
         return {
             "success": True,
-            "message": f"Auto-generated {remaining_pages} pages" + (" with illustrations" if request.with_illustrations else "") + " and completed book",
-            "credits_consumed": total_credits,
-            "credits_remaining": credits_after,
+            "message": f"Auto-generated {len(generated_pages)} pages" + (" with illustrations" if request.with_illustrations else "") + " and completed book",
+            "credits_consumed": actual_credits,
             "pages_generated": len(generated_pages),
             "illustrations_generated": len(generated_illustrations),
             "errors": errors if errors else None,
@@ -1490,19 +1545,13 @@ CRITICAL RULES:
         import traceback
         print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
 
-        # Refund credits
-        try:
-            db.rollback()
-            user_repo.refund_credits(user_id, total_credits)
-            db.commit()
-            print(f"[AUTO-GEN] Refunded {total_credits} credits", flush=True)
-        except Exception as refund_error:
-            print(f"[AUTO-GEN] Refund error: {str(refund_error)}", flush=True)
-            db.rollback()
+        # Credits already charged per-page, so no refund needed
+        # User only paid for what was actually generated before crash
+        db.rollback()
 
         raise HTTPException(
             status_code=500,
-            detail=f"Auto-generation failed: {str(e)}. Credits refunded. Generated {len(generated_pages)} pages before failure."
+            detail=f"Auto-generation failed: {str(e)}. Generated {len(generated_pages)} pages before failure. Credits only charged for completed pages."
         )
 
 
