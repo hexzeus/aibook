@@ -1623,19 +1623,58 @@ async def export_book(
 
         elif export_format == 'docx':
             # Export as RTF (compatible with Word)
-            rtf_content = "{\\rtf1\\ansi\\deff0\n"
-            rtf_content += "{\\fonttbl{\\f0 Times New Roman;}}\n"
-            rtf_content += f"{{\\title {book_data['title']}}}\n"
-            rtf_content += f"{{\\author {book_data.get('author_name', 'Unknown')}}}\n"
+            def escape_rtf(text):
+                """Escape special characters for RTF format"""
+                text = text.replace('\\', '\\\\')
+                text = text.replace('{', '\\{')
+                text = text.replace('}', '\\}')
+                # Convert smart quotes and special characters to RTF unicode
+                replacements = {
+                    '\u2018': "\\'91",  # Left single quote
+                    '\u2019': "\\'92",  # Right single quote
+                    '\u201C': "\\'93",  # Left double quote
+                    '\u201D': "\\'94",  # Right double quote
+                    '\u2013': "\\'96",  # En dash
+                    '\u2014': "\\'97",  # Em dash
+                }
+                for char, rtf_code in replacements.items():
+                    text = text.replace(char, rtf_code)
+                return text
+
+            rtf_content = "{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat\\deflang1033\n"
+            rtf_content += "{\\fonttbl{\\f0\\froman\\fprq2\\fcharset0 Times New Roman;}}\n"
+            rtf_content += "{\\colortbl ;\\red0\\green0\\blue0;}\n"
+            rtf_content += "\\viewkind4\\uc1\n"
+
+            # Title
+            rtf_content += f"\\pard\\sa200\\sl276\\slmult1\\qc\\ul\\b\\fs48 {escape_rtf(book_data['title'])}\\ulnone\\b0\\par\n"
+
+            # Subtitle if exists
+            subtitle = book_data.get('structure', {}).get('subtitle', '')
+            if subtitle:
+                rtf_content += f"\\pard\\sa200\\sl276\\slmult1\\qc\\i\\fs28 {escape_rtf(subtitle)}\\i0\\par\n"
+
+            rtf_content += "\\pard\\sa200\\sl276\\slmult1\\par\n"
+
+            # Content
             for page in book_data.get('pages', []):
                 if page.get('section'):
-                    rtf_content += f"\\par\\b {page['section']}\\b0\\par\n"
-                content = page.get('content', '').replace('\n', '\\par\n')
-                rtf_content += f"{content}\\par\n"
+                    section = escape_rtf(page['section'])
+                    rtf_content += f"\\pard\\sa200\\sl276\\slmult1\\b\\fs32 {section}\\b0\\fs24\\par\n"
+
+                content = escape_rtf(page.get('content', ''))
+                # Replace newlines with RTF paragraphs
+                paragraphs = content.split('\n')
+                for para in paragraphs:
+                    if para.strip():
+                        rtf_content += f"\\pard\\sa200\\sl276\\slmult1 {para}\\par\n"
+
+                rtf_content += "\\par\n"
+
             rtf_content += "}"
 
             from io import BytesIO
-            file_buffer = BytesIO(rtf_content.encode('utf-8'))
+            file_buffer = BytesIO(rtf_content.encode('utf-8', errors='ignore'))
             media_type = "application/rtf"
             extension = "rtf"
 

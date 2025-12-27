@@ -62,7 +62,7 @@ class PDFExporter:
             else:
                 # Regular URL - download it
                 print(f"[PDF] Downloading image from URL", flush=True)
-                with httpx.Client(timeout=30.0) as client:
+                with httpx.Client(timeout=30.0, follow_redirects=True) as client:
                     response = client.get(image_url)
                     response.raise_for_status()
                     img_data = response.content

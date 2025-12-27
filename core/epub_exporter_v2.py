@@ -696,15 +696,27 @@ class EnhancedEPUBExporter:
 
         # Add cover image if available (with compression for Amazon KDP)
         cover_svg = book_data.get('cover_svg')
-        if cover_svg and cover_svg.startswith('data:image/'):
+        if cover_svg:
             try:
                 print(f"[EPUB] Adding cover image to EPUB", flush=True)
                 import base64
                 from PIL import Image
 
-                # Extract base64 data from data URL
-                header, encoded = cover_svg.split(',', 1)
-                cover_data = base64.b64decode(encoded)
+                # Handle both base64 data URLs and S3 URLs
+                if cover_svg.startswith('data:image/'):
+                    # Extract base64 data from data URL
+                    header, encoded = cover_svg.split(',', 1)
+                    cover_data = base64.b64decode(encoded)
+                elif cover_svg.startswith('http://') or cover_svg.startswith('https://'):
+                    # Download from S3 URL
+                    print(f"[EPUB] Downloading cover from URL", flush=True)
+                    response = httpx.get(cover_svg, timeout=30.0, follow_redirects=True)
+                    response.raise_for_status()
+                    cover_data = response.content
+                    print(f"[EPUB] Cover downloaded ({len(cover_data)//1024}KB)", flush=True)
+                else:
+                    raise ValueError(f"Unsupported cover format: {cover_svg[:50]}")
+
 
                 # Compress cover image to meet Amazon KDP requirements (<127KB recommended, max 800px width)
                 img = Image.open(BytesIO(cover_data))
