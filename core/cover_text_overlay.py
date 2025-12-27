@@ -64,39 +64,100 @@ class CoverTextOverlay:
         box_height = 600
         box_y2 = box_y1 + box_height
 
-        # Draw semi-transparent text box with fancy ornamental border
-        # This creates a clean, readable area for text with a picture-frame aesthetic
-        box_bg_color = (0, 0, 0, 200)  # Semi-transparent black
+        # ELABORATE ORNAMENTAL BORDER - Museum-quality picture frame aesthetic
+        # Solid textured background instead of transparent
 
-        # Fancy border colors - gold/white gradient effect
-        outer_border_color = (255, 215, 0, 255)  # Gold
-        mid_border_color = (255, 255, 255, 230)  # White
-        inner_border_color = (255, 215, 0, 200)  # Semi-transparent gold
+        # Color palette for ornate frame
+        dark_gold = (184, 134, 11, 255)     # Dark goldenrod
+        gold = (255, 215, 0, 255)            # Pure gold
+        light_gold = (255, 223, 100, 255)    # Light gold highlight
+        white = (255, 255, 255, 255)         # Pure white
+        cream = (255, 253, 208, 255)         # Cream highlight
+        dark_brown = (101, 67, 33, 255)      # Deep wood brown
 
-        # Multi-layer ornamental border (creates depth like a picture frame)
-        # Layer 1: Outermost gold border (8px)
+        # Solid background with subtle texture (dark navy/charcoal with slight noise)
+        box_bg_base = (15, 15, 25, 255)      # Deep charcoal blue
+
+        # LAYER 1: Outermost shadow/depth (20px) - Creates 3D lifted effect
+        draw.rectangle(
+            [box_x1 - 20, box_y1 - 20, box_x2 + 20, box_y2 + 20],
+            fill=dark_brown
+        )
+
+        # LAYER 2: Outer gold frame (18px)
+        draw.rectangle(
+            [box_x1 - 18, box_y1 - 18, box_x2 + 18, box_y2 + 18],
+            fill=dark_gold
+        )
+
+        # LAYER 3: Gold bevel highlight (16px) - Top/left lighter
+        draw.rectangle(
+            [box_x1 - 16, box_y1 - 16, box_x2 + 16, box_y2 + 16],
+            fill=gold
+        )
+
+        # LAYER 4: White separator with ornate feel (14px)
+        draw.rectangle(
+            [box_x1 - 14, box_y1 - 14, box_x2 + 14, box_y2 + 14],
+            fill=white
+        )
+
+        # LAYER 5: Cream accent (12px)
+        draw.rectangle(
+            [box_x1 - 12, box_y1 - 12, box_x2 + 12, box_y2 + 12],
+            fill=cream
+        )
+
+        # LAYER 6: Light gold inner frame (10px)
+        draw.rectangle(
+            [box_x1 - 10, box_y1 - 10, box_x2 + 10, box_y2 + 10],
+            fill=light_gold
+        )
+
+        # LAYER 7: White inner separator (8px)
         draw.rectangle(
             [box_x1 - 8, box_y1 - 8, box_x2 + 8, box_y2 + 8],
-            fill=outer_border_color
+            fill=white
         )
 
-        # Layer 2: White separator (6px)
+        # LAYER 8: Gold detail (6px)
         draw.rectangle(
             [box_x1 - 6, box_y1 - 6, box_x2 + 6, box_y2 + 6],
-            fill=mid_border_color
+            fill=gold
         )
 
-        # Layer 3: Inner gold accent (3px)
+        # LAYER 9: Dark gold inner shadow (4px) - Creates inset effect
         draw.rectangle(
-            [box_x1 - 3, box_y1 - 3, box_x2 + 3, box_y2 + 3],
-            fill=inner_border_color
+            [box_x1 - 4, box_y1 - 4, box_x2 + 4, box_y2 + 4],
+            fill=dark_gold
         )
 
-        # Draw inner box (text background)
+        # LAYER 10: Final white trim (2px)
+        draw.rectangle(
+            [box_x1 - 2, box_y1 - 2, box_x2 + 2, box_y2 + 2],
+            fill=white
+        )
+
+        # SOLID TEXTURED BACKGROUND (no transparency!)
+        # Base solid background
         draw.rectangle(
             [box_x1, box_y1, box_x2, box_y2],
-            fill=box_bg_color
+            fill=box_bg_base
         )
+
+        # Add subtle texture with random dots (like fine paper grain)
+        import random
+        random.seed(42)  # Consistent texture
+        for _ in range(800):  # Sparse texture dots
+            tx = random.randint(box_x1, box_x2)
+            ty = random.randint(box_y1, box_y2)
+            noise_color = (
+                box_bg_base[0] + random.randint(-5, 5),
+                box_bg_base[1] + random.randint(-5, 5),
+                box_bg_base[2] + random.randint(-5, 5),
+                255
+            )
+            draw.point((tx, ty), fill=noise_color)
 
         # Composite overlay onto cover
         cover_rgba = cover.convert('RGBA')
