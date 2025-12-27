@@ -657,28 +657,38 @@ The cover should look like it was designed by a professional for a published boo
 
         # Build a detailed prompt for DALL-E
         type_styles = {
-            "kids": "whimsical, colorful, playful children's book illustration style",
-            "adult": "sophisticated, elegant, mature literary fiction cover design",
-            "educational": "clean, professional, modern educational book design",
-            "general": "professional, eye-catching mainstream book cover design"
+            "kids": "whimsical, colorful, playful children's book illustration with vibrant characters and magical scenes",
+            "adult": "sophisticated, dramatic, cinematic book cover art with depth and emotion",
+            "educational": "clean, professional, modern illustration with clear symbolic imagery",
+            "general": "professional, eye-catching cover art with strong visual storytelling"
         }
 
         style = type_styles.get(book_type, type_styles["general"])
 
-        prompt = f"""Create an artistic desktop wallpaper design.
-Style: {style}.
-Themes: {', '.join(book_themes)}.
-Mood: {book_tone}.
+        # Extract key visual concepts from book title
+        themes_str = ', '.join(book_themes) if book_themes else 'inspiring story'
+
+        prompt = f"""Create a professional book cover illustration for "{book_title}".
+
+Visual Style: {style}
+Book Themes: {themes_str}
+Mood/Tone: {book_tone}
+
+Design a compelling cover scene that:
+- Visually represents the core themes and story of this book
+- Creates an emotional connection related to: {themes_str}
+- Uses symbolism, characters, settings, or scenes that capture the essence of "{book_title}"
+- Has strong composition with a clear focal point
+- Uses colors and lighting that match the {book_tone} mood
+- Feels like professional cover art you'd see in a bookstore
 
 CRITICAL RULES:
-- This is a DESKTOP WALLPAPER / ARTISTIC BACKGROUND only
-- ABSOLUTELY NO text, letters, words, books, signs, labels, or writing
-- NO book covers, book spines, posters, newspapers, or text-bearing objects
-- Create abstract patterns, textures, thematic imagery, or atmospheric scenes
-- Think: watercolor art, gradient designs, nature scenes, abstract patterns
+- ABSOLUTELY NO text, letters, words, titles, signs, labels, or writing of ANY kind
+- NO books, newspapers, posters, billboards, or text-bearing objects
+- Create visual storytelling through imagery, scenes, characters, symbols, and atmosphere
+- Think: movie poster composition, dramatic lighting, rich detail
 - Professional digital art quality
-- Rich, vibrant colors
-- Evocative of the themes and mood listed above"""
+- Portrait orientation perfect for a book cover"""
 
         # Generate image with DALL-E (returns base64 directly)
         result = await self.openai_client.generate_image(
