@@ -18,6 +18,7 @@ import {
   Undo2,
   Redo2,
   BookOpen,
+  AlertCircle,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -53,6 +54,9 @@ export default function Editor() {
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [stylePrompt, setStylePrompt] = useState("");
   const [showBulkExportModal, setShowBulkExportModal] = useState(false);
+  const [showAutoGenerateModal, setShowAutoGenerateModal] = useState(false);
+  const [autoGenWithIllustrations, setAutoGenWithIllustrations] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date>();
 
@@ -204,6 +208,33 @@ export default function Editor() {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.detail || "Failed to apply style");
+    },
+  });
+
+  const autoGenerateBookMutation = useMutation({
+    mutationFn: ({ bookId, withIllustrations }: { bookId: string; withIllustrations: boolean }) =>
+      booksApi.autoGenerateBook(bookId, withIllustrations),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['credits'] });
+      setAutoGenerating(false);
+      setShowAutoGenerateModal(false);
+      toast.success(
+        `Auto-generated ${data.pages_generated} pages${
+          data.illustrations_generated > 0 ? ` with ${data.illustrations_generated} illustrations` : ''
+        } and completed book!`
+      );
+      // Trigger confetti celebration
+      triggerConfetti(4000);
+      // Navigate to book view to show the completed book
+      setTimeout(() => {
+        navigate(`/book/${bookId}`);
+      }, 1500);
+    },
+    onError: (error: any) => {
+      setAutoGenerating(false);
+      toast.error(error?.response?.data?.detail || 'Auto-generation failed');
     },
   });
 
@@ -780,6 +811,15 @@ export default function Editor() {
                         </>
                       )}
                     </button>
+
+                    {/* Auto-Generate Book Button */}
+                    <button
+                      onClick={() => setShowAutoGenerateModal(true)}
+                      className="btn-secondary mt-3 w-full text-sm"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Auto-Generate Entire Book
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1089,6 +1129,118 @@ export default function Editor() {
         isExporting={bulkExportMutation.isPending}
         bookTitle={book?.title || ''}
       />
+
+      {/* Auto-Generate Book Modal */}
+      {showAutoGenerateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-800 border border-white/10 rounded-lg max-w-lg w-full p-6">
+            <h2 className="text-2xl font-bold mb-4">Auto-Generate Entire Book</h2>
+
+            <div className="space-y-4 mb-6">
+              <p className="text-gray-300">
+                Automatically generate all remaining pages and optionally illustrations, then complete the book with a cover.
+              </p>
+
+              {book && (
+                <div className="card bg-white/5">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Remaining pages:</span>
+                      <span className="text-white font-semibold">{book.target_pages - pages.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Page credits:</span>
+                      <span className="text-white">{book.target_pages - pages.length} credits</span>
+                    </div>
+                    {autoGenWithIllustrations && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Illustration credits:</span>
+                        <span className="text-white">{(book.target_pages - pages.length) * 3} credits</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Cover generation:</span>
+                      <span className="text-white">2 credits</span>
+                    </div>
+                    <div className="border-t border-white/10 pt-2 mt-2">
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-brand-400">Total credits:</span>
+                        <span className="text-brand-400">
+                          {book.target_pages - pages.length +
+                           (autoGenWithIllustrations ? (book.target_pages - pages.length) * 3 : 0) +
+                           2} credits
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={autoGenWithIllustrations}
+                  onChange={(e) => setAutoGenWithIllustrations(e.target.checked)}
+                  className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 text-brand-500 focus:ring-2 focus:ring-brand-500"
+                />
+                <div className="flex-1">
+                  <div className="font-medium group-hover:text-brand-400 transition-colors">
+                    Generate illustrations for each page
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    +3 credits per page • AI will create visual scenes matching page content
+                  </div>
+                </div>
+              </label>
+
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-yellow-200">
+                    <strong>Note:</strong> This will take several minutes to complete. You can close this page and come back later - the generation will continue in the background.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowAutoGenerateModal(false);
+                  setAutoGenWithIllustrations(false);
+                }}
+                disabled={autoGenerating}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setAutoGenerating(true);
+                  autoGenerateBookMutation.mutate({
+                    bookId: bookId!,
+                    withIllustrations: autoGenWithIllustrations,
+                  });
+                }}
+                disabled={autoGenerating}
+                className="btn-primary flex-1"
+              >
+                {autoGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Start Auto-Generation
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

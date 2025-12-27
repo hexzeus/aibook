@@ -128,6 +128,11 @@ class CompleteBookRequest(BaseModel):
     book_id: str
 
 
+class AutoGenerateBookRequest(BaseModel):
+    book_id: str
+    with_illustrations: bool = False  # Whether to generate illustrations for each page
+
+
 class UpdateBookRequest(BaseModel):
     book_id: str
     title: Optional[str] = None
@@ -1113,6 +1118,291 @@ async def complete_book(
             db.rollback()
 
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/books/auto-generate")
+async def auto_generate_book(
+    request: AutoGenerateBookRequest,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Auto-generate all remaining pages and optionally illustrations, then complete the book.
+
+    Costs:
+    - 1 credit per page
+    - 3 credits per illustration (if with_illustrations=True)
+    - 2 credits for cover generation
+
+    Example: 10 remaining pages with illustrations = 10 + (10*3) + 2 = 42 credits
+    """
+    user_repo = UserRepository(db)
+    book_repo = BookRepository(db)
+    usage_repo = UsageRepository(db)
+
+    # Get book
+    book = book_repo.get_book(uuid.UUID(request.book_id), user.user_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Calculate remaining pages
+    current_pages = len([p for p in book.pages if not p.is_deleted])
+    remaining_pages = book.target_pages - current_pages
+
+    if remaining_pages <= 0:
+        raise HTTPException(status_code=400, detail="Book already has all pages generated")
+
+    # Calculate total credits needed
+    page_credits = remaining_pages * 1
+    illustration_credits = remaining_pages * 3 if request.with_illustrations else 0
+    cover_credits = 2
+    total_credits = page_credits + illustration_credits + cover_credits
+
+    # Check credits
+    if user.credits_remaining < total_credits:
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient credits. Need {total_credits} ({remaining_pages} pages + {illustration_credits} illustrations + 2 cover), have {user.credits_remaining}"
+        )
+
+    # Store user info
+    user_id = user.user_id
+    book_id = book.book_id
+    preferred_model = user.preferred_model or 'claude'
+
+    # Consume all credits upfront and commit
+    user_repo.consume_credits(user_id, total_credits)
+    credits_after = user.credits_remaining - total_credits
+    db.commit()
+
+    generated_pages = []
+    generated_illustrations = []
+    errors = []
+
+    try:
+        # Initialize generator
+        generator = BookGenerator(api_key=None, model_provider=preferred_model)
+
+        # Generate all pages
+        print(f"[AUTO-GEN] Generating {remaining_pages} pages for book {book_id}", flush=True)
+
+        for i in range(remaining_pages):
+            page_number = current_pages + i + 1
+
+            try:
+                # Get fresh book data for each page
+                book_data = book_repo.get_book_with_pages(book_id, user_id)
+
+                # Generate page
+                print(f"[AUTO-GEN] Generating page {page_number}/{book.target_pages}...", flush=True)
+                next_page = await generator.generate_next_page(
+                    book_structure=book_data['structure'],
+                    current_page=page_number - 1,
+                    previous_pages=book_data['pages'],
+                    user_input=None
+                )
+
+                # Save page
+                created_page = book_repo.create_page(
+                    book_id=book_id,
+                    page_number=next_page['page_number'],
+                    section=next_page['section'],
+                    content=next_page['content'],
+                    user_guidance=None,
+                    ai_model_used='claude-3-5-sonnet-20241022'
+                )
+
+                # Update structure if provided
+                if 'updated_structure' in next_page:
+                    book = book_repo.get_book(book_id, user_id)
+                    book.structure = next_page['updated_structure']
+
+                # Update progress
+                book = book_repo.get_book(book_id, user_id)
+                current_pages_count = len([p for p in book.pages if not p.is_deleted])
+                book.current_page_count = current_pages_count
+                if book.target_pages > 0:
+                    book.completion_percentage = int((current_pages_count / book.target_pages) * 100)
+
+                db.commit()
+
+                generated_pages.append({
+                    'page_number': page_number,
+                    'page_id': str(created_page.page_id),
+                    'section': next_page['section']
+                })
+
+                print(f"[AUTO-GEN] Page {page_number} generated successfully", flush=True)
+
+                # Generate illustration if requested
+                if request.with_illustrations:
+                    try:
+                        print(f"[AUTO-GEN] Generating illustration for page {page_number}...", flush=True)
+
+                        # Generate AI prompt for the illustration based on page content
+                        illustration_prompt = await generator.generate_illustration_prompt(
+                            page_content=next_page['content'],
+                            book_context=book_data['structure']
+                        )
+
+                        # Generate illustration using DALL-E
+                        if not openai_client:
+                            print(f"[AUTO-GEN] OpenAI not configured, skipping illustration", flush=True)
+                            errors.append(f"Page {page_number}: OpenAI not configured for illustrations")
+                        else:
+                            enhanced_prompt = f"""Create a detailed artistic scene: {illustration_prompt}
+
+CRITICAL RULES:
+- This is a desktop wallpaper / artistic photograph / scene design
+- ABSOLUTELY NO text, letters, words, signs, labels, or writing of ANY kind
+- NO books, posters, newspapers, or any objects with text
+- Pure visual imagery only - scenery, objects, characters, atmosphere
+- Professional digital art quality
+- Clean, detailed composition"""
+
+                            response = openai_client.images.generate(
+                                model="dall-e-3",
+                                prompt=enhanced_prompt,
+                                size="1024x1024",
+                                quality="standard",
+                                n=1,
+                            )
+
+                            illustration_url = response.data[0].url
+
+                            # Download and convert to base64
+                            import httpx
+                            import base64
+
+                            with httpx.Client(timeout=30.0) as client:
+                                img_response = client.get(illustration_url)
+                                img_response.raise_for_status()
+                                img_data = img_response.content
+
+                            img_base64 = base64.b64encode(img_data).decode('utf-8')
+                            data_url = f"data:image/png;base64,{img_base64}"
+
+                            # Store illustration
+                            page = book_repo.get_page_by_number(book_id, page_number)
+                            page.illustration_url = data_url
+                            page.updated_at = datetime.utcnow()
+                            db.commit()
+
+                            generated_illustrations.append({
+                                'page_number': page_number,
+                                'prompt': illustration_prompt
+                            })
+
+                            print(f"[AUTO-GEN] Illustration for page {page_number} generated", flush=True)
+
+                    except Exception as ill_error:
+                        print(f"[AUTO-GEN] Illustration error for page {page_number}: {str(ill_error)}", flush=True)
+                        errors.append(f"Page {page_number} illustration: {str(ill_error)}")
+                        # Continue with next page even if illustration fails
+
+            except Exception as page_error:
+                print(f"[AUTO-GEN] Page generation error: {str(page_error)}", flush=True)
+                errors.append(f"Page {page_number}: {str(page_error)}")
+                # Stop on page generation failure
+                raise page_error
+
+        # Log page generation
+        usage_repo.log_action(
+            user_id=user_id,
+            action_type='auto_generate_pages',
+            credits_consumed=page_credits + illustration_credits,
+            book_id=book_id,
+            metadata={'pages_generated': remaining_pages, 'with_illustrations': request.with_illustrations}
+        )
+
+        # Update user stats
+        user_repo.increment_page_count(user_id, remaining_pages)
+        db.commit()
+
+        # Now complete the book (generate cover)
+        print(f"[AUTO-GEN] Completing book with cover generation...", flush=True)
+
+        book = book_repo.get_book(book_id, user_id)
+        book_title = book.title
+        book_subtitle = book.subtitle if hasattr(book, 'subtitle') else None
+        book_themes = book.structure.get('themes', []) if book.structure else []
+        book_tone = book.structure.get('tone', 'engaging') if book.structure else 'engaging'
+        book_type = book.book_type
+
+        # Generate cover background
+        cover_background_base64 = await generator.generate_book_cover_image(
+            book_title=book_title,
+            book_themes=book_themes,
+            book_tone=book_tone,
+            book_type=book_type
+        )
+
+        # Add text overlay
+        from core.cover_text_overlay import CoverTextOverlay
+        overlay_engine = CoverTextOverlay()
+
+        cover_image_base64 = overlay_engine.add_text_to_cover(
+            background_base64=cover_background_base64,
+            title=book_title,
+            subtitle=book_subtitle,
+            author="AI Book Generator"
+        )
+
+        # Calculate EPUB page count
+        epub_page_count = None
+        try:
+            from core.epub_page_counter import EPUBPageCounter
+            counter = EPUBPageCounter()
+            book_with_pages = book_repo.get_book_with_pages(book_id, user_id)
+            epub_page_count = counter.estimate_page_count(book_with_pages)
+        except Exception as e:
+            print(f"[AUTO-GEN] Could not calculate EPUB page count: {str(e)}", flush=True)
+
+        # Complete book
+        book_repo.complete_book(book_id, cover_image_base64, epub_page_count)
+
+        # Log completion
+        usage_repo.log_action(
+            user_id=user_id,
+            action_type='book_completed',
+            credits_consumed=cover_credits,
+            book_id=book_id
+        )
+
+        db.commit()
+
+        print(f"[AUTO-GEN] Book auto-generation complete!", flush=True)
+
+        return {
+            "success": True,
+            "message": f"Auto-generated {remaining_pages} pages" + (" with illustrations" if request.with_illustrations else "") + " and completed book",
+            "credits_consumed": total_credits,
+            "credits_remaining": credits_after,
+            "pages_generated": len(generated_pages),
+            "illustrations_generated": len(generated_illustrations),
+            "errors": errors if errors else None,
+            "book_completed": True
+        }
+
+    except Exception as e:
+        print(f"[AUTO-GEN] ERROR: {str(e)}", flush=True)
+        import traceback
+        print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
+
+        # Refund credits
+        try:
+            db.rollback()
+            user_repo.refund_credits(user_id, total_credits)
+            db.commit()
+            print(f"[AUTO-GEN] Refunded {total_credits} credits", flush=True)
+        except Exception as refund_error:
+            print(f"[AUTO-GEN] Refund error: {str(refund_error)}", flush=True)
+            db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Auto-generation failed: {str(e)}. Credits refunded. Generated {len(generated_pages)} pages before failure."
+        )
 
 
 @app.post("/api/books/export")

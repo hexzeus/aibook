@@ -690,6 +690,56 @@ CRITICAL RULES:
         # Return the base64 image data directly from DALL-E
         return result["b64_json"]
 
+    async def generate_illustration_prompt(
+        self,
+        page_content: str,
+        book_context: Dict
+    ) -> str:
+        """
+        Generate an AI illustration prompt based on page content
+
+        Args:
+            page_content: The text content of the page
+            book_context: Book structure/context
+
+        Returns:
+            A detailed prompt for DALL-E to generate an illustration
+        """
+
+        # Extract book type and themes for context
+        book_type = book_context.get('book_type', 'general')
+        themes = book_context.get('themes', [])
+        tone = book_context.get('tone', 'engaging')
+
+        # Create prompt for AI to analyze the page and suggest an illustration
+        analysis_prompt = f"""Analyze this book page and create a visual scene description for an illustration.
+
+Book Type: {book_type}
+Themes: {', '.join(themes)}
+Tone: {tone}
+
+Page Content:
+{page_content[:1000]}  # First 1000 chars to keep prompt reasonable
+
+Create a detailed visual scene description that:
+1. Captures the main action, setting, or concept of this page
+2. Is purely visual - NO text, signs, books, or written words
+3. Works as a standalone artistic image
+4. Fits the book's themes and tone
+5. Would enhance reader understanding/engagement
+
+Return ONLY the scene description in 2-3 sentences. Focus on visual elements: setting, characters, objects, atmosphere, colors, mood."""
+
+        # Use AI to generate the description
+        illustration_description = await self.client.generate_content(
+            prompt=analysis_prompt,
+            system_prompt="You are an expert at creating visual scene descriptions for book illustrations. You describe scenes vividly and concisely, focusing on visual elements only.",
+            max_tokens=200,
+            temperature=0.7
+        )
+
+        return illustration_description.strip()
+
     def _build_page_context(
         self,
         previous_pages: list,

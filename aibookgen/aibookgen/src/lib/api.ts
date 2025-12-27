@@ -290,6 +290,14 @@ export const booksApi = {
     const response = await api.post(`/api/books/${bookId}/regenerate-cover`);
     return response.data;
   },
+
+  autoGenerateBook: async (bookId: string, withIllustrations: boolean = false) => {
+    const response = await api.post('/api/books/auto-generate', {
+      book_id: bookId,
+      with_illustrations: withIllustrations,
+    });
+    return response.data;
+  },
 };
 
 export const subscriptionApi = {
