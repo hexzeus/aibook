@@ -355,7 +355,7 @@ async def create_book(
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create new book - costs 2 credits"""
+    """Create new book - costs 1 credit (structure only, no page 1)"""
     # Rate limit: 10 books per hour
     await rate_limit_middleware(
         http_request,
@@ -367,30 +367,29 @@ async def create_book(
     book_repo = BookRepository(db)
     usage_repo = UsageRepository(db)
 
-    # Check credits (1 for structure + 1 for first page = 2 credits)
-    if user.credits_remaining < 2:
+    # Check credits (1 for structure only - pages generated separately)
+    if user.credits_remaining < 1:
         raise HTTPException(
             status_code=402,
-            detail=f"Insufficient credits. Need 2, have {user.credits_remaining}"
+            detail=f"Insufficient credits. Need 1, have {user.credits_remaining}"
         )
 
     # Store user_id before any DB operations
     user_id = user.user_id
 
-    # Consume credits upfront and commit immediately
-    user_repo.consume_credits(user_id, 2)
+    # Consume 1 credit for structure
+    user_repo.consume_credits(user_id, 1)
     db.commit()
 
     try:
-        # Generate book structure (this takes 30+ seconds, connection would timeout if held open)
+        # Generate book structure only (no first page)
         # Use user's preferred model (default: claude)
         preferred_model = user.preferred_model or 'claude'
         generator = BookGenerator(api_key=None, model_provider=preferred_model)
 
         structure = None
-        first_page = None
 
-        # Stream generation
+        # Stream generation - only structure, skip first page
         async for chunk in generator.generate_book_stream(
             description=request.description,
             target_pages=request.target_pages,
@@ -398,20 +397,19 @@ async def create_book(
         ):
             if chunk['stage'] == 'structure' and chunk['status'] == 'complete':
                 structure = chunk['data']
-            elif chunk['stage'] == 'first_page' and chunk['status'] == 'complete':
-                first_page = chunk['data']
+                break  # Stop after structure, don't wait for first page
             elif chunk['stage'] == 'error':
                 # Refund credits on error
-                user_repo.refund_credits(user_id, 2)
+                user_repo.refund_credits(user_id, 1)
                 db.commit()
                 raise Exception(chunk['error'])
 
-        if not structure or not first_page:
-            user_repo.refund_credits(user_id, 2)
+        if not structure:
+            user_repo.refund_credits(user_id, 1)
             db.commit()
-            raise Exception("Failed to generate book")
+            raise Exception("Failed to generate book structure")
 
-        # Create book in database
+        # Create book in database (no pages yet)
         book = book_repo.create_book(
             user_id=user_id,
             title=structure['title'],
@@ -424,28 +422,17 @@ async def create_book(
             themes=structure.get('themes')
         )
 
-        # Create first page
-        book_repo.create_page(
-            book_id=book.book_id,
-            page_number=first_page['page_number'],
-            section=first_page['section'],
-            content=first_page['content'],
-            is_title_page=first_page.get('is_title_page', False),
-            ai_model_used='claude-3-5-sonnet-20241022'
-        )
-
         # Log usage
         usage_repo.log_action(
             user_id=user_id,
             action_type='book_created',
-            credits_consumed=2,
+            credits_consumed=1,
             book_id=book.book_id,
             metadata={'target_pages': request.target_pages, 'book_type': request.book_type}
         )
 
         # Update user stats
         user_repo.increment_book_count(user_id)
-        user_repo.increment_page_count(user_id, 1)
 
         db.commit()
 
@@ -2664,7 +2651,7 @@ async def bulk_export_endpoint(
     user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Bulk export book to multiple formats (Premium feature - 1 credit per format)"""
+    """Bulk export book to multiple formats (Premium feature - 2 credits flat rate)"""
     import zipfile
     from io import BytesIO
     from core.pdf_exporter import PDFExporter
@@ -2682,7 +2669,7 @@ async def bulk_export_endpoint(
     if not book_data:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    credits_needed = len(formats)
+    credits_needed = 2  # Flat rate: 2 credits for all formats
 
     # Check credits
     user_repo = UserRepository(db)

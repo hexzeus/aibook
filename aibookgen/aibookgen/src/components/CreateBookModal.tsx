@@ -113,11 +113,11 @@ export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBo
               <div className="flex-1">
                 <div className="font-semibold mb-1">Initial Setup Cost</div>
                 <div className="text-sm text-gray-400">
-                  • 2 credits for book structure + first page<br />
-                  • (You'll auto-generate remaining pages later - optional illustrations +3 credits/page)
+                  • 1 credit for book structure (title, outline, themes)<br />
+                  • Then auto-generate all pages: 1 credit/page + 3 credits/illustration (optional)
                 </div>
                 <div className="mt-3 pt-3 border-t border-white/10 font-semibold text-brand-400">
-                  Total: 2 credits now
+                  Total: 1 credit now
                 </div>
               </div>
             </div>

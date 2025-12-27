@@ -20,9 +20,9 @@ export default function ExportDropdown({
   const [selectedFormat, setSelectedFormat] = useState<'epub' | 'pdf' | 'docx'>('epub');
 
   const formats = [
-    { value: 'epub' as const, label: 'EPUB', desc: 'E-reader format', emoji: '📖' },
-    { value: 'pdf' as const, label: 'PDF', desc: 'Universal format', emoji: '📄' },
-    { value: 'docx' as const, label: 'DOCX', desc: 'Editable document', emoji: '📝' },
+    { value: 'epub' as const, label: 'EPUB', desc: 'E-reader format (1 credit)', emoji: '📖' },
+    { value: 'pdf' as const, label: 'PDF', desc: 'Universal format (1 credit)', emoji: '📄' },
+    { value: 'docx' as const, label: 'DOCX', desc: 'Editable document (1 credit)', emoji: '📝' },
   ];
 
   return (
@@ -90,8 +90,8 @@ export default function ExportDropdown({
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-brand-400" />
                   <div>
-                    <div className="font-medium text-brand-400">Bulk Export</div>
-                    <div className="text-xs text-gray-500">All formats at once</div>
+                    <div className="font-medium text-brand-400">Bulk Export (Premium)</div>
+                    <div className="text-xs text-gray-500">All formats - 2 credits total</div>
                   </div>
                 </div>
               </button>
