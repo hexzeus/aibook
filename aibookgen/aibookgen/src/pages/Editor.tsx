@@ -853,8 +853,24 @@ export default function Editor() {
               <div className="space-y-1 max-h-96 overflow-y-auto scrollbar-hide">
                 {(() => {
                   // Group pages by section with page ranges
-                  const sections: { title: string; startPage: number; endPage: number; pageCount: number }[] = [];
+                  const sections: { title: string; startPage: number; endPage: number; pageCount: number; isVirtual?: boolean }[] = [];
                   const sectionMap = new Map<string, { pages: number[]; startIdx: number }>();
+
+                  // Add virtual title page and copyright page (always in EPUB export)
+                  sections.push({
+                    title: book?.title || 'Title Page',
+                    startPage: 0,
+                    endPage: 0,
+                    pageCount: 1,
+                    isVirtual: true
+                  });
+                  sections.push({
+                    title: 'Copyright Page',
+                    startPage: 0,
+                    endPage: 0,
+                    pageCount: 1,
+                    isVirtual: true
+                  });
 
                   pages.forEach((page, idx) => {
                     if (page.section) {
@@ -876,8 +892,12 @@ export default function Editor() {
                     });
                   });
 
-                  // Sort by start page
-                  sections.sort((a, b) => a.startPage - b.startPage);
+                  // Sort by start page (virtual pages first with startPage 0)
+                  sections.sort((a, b) => {
+                    if (a.isVirtual && !b.isVirtual) return -1;
+                    if (!a.isVirtual && b.isVirtual) return 1;
+                    return a.startPage - b.startPage;
+                  });
 
                   return sections.map((section, idx) => {
                     const isFirst = idx === 0;
@@ -893,8 +913,13 @@ export default function Editor() {
 
                         {/* Clickable section */}
                         <div
-                          className="relative pl-8 pr-3 py-2.5 hover:bg-white/5 rounded-lg transition-all cursor-pointer flex items-center gap-3"
+                          className={`relative pl-8 pr-3 py-2.5 rounded-lg transition-all flex items-center gap-3 ${
+                            section.isVirtual
+                              ? 'opacity-60 cursor-default'
+                              : 'hover:bg-white/5 cursor-pointer'
+                          }`}
                           onClick={() => {
+                            if (section.isVirtual) return; // Can't navigate to virtual pages
                             const sectionPages = pages.filter(p => p.section === section.title);
                             if (sectionPages.length > 0) {
                               const index = pages.indexOf(sectionPages[0]);
@@ -930,7 +955,9 @@ export default function Editor() {
                               {section.title}
                             </div>
                             <div className="text-xs text-gray-500 flex items-center gap-2">
-                              {section.pageCount === 1 ? (
+                              {section.isVirtual ? (
+                                <span className="italic">Included in export</span>
+                              ) : section.pageCount === 1 ? (
                                 <span>Page {section.startPage}</span>
                               ) : (
                                 <span>Pages {section.startPage}-{section.endPage}</span>
