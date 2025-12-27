@@ -731,9 +731,11 @@ Create a detailed visual scene description that:
 Return ONLY the scene description in 2-3 sentences. Focus on visual elements: setting, characters, objects, atmosphere, colors, mood."""
 
         # Use AI to generate the description
-        illustration_description = await self.client.generate_content(
-            prompt=analysis_prompt,
-            system_prompt="You are an expert at creating visual scene descriptions for book illustrations. You describe scenes vividly and concisely, focusing on visual elements only.",
+        system_prompt = "You are an expert at creating visual scene descriptions for book illustrations. You describe scenes vividly and concisely, focusing on visual elements only."
+
+        illustration_description = await self.client.generate(
+            system_prompt=system_prompt,
+            user_prompt=analysis_prompt,
             max_tokens=200,
             temperature=0.7
         )

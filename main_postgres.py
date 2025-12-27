@@ -1190,19 +1190,25 @@ async def auto_generate_book(
             page_number = current_pages + i + 1
 
             try:
-                # Get fresh book data for each page
+                # CRITICAL: Get book data and snapshot BEFORE AI generation
                 book_data = book_repo.get_book_with_pages(book_id, user_id)
+                book_structure = book_data['structure']
+                previous_pages = book_data['pages']
 
-                # Generate page
+                # Commit and expunge to release connection before AI call
+                db.commit()
+                db.expunge_all()  # Detach all objects from session
+
+                # Generate page (NO DB CONNECTION HELD - prevents SSL timeout)
                 print(f"[AUTO-GEN] Generating page {page_number}/{book.target_pages}...", flush=True)
                 next_page = await generator.generate_next_page(
-                    book_structure=book_data['structure'],
+                    book_structure=book_structure,
                     current_page=page_number - 1,
-                    previous_pages=book_data['pages'],
+                    previous_pages=previous_pages,
                     user_input=None
                 )
 
-                # Save page
+                # Save page (connection will be refreshed automatically)
                 created_page = book_repo.create_page(
                     book_id=book_id,
                     page_number=next_page['page_number'],
