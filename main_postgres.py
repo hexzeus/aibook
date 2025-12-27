@@ -1378,19 +1378,20 @@ CRITICAL RULES:
                             print(f"[AUTO-GEN] ✓ Illustration for page {page_number} generated successfully", flush=True)
 
                     except Exception as ill_error:
-                        print(f"[AUTO-GEN] ✗ Illustration error for page {page_number}: {str(ill_error)}", flush=True)
+                        error_msg = str(ill_error)
+                        print(f"[AUTO-GEN] ✗ Illustration error for page {page_number}: {error_msg}", flush=True)
                         import traceback
                         print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
-                        errors.append(f"Page {page_number} illustration: {str(ill_error)}")
 
-                        # CRITICAL: Rollback transaction to clear invalid state
-                        try:
-                            db.rollback()
-                            print(f"[AUTO-GEN] Transaction rolled back after illustration error", flush=True)
-                        except Exception as rb_error:
-                            print(f"[AUTO-GEN] Rollback error: {str(rb_error)}", flush=True)
+                        # Check if it's a content policy violation
+                        if 'content_policy_violation' in error_msg or 'content filter' in error_msg.lower():
+                            errors.append(f"Page {page_number} illustration blocked by content filters (page content saved)")
+                            print(f"[AUTO-GEN] Page {page_number} content saved, but illustration blocked by content filters", flush=True)
+                        else:
+                            errors.append(f"Page {page_number} illustration: {error_msg}")
 
-                        # Continue with next page even if illustration fails
+                        # DO NOT rollback - the page content was already committed and should stay
+                        # Just continue without the illustration for this page
 
             except Exception as page_error:
                 print(f"[AUTO-GEN] Page generation error: {str(page_error)}", flush=True)
