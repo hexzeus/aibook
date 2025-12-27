@@ -2438,8 +2438,8 @@ async def regenerate_cover_endpoint(
         )
         print(f"[REGENERATE COVER] Text overlay complete", flush=True)
 
-        # Store as data URL
-        cover_svg = f"data:image/jpeg;base64,{cover_image_base64}"
+        # add_text_to_cover already returns a data URL, so use it directly
+        cover_svg = cover_image_base64
 
         # Update book
         book.cover_svg = cover_svg

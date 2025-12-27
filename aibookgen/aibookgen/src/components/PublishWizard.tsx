@@ -27,11 +27,11 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
   const toast = useToastStore();
   const queryClient = useQueryClient();
 
-  // Metadata state - Initialize with book data
+  // Metadata state - Initialize with book data and smart defaults
   const [metadata, setMetadata] = useState({
     title: bookData?.title || bookTitle,
     subtitle: bookData?.subtitle || '',
-    author: '', // Will be set from user data or left empty
+    author: 'Independent Author', // Default author name
     description: bookData?.description || '',
     categories: [] as string[],
     keywords: [] as string[],
@@ -112,18 +112,48 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
   const handlePublish = async () => {
     setIsPublishing(true);
 
-    // Simulate publishing process
-    setTimeout(() => {
-      setIsPublishing(false);
-      toast.success('Book published successfully!');
-      triggerConfetti();
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+    try {
+      // Export EPUB for all selected marketplaces
+      const blob = await booksApi.exportBook(bookId, 'epub');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${metadata.title.replace(/[^a-z0-9]/gi, '_')}.epub`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-      // Show success step
+      setIsPublishing(false);
+      toast.success('Book exported! Opening marketplace upload pages...');
+      triggerConfetti();
+
+      // Open marketplace upload pages based on selections
+      const marketplaceUrls: Record<string, string> = {
+        amazon_kdp: 'https://kdp.amazon.com/en_US/bookshelf',
+        apple_books: 'https://books.apple.com/us/author/apple-books-for-authors/id1453047887',
+        google_play: 'https://play.google.com/books/publish/',
+      };
+
+      // Open each selected marketplace in a new tab
       setTimeout(() => {
-        onClose();
-      }, 3000);
-    }, 2000);
+        Object.entries(marketplaces).forEach(([marketplace, selected]) => {
+          if (selected && marketplaceUrls[marketplace as keyof typeof marketplaceUrls]) {
+            window.open(marketplaceUrls[marketplace as keyof typeof marketplaceUrls], '_blank');
+          }
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['books'] });
+
+        // Close wizard after 2 seconds
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }, 1000);
+    } catch (error) {
+      setIsPublishing(false);
+      toast.error('Failed to export book. Please try again.');
+    }
   };
 
   const renderStepContent = () => {
@@ -239,7 +269,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                   type="text"
                   value={metadata.title}
                   onChange={(e) => setMetadata({ ...metadata, title: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                   placeholder="Enter book title"
                 />
               </div>
@@ -250,7 +280,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                   type="text"
                   value={metadata.subtitle}
                   onChange={(e) => setMetadata({ ...metadata, subtitle: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                   placeholder="Optional subtitle"
                 />
               </div>
@@ -263,7 +293,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                   type="text"
                   value={metadata.author}
                   onChange={(e) => setMetadata({ ...metadata, author: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                   placeholder="Author name"
                 />
               </div>
@@ -275,7 +305,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                 <textarea
                   value={metadata.description}
                   onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                   rows={4}
                   placeholder="Brief description of your book"
                 />
@@ -309,13 +339,13 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                     min="0.99"
                     value={pricing.price}
                     onChange={(e) => setPricing({ ...pricing, price: e.target.value })}
-                    className="input flex-1"
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500"
                     placeholder="2.99"
                   />
                   <select
                     value={pricing.currency}
                     onChange={(e) => setPricing({ ...pricing, currency: e.target.value })}
-                    className="input w-24"
+                    className="w-24 px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                   >
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -332,7 +362,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                 <select
                   value={pricing.territories}
                   onChange={(e) => setPricing({ ...pricing, territories: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                 >
                   <option value="worldwide">Worldwide</option>
                   <option value="us-only">United States Only</option>
@@ -346,7 +376,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
                 <select
                   value={pricing.rights}
                   onChange={(e) => setPricing({ ...pricing, rights: e.target.value })}
-                  className="input w-full"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-white"
                 >
                   <option value="worldwide">I have worldwide rights</option>
                   <option value="regional">Regional rights only</option>
@@ -463,7 +493,7 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold mb-2">Ready to Publish!</h3>
               <p className="text-gray-400">
-                Review your settings and publish your book
+                Click "Publish Now" to download your EPUB and open marketplace upload pages
               </p>
             </div>
 
@@ -514,10 +544,27 @@ export default function PublishWizard({ bookId, bookTitle, bookData, onClose }: 
               </div>
             </div>
 
+            {/* Instructions */}
+            {!isPublishing && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Book className="w-5 h-5 text-blue-400" />
+                  What happens next:
+                </h4>
+                <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
+                  <li>Your EPUB file will download automatically</li>
+                  <li>Marketplace upload pages will open in new tabs</li>
+                  <li>Upload your EPUB file to each marketplace</li>
+                  <li>Fill in the metadata (title, author, price, description)</li>
+                  <li>Submit for review (usually takes 24-72 hours)</li>
+                </ol>
+              </div>
+            )}
+
             {isPublishing && (
               <div className="text-center py-8">
                 <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
-                <p className="text-gray-400">Publishing your book...</p>
+                <p className="text-gray-400">Exporting your book...</p>
               </div>
             )}
           </div>
