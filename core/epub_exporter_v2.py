@@ -692,7 +692,6 @@ class EnhancedEPUBExporter:
                 print(f"[EPUB] Adding cover image to EPUB", flush=True)
                 import base64
                 from PIL import Image
-                from io import BytesIO
 
                 # Extract base64 data from data URL
                 header, encoded = cover_svg.split(',', 1)
