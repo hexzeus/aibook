@@ -52,17 +52,54 @@ class CoverTextOverlay:
         # Add the design as background
         cover.paste(design, (0, 0))
 
+        # Load fonts first to calculate text dimensions
+        try:
+            title_font = self._get_font('bold', 75)
+            subtitle_font = self._get_font('regular', 38)
+            author_font = self._get_font('regular', 32)
+        except Exception as e:
+            print(f"[COVER] Font warning: {e}")
+            title_font = ImageFont.load_default()
+            subtitle_font = ImageFont.load_default()
+            author_font = ImageFont.load_default()
+
+        # Create temporary draw to measure text
+        temp_overlay = Image.new('RGBA', cover.size, (0, 0, 0, 0))
+        temp_draw = ImageDraw.Draw(temp_overlay)
+
+        # Calculate text dimensions
+        box_margin = 80
+        text_max_width = self.COVER_WIDTH - (box_margin * 2) - 100  # Horizontal padding inside box
+
+        wrapped_title = self._wrap_text(title, title_font, temp_draw, max_width=text_max_width)
+
+        # Calculate title height
+        total_text_height = 0
+        for line in wrapped_title:
+            bbox = temp_draw.textbbox((0, 0), line, font=title_font)
+            total_text_height += (bbox[3] - bbox[1]) + 20
+
+        # Add subtitle height if exists
+        if subtitle:
+            total_text_height += 30  # Gap between title and subtitle
+            wrapped_subtitle = self._wrap_text(subtitle, subtitle_font, temp_draw, max_width=text_max_width)
+            for line in wrapped_subtitle:
+                bbox = temp_draw.textbbox((0, 0), line, font=subtitle_font)
+                total_text_height += (bbox[3] - bbox[1]) + 15
+
+        # Calculate box dimensions - tight fit around text with padding
+        vertical_padding = 60  # Top and bottom padding inside box
+        box_height = int(total_text_height + (vertical_padding * 2))
+
+        # Position box at top of cover (professional book title placement)
+        box_y1 = 120
+        box_x1 = box_margin
+        box_x2 = self.COVER_WIDTH - box_margin
+        box_y2 = box_y1 + box_height
+
         # Create text box overlay
         overlay = Image.new('RGBA', cover.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-
-        # Define text box area (centered, with padding)
-        box_margin = 80
-        box_x1 = box_margin
-        box_x2 = self.COVER_WIDTH - box_margin
-        box_y1 = 450
-        box_height = 600
-        box_y2 = box_y1 + box_height
 
         # ELABORATE ORNAMENTAL BORDER - Museum-quality picture frame aesthetic
         # Solid textured background instead of transparent
@@ -167,46 +204,16 @@ class CoverTextOverlay:
         # Now add text on top
         draw = ImageDraw.Draw(cover)
 
-        # Load fonts
-        try:
-            title_font = self._get_font('bold', 75)
-            subtitle_font = self._get_font('regular', 38)
-            author_font = self._get_font('regular', 32)
-        except Exception as e:
-            print(f"[COVER] Font warning: {e}")
-            title_font = ImageFont.load_default()
-            subtitle_font = ImageFont.load_default()
-            author_font = ImageFont.load_default()
-
         # Text color (white for dark box)
         text_color = (255, 255, 255)
 
-        # Center text within the box
+        # Center text horizontally
         center_x = self.COVER_WIDTH // 2
 
-        # First, calculate total height of all text to center it vertically
-        wrapped_title = self._wrap_text(title, title_font, draw, max_width=box_x2 - box_x1 - 100)
-
-        # Calculate title height
-        total_height = 0
-        for line in wrapped_title:
-            bbox = draw.textbbox((0, 0), line, font=title_font)
-            total_height += (bbox[3] - bbox[1]) + 20
-
-        # Add subtitle height if exists
-        if subtitle:
-            total_height += 30  # Gap between title and subtitle
-            wrapped_subtitle = self._wrap_text(subtitle, subtitle_font, draw, max_width=box_x2 - box_x1 - 100)
-            for line in wrapped_subtitle:
-                bbox = draw.textbbox((0, 0), line, font=subtitle_font)
-                total_height += (bbox[3] - bbox[1]) + 15
-
-        # Calculate starting Y to center text vertically (excluding author which stays at bottom)
-        available_height = box_height - 140 if author else box_height - 60  # Leave space for author
-        text_y = box_y1 + (available_height - total_height) // 2 + 30
+        # Start text at top of box with padding
+        text_y = box_y1 + vertical_padding
 
         # Draw title
-
         for line in wrapped_title:
             bbox = draw.textbbox((0, 0), line, font=title_font)
             text_width = bbox[2] - bbox[0]
@@ -218,7 +225,6 @@ class CoverTextOverlay:
         # Draw subtitle if provided
         if subtitle:
             text_y += 30  # Space between title and subtitle
-            wrapped_subtitle = self._wrap_text(subtitle, subtitle_font, draw, max_width=box_x2 - box_x1 - 80)
 
             for line in wrapped_subtitle:
                 bbox = draw.textbbox((0, 0), line, font=subtitle_font)
@@ -230,13 +236,16 @@ class CoverTextOverlay:
                 draw.text((text_x, text_y), line, font=subtitle_font, fill=subtitle_color)
                 text_y += bbox[3] - bbox[1] + 15
 
-        # Draw author at bottom if provided
+        # Draw author below the box (on the cover background, not in the box)
         if author:
-            author_y = box_y2 - 70
+            author_y = box_y2 + 80  # Place author 80px below the ornamental box
             bbox = draw.textbbox((0, 0), author, font=author_font)
             text_width = bbox[2] - bbox[0]
             text_x = center_x - text_width // 2
 
+            # Add subtle shadow for readability on background
+            shadow_offset = 2
+            draw.text((text_x + shadow_offset, author_y + shadow_offset), author, font=author_font, fill=(0, 0, 0, 180))
             draw.text((text_x, author_y), author, font=author_font, fill=text_color)
 
         # Amazon KDP recommends max 800px width and <127KB file size
