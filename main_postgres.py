@@ -1445,6 +1445,8 @@ CRITICAL RULES:
             author="AI Book Generator"
         )
 
+        print(f"[AUTO-GEN] Cover generated with text overlay ({len(cover_image_base64)} chars)", flush=True)
+
         # Calculate EPUB page count
         epub_page_count = None
         try:
@@ -1457,6 +1459,7 @@ CRITICAL RULES:
 
         # Complete book
         book_repo.complete_book(book_id, cover_image_base64, epub_page_count)
+        print(f"[AUTO-GEN] Book completed and cover stored ({len(cover_image_base64)} chars)", flush=True)
 
         # Log completion
         usage_repo.log_action(

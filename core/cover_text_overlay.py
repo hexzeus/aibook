@@ -262,7 +262,8 @@ class CoverTextOverlay:
         print(f"[COVER] Final cover size: {len(cover_data)//1024}KB", flush=True)
         img_base64 = base64.b64encode(cover_data).decode('utf-8')
 
-        return img_base64
+        # Return as data URL for consistency with illustrations
+        return f"data:image/jpeg;base64,{img_base64}"
 
     def _prepare_background(self, design: Image.Image) -> Image.Image:
         """Resize and crop design to fit cover"""
