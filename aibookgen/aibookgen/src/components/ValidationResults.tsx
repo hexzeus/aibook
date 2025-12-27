@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { booksApi, Book } from '../lib/api';
-import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2, RefreshCw, X } from 'lucide-react';
 import PublishWizard from './PublishWizard';
 
 interface ValidationResultsProps {
@@ -87,10 +87,10 @@ export default function ValidationResults({ bookId, bookTitle, bookData, onClose
   const allPassed = readiness?.ready_for_kdp && readiness?.ready_for_apple && readiness?.ready_for_google;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#1a1625] rounded-2xl p-8 max-w-3xl w-full border border-white/10 my-8">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[#1a1625] rounded-2xl max-w-3xl w-full border border-white/10 max-h-[90vh] flex flex-col my-auto shadow-2xl">
+        {/* Sticky Header */}
+        <div className="flex items-start justify-between p-8 pb-6 border-b border-white/10 flex-shrink-0">
           <div>
             <h2 className="text-2xl font-bold mb-2">Validation Results</h2>
             <p className="text-gray-400 text-sm">
@@ -99,15 +99,29 @@ export default function ValidationResults({ bookId, bookTitle, bookData, onClose
                 : 'Review the items below to prepare your book for publishing'}
             </p>
           </div>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
-            title="Refresh validation"
-          >
-            <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+              title="Refresh validation"
+            >
+              <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 p-8 pt-6">
 
         {/* Score Banner */}
         <div
@@ -245,7 +259,7 @@ export default function ValidationResults({ bookId, bookTitle, bookData, onClose
 
         {/* Recommendations */}
         {readiness?.recommendations && readiness.recommendations.length > 0 && (
-          <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+          <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-purple-400" />
               Next Steps
@@ -260,9 +274,10 @@ export default function ValidationResults({ bookId, bookTitle, bookData, onClose
             </div>
           </div>
         )}
+        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 justify-end">
+        {/* Sticky Footer Actions */}
+        <div className="flex gap-3 justify-end p-8 pt-6 border-t border-white/10 flex-shrink-0 bg-[#1a1625]">
           {onClose && (
             <button
               onClick={onClose}
