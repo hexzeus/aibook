@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Key, Sparkles, Zap, Check, Crown, Building2, Rocket } from 'lucide-react';
+import { BookOpen, Key, Sparkles, Zap, Check, Crown, Building2, Rocket, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../lib/api';
 
@@ -80,7 +80,7 @@ export default function Auth() {
 
       <div className="w-full max-w-7xl relative py-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl mb-4 shadow-glow">
             <BookOpen className="w-10 h-10 text-white" />
           </div>
@@ -88,13 +88,74 @@ export default function Auth() {
             AI Book Generator
           </h1>
           <p className="text-text-secondary text-lg sm:text-xl max-w-2xl mx-auto">
-            Create professional ebooks with AI in minutes. Choose your plan and start writing today.
+            Create professional ebooks with AI in minutes.
           </p>
         </div>
 
-        {/* Pricing Grid */}
-        {!showPricing ? (
-          <>
+        {/* License Key Input - TOP PRIORITY */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative bg-surface-1 border border-brand-500/30 rounded-2xl p-6">
+              <h3 className="text-center text-lg font-semibold text-text-primary mb-4">
+                Enter Your License Key
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
+                    <input
+                      type="text"
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value)}
+                      placeholder="Paste your license key here"
+                      className="input-field pl-12"
+                      required
+                    />
+                  </div>
+                  {error && (
+                    <p className="mt-2 text-sm text-red-400">{error}</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !licenseKey.trim()}
+                  className="btn-primary w-full"
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Validating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      Access Dashboard
+                    </span>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle Pricing Button */}
+        <div className="text-center mb-8">
+          <button
+            onClick={() => setShowPricing(!showPricing)}
+            className="group inline-flex items-center gap-2 text-text-secondary hover:text-brand-400 transition-all"
+          >
+            <span className="text-sm font-medium">
+              {showPricing ? 'Hide' : "Don't have a license?"} View Pricing Plans
+            </span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${showPricing ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* Pricing Grid - Collapsible */}
+        {showPricing && (
+          <div className="animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
               {pricingTiers.map((tier) => {
                 const Icon = tier.icon;
@@ -151,56 +212,8 @@ export default function Auth() {
                 );
               })}
             </div>
-
-            {/* Already Have License Section */}
-            <div className="max-w-md mx-auto">
-              <div className="group relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-center text-lg font-semibold text-text-primary mb-4">
-                    Already have a license key?
-                  </h3>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <div className="relative">
-                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
-                        <input
-                          type="text"
-                          value={licenseKey}
-                          onChange={(e) => setLicenseKey(e.target.value)}
-                          placeholder="Enter your license key"
-                          className="input-field pl-12"
-                          required
-                        />
-                      </div>
-                      {error && (
-                        <p className="mt-2 text-sm text-red-400">{error}</p>
-                      )}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading || !licenseKey.trim()}
-                      className="btn-primary w-full"
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Validating...
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-2">
-                          <Zap className="w-5 h-5" />
-                          Access Dashboard
-                        </span>
-                      )}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : null}
+          </div>
+        )}
 
         {/* Stats */}
         <div className="mt-12 grid grid-cols-3 gap-4 max-w-2xl mx-auto">

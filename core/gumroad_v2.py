@@ -83,14 +83,10 @@ class GumroadValidator:
             return False, "Gumroad not configured", None
 
         try:
-            # Only include product IDs that don't look like placeholders
-            valid_product_ids = [
-                pid for pid in self.product_ids.values()
-                if not pid.startswith('aibook-')
-            ]
+            # Use all configured product IDs
+            product_ids_to_check = ','.join(self.product_ids.values())
 
-            # If no valid IDs, use all IDs (fallback)
-            product_ids_to_check = ','.join(valid_product_ids) if valid_product_ids else ','.join(self.product_ids.values())
+            print(f"[GUMROAD] Checking license key against products: {product_ids_to_check}")
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
@@ -104,6 +100,7 @@ class GumroadValidator:
                 )
 
                 data = response.json()
+                print(f"[GUMROAD] API Response: {data}")
 
                 if not data.get('success'):
                     # Check if license exists but is refunded

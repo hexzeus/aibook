@@ -17,17 +17,34 @@ def verify_gumroad_signature(payload: bytes, signature: str) -> bool:
 
     Args:
         payload: Raw request body
-        signature: X-Gumroad-Signature header value
+        signature: X-Gumroad-Signature header value (may be empty)
 
     Returns:
-        True if signature is valid
+        True if signature is valid or if signature verification is disabled
+
+    Note:
+        Gumroad's standard "Ping" webhooks don't include signatures.
+        Only use signature verification if you've specifically configured it in Gumroad.
     """
-    webhook_secret = os.getenv("GUMROAD_WEBHOOK_SECRET")
-    if not webhook_secret:
-        # In development, skip signature verification
+    # If no signature provided, check if we should skip verification
+    if not signature:
+        # In development or if webhook secret not set, allow without signature
         if os.getenv("ENVIRONMENT") == "development":
             return True
-        raise ValueError("GUMROAD_WEBHOOK_SECRET not configured")
+
+        # In production, allow if GUMROAD_WEBHOOK_SECRET is not set
+        # (means we're using basic Ping webhooks without signature)
+        webhook_secret = os.getenv("GUMROAD_WEBHOOK_SECRET")
+        if not webhook_secret:
+            return True
+
+        # If secret IS set but no signature provided, reject
+        return False
+
+    # If signature provided, verify it
+    webhook_secret = os.getenv("GUMROAD_WEBHOOK_SECRET")
+    if not webhook_secret:
+        return False
 
     # Gumroad uses HMAC-SHA256
     expected_signature = hmac.new(

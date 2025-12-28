@@ -2105,22 +2105,34 @@ async def gumroad_webhook(
     Handle Gumroad webhooks for instant credit delivery
     Called when user makes a purchase
     """
+    print("[WEBHOOK] Received Gumroad webhook request")
+
     # Get raw body for signature verification
     body = await request.body()
     signature = request.headers.get("X-Gumroad-Signature", "")
 
+    print(f"[WEBHOOK] Signature present: {bool(signature)}")
+    print(f"[WEBHOOK] Body length: {len(body)} bytes")
+
     # Verify signature
     if not verify_gumroad_signature(body, signature):
+        print("[WEBHOOK] Signature verification FAILED")
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    print("[WEBHOOK] Signature verification PASSED")
 
     # Parse JSON
     try:
-        data = await request.json()
-    except:
+        data = json.loads(body) if body else {}
+        print(f"[WEBHOOK] Parsed data: {json.dumps(data, indent=2)}")
+    except Exception as e:
+        print(f"[WEBHOOK] JSON parsing failed: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
     # Process webhook
+    print("[WEBHOOK] Processing webhook...")
     result = process_gumroad_webhook(data, db)
+    print(f"[WEBHOOK] Result: {result}")
 
     return result
 
