@@ -111,6 +111,15 @@ class GumroadValidator:
                 purchase = data.get('purchase', {})
                 product_id = purchase.get('product_id')
 
+                # Check if it's a test purchase (free purchases on your own products)
+                is_test = purchase.get('test', False)
+                if is_test:
+                    print(f"[GUMROAD] Test purchase detected - allowing in development mode")
+                    # Allow test purchases in development, but warn in production
+                    environment = os.getenv('ENVIRONMENT', 'development')
+                    if environment == 'production':
+                        print(f"[GUMROAD] WARNING: Test purchase used in production environment")
+
                 # Check if refunded
                 if purchase.get('refunded') or purchase.get('chargebacked'):
                     return False, "This license has been refunded", None
