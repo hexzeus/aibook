@@ -78,11 +78,18 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
     sale_data = data.get("sale", data)  # Sometimes nested, sometimes not
 
     # Extract key data
-    license_key = sale_data.get("license_key")  # May be None for credit refills
+    license_key = sale_data.get("license_key")  # From license tier purchases
+
+    # For credit refills, license key comes from URL params
+    if not license_key:
+        license_key = sale_data.get("url_params[license_key]")
+
     email = sale_data.get("email")
     product_permalink = sale_data.get("product_permalink", "")
     sale_id = sale_data.get("sale_id")
     price_cents = int(float(sale_data.get("price", 0)) * 100)
+
+    print(f"[WEBHOOK] Extracted license_key: {license_key[:8] if license_key else 'None'}...")
 
     user_repo = UserRepository(db)
 
