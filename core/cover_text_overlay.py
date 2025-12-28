@@ -1,5 +1,6 @@
 """
-Book Cover Text Overlay - Professional book cover with design background and text box
+Book Cover Text Overlay - Modern fringe design with top/bottom bars
+Creates professional book covers without obscuring the AI-generated artwork
 """
 import base64
 from io import BytesIO
@@ -10,10 +11,10 @@ from typing import Optional
 class CoverTextOverlay:
     """
     Create professional book covers with:
-    - AI-generated design background
-    - Clean text box with readable background
-    - Professional typography
-    - Signature look
+    - AI-generated artwork in the center (unobscured)
+    - Top fringe bar for title
+    - Bottom fringe bar for subtitle/author
+    - Clean, modern aesthetic
     """
 
     # Standard cover dimensions (portrait)
@@ -28,13 +29,13 @@ class CoverTextOverlay:
         author: Optional[str] = None
     ) -> str:
         """
-        Create professional book cover with text box overlay
+        Create professional book cover with top/bottom fringe bars
 
         Args:
             background_base64: Base64-encoded PNG background design
-            title: Book title
-            subtitle: Optional subtitle
-            author: Optional author name
+            title: Book title (goes in top bar)
+            subtitle: Optional subtitle (goes in bottom bar with author)
+            author: Optional author name (goes in bottom bar)
 
         Returns:
             Base64-encoded PNG book cover
@@ -46,17 +47,11 @@ class CoverTextOverlay:
         # Resize/crop to cover dimensions
         design = self._prepare_background(design)
 
-        # Create book cover canvas
-        cover = Image.new('RGB', (self.COVER_WIDTH, self.COVER_HEIGHT), (255, 255, 255))
-
-        # Add the design as background
-        cover.paste(design, (0, 0))
-
-        # Load fonts first to calculate text dimensions
+        # Load fonts
         try:
-            title_font = self._get_font('bold', 75)
-            subtitle_font = self._get_font('regular', 38)
-            author_font = self._get_font('regular', 32)
+            title_font = self._get_font('bold', 72)
+            subtitle_font = self._get_font('regular', 42)
+            author_font = self._get_font('regular', 36)
         except Exception as e:
             print(f"[COVER] Font warning: {e}")
             title_font = ImageFont.load_default()
@@ -64,213 +59,206 @@ class CoverTextOverlay:
             author_font = ImageFont.load_default()
 
         # Create temporary draw to measure text
-        temp_overlay = Image.new('RGBA', cover.size, (0, 0, 0, 0))
+        temp_overlay = Image.new('RGBA', (self.COVER_WIDTH, self.COVER_HEIGHT), (0, 0, 0, 0))
         temp_draw = ImageDraw.Draw(temp_overlay)
 
-        # Calculate text dimensions
-        box_margin = 80
-        text_max_width = self.COVER_WIDTH - (box_margin * 2) - 100  # Horizontal padding inside box
-
+        # Calculate top bar height (for title)
+        text_max_width = self.COVER_WIDTH - 120  # Side padding
         wrapped_title = self._wrap_text(title, title_font, temp_draw, max_width=text_max_width)
 
-        # Calculate title height
-        total_text_height = 0
+        title_height = 0
         for line in wrapped_title:
             bbox = temp_draw.textbbox((0, 0), line, font=title_font)
-            total_text_height += (bbox[3] - bbox[1]) + 20
+            title_height += (bbox[3] - bbox[1]) + 15  # Line spacing
 
-        # Add subtitle height if exists
+        # Top bar dimensions (with padding)
+        top_bar_padding = 50  # Vertical padding inside bar
+        top_bar_height = max(200, title_height + (top_bar_padding * 2))  # Minimum 200px
+
+        # Calculate bottom bar height (for subtitle + author)
+        bottom_text_height = 0
+
         if subtitle:
-            total_text_height += 30  # Gap between title and subtitle
             wrapped_subtitle = self._wrap_text(subtitle, subtitle_font, temp_draw, max_width=text_max_width)
             for line in wrapped_subtitle:
                 bbox = temp_draw.textbbox((0, 0), line, font=subtitle_font)
-                total_text_height += (bbox[3] - bbox[1]) + 15
+                bottom_text_height += (bbox[3] - bbox[1]) + 12
+            bottom_text_height += 25  # Gap between subtitle and author
 
-        # Add author height if exists
         if author:
-            total_text_height += 50  # Gap before author
             bbox = temp_draw.textbbox((0, 0), author, font=author_font)
-            total_text_height += (bbox[3] - bbox[1])
+            bottom_text_height += (bbox[3] - bbox[1])
 
-        # Calculate box dimensions - tight fit around text with padding
-        vertical_padding = 60  # Top and bottom padding inside box
-        box_height = int(total_text_height + (vertical_padding * 2))
+        # Bottom bar dimensions
+        bottom_bar_padding = 45
+        bottom_bar_height = max(150, bottom_text_height + (bottom_bar_padding * 2)) if (subtitle or author) else 0
 
-        # Position box centered vertically
-        box_y1 = (self.COVER_HEIGHT - box_height) // 2
-        box_x1 = box_margin
-        box_x2 = self.COVER_WIDTH - box_margin
-        box_y2 = box_y1 + box_height
-
-        # Create text box overlay
-        overlay = Image.new('RGBA', cover.size, (0, 0, 0, 0))
+        # Create overlay with gradient bars
+        overlay = Image.new('RGBA', (self.COVER_WIDTH, self.COVER_HEIGHT), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
 
-        # ELABORATE ORNAMENTAL BORDER - Museum-quality picture frame aesthetic
-
-        # Color palette for ornate frame
-        dark_gold = (184, 134, 11, 255)     # Dark goldenrod
-        gold = (255, 215, 0, 255)            # Pure gold
-        light_gold = (255, 223, 100, 255)    # Light gold highlight
-        white = (255, 255, 255, 255)         # Pure white
-        cream = (255, 253, 208, 255)         # Cream highlight
-        dark_brown = (101, 67, 33, 255)      # Deep wood brown
-
-        # LAYER 1: Outermost shadow/depth (20px) - Creates 3D lifted effect
-        draw.rectangle(
-            [box_x1 - 20, box_y1 - 20, box_x2 + 20, box_y2 + 20],
-            fill=dark_brown
+        # === TOP BAR (Title) ===
+        # Gradient from solid to transparent (creates elegant fade into artwork)
+        self._draw_gradient_bar(
+            draw,
+            y_start=0,
+            y_end=top_bar_height,
+            base_color=(0, 0, 0),  # Black
+            opacity_start=245,      # Nearly opaque at top
+            opacity_end=180,        # Fade to semi-transparent
+            direction='down'
         )
 
-        # LAYER 2: Outer gold frame (18px)
+        # Accent line at bottom of top bar (subtle gold)
         draw.rectangle(
-            [box_x1 - 18, box_y1 - 18, box_x2 + 18, box_y2 + 18],
-            fill=dark_gold
+            [0, top_bar_height - 3, self.COVER_WIDTH, top_bar_height],
+            fill=(212, 175, 55, 200)  # Gold accent
         )
 
-        # LAYER 3: Gold bevel highlight (16px) - Top/left lighter
-        draw.rectangle(
-            [box_x1 - 16, box_y1 - 16, box_x2 + 16, box_y2 + 16],
-            fill=gold
-        )
+        # === BOTTOM BAR (Subtitle/Author) ===
+        if bottom_bar_height > 0:
+            bottom_bar_start = self.COVER_HEIGHT - bottom_bar_height
 
-        # LAYER 4: White separator with ornate feel (14px)
-        draw.rectangle(
-            [box_x1 - 14, box_y1 - 14, box_x2 + 14, box_y2 + 14],
-            fill=white
-        )
+            # Gradient from transparent to solid
+            self._draw_gradient_bar(
+                draw,
+                y_start=bottom_bar_start,
+                y_end=self.COVER_HEIGHT,
+                base_color=(0, 0, 0),  # Black
+                opacity_start=180,      # Fade from semi-transparent
+                opacity_end=245,        # To nearly opaque at bottom
+                direction='up'
+            )
 
-        # LAYER 5: Cream accent (12px)
-        draw.rectangle(
-            [box_x1 - 12, box_y1 - 12, box_x2 + 12, box_y2 + 12],
-            fill=cream
-        )
-
-        # LAYER 6: Light gold inner frame (10px)
-        draw.rectangle(
-            [box_x1 - 10, box_y1 - 10, box_x2 + 10, box_y2 + 10],
-            fill=light_gold
-        )
-
-        # LAYER 7: White inner separator (8px)
-        draw.rectangle(
-            [box_x1 - 8, box_y1 - 8, box_x2 + 8, box_y2 + 8],
-            fill=white
-        )
-
-        # LAYER 8: Gold detail (6px)
-        draw.rectangle(
-            [box_x1 - 6, box_y1 - 6, box_x2 + 6, box_y2 + 6],
-            fill=gold
-        )
-
-        # LAYER 9: Dark gold inner shadow (4px) - Creates inset effect
-        draw.rectangle(
-            [box_x1 - 4, box_y1 - 4, box_x2 + 4, box_y2 + 4],
-            fill=dark_gold
-        )
-
-        # LAYER 10: Final white trim (2px)
-        draw.rectangle(
-            [box_x1 - 2, box_y1 - 2, box_x2 + 2, box_y2 + 2],
-            fill=white
-        )
-
-        # Semi-transparent background (lets background show through slightly)
-        draw.rectangle(
-            [box_x1, box_y1, box_x2, box_y2],
-            fill=(0, 0, 0, 200)  # Semi-transparent black
-        )
+            # Accent line at top of bottom bar
+            draw.rectangle(
+                [0, bottom_bar_start, self.COVER_WIDTH, bottom_bar_start + 3],
+                fill=(212, 175, 55, 200)  # Gold accent
+            )
 
         # Composite overlay onto cover
-        cover_rgba = cover.convert('RGBA')
+        cover_rgba = design.convert('RGBA')
         cover_rgba = Image.alpha_composite(cover_rgba, overlay)
         cover = cover_rgba.convert('RGB')
 
-        # Now add text on top
+        # Now add text
         draw = ImageDraw.Draw(cover)
-
-        # Text color (white for dark box)
-        text_color = (255, 255, 255)
-
-        # Center text horizontally
+        text_color = (255, 255, 255)  # White text
         center_x = self.COVER_WIDTH // 2
 
-        # Start text at top of box with padding
-        text_y = box_y1 + vertical_padding
+        # === DRAW TITLE (Top bar) ===
+        text_y = (top_bar_height - title_height) // 2  # Center vertically in top bar
 
-        # Draw title
         for line in wrapped_title:
             bbox = draw.textbbox((0, 0), line, font=title_font)
             text_width = bbox[2] - bbox[0]
             text_x = center_x - text_width // 2
 
+            # Add subtle shadow for depth
+            shadow_offset = 3
+            draw.text((text_x + shadow_offset, text_y + shadow_offset), line, font=title_font, fill=(0, 0, 0, 180))
             draw.text((text_x, text_y), line, font=title_font, fill=text_color)
-            text_y += bbox[3] - bbox[1] + 20
+            text_y += bbox[3] - bbox[1] + 15
 
-        # Draw subtitle if provided
-        if subtitle:
-            text_y += 30  # Space between title and subtitle
+        # === DRAW SUBTITLE & AUTHOR (Bottom bar) ===
+        if bottom_bar_height > 0:
+            bottom_bar_start = self.COVER_HEIGHT - bottom_bar_height
+            text_y = bottom_bar_start + (bottom_bar_height - bottom_text_height) // 2
 
-            for line in wrapped_subtitle:
-                bbox = draw.textbbox((0, 0), line, font=subtitle_font)
+            # Draw subtitle
+            if subtitle:
+                for line in wrapped_subtitle:
+                    bbox = draw.textbbox((0, 0), line, font=subtitle_font)
+                    text_width = bbox[2] - bbox[0]
+                    text_x = center_x - text_width // 2
+
+                    # Slightly dimmer for subtitle
+                    subtitle_color = (230, 230, 230)
+                    draw.text((text_x + 2, text_y + 2), line, font=subtitle_font, fill=(0, 0, 0, 150))
+                    draw.text((text_x, text_y), line, font=subtitle_font, fill=subtitle_color)
+                    text_y += bbox[3] - bbox[1] + 12
+
+                text_y += 25  # Gap before author
+
+            # Draw author
+            if author:
+                bbox = draw.textbbox((0, 0), author, font=author_font)
                 text_width = bbox[2] - bbox[0]
                 text_x = center_x - text_width // 2
 
-                # Subtitle slightly dimmer
-                subtitle_color = (220, 220, 220)
-                draw.text((text_x, text_y), line, font=subtitle_font, fill=subtitle_color)
-                text_y += bbox[3] - bbox[1] + 15
+                draw.text((text_x + 2, text_y + 2), author, font=author_font, fill=(0, 0, 0, 150))
+                draw.text((text_x, text_y), author, font=author_font, fill=text_color)
 
-        # Draw author if provided
-        if author:
-            text_y += 50  # Space before author
-            bbox = draw.textbbox((0, 0), author, font=author_font)
-            text_width = bbox[2] - bbox[0]
-            text_x = center_x - text_width // 2
-
-            draw.text((text_x, text_y), author, font=author_font, fill=text_color)
-
-        # Amazon KDP recommends max 800px width and <127KB file size
-        # Resize to Amazon KDP dimensions first, then compress
+        # Amazon KDP optimization
         kdp_width = 800
         kdp_height = int(self.COVER_HEIGHT * (kdp_width / self.COVER_WIDTH))
 
         print(f"[COVER] Resizing from {self.COVER_WIDTH}x{self.COVER_HEIGHT} to {kdp_width}x{kdp_height} for Amazon KDP", flush=True)
         cover_resized = cover.resize((kdp_width, kdp_height), Image.Resampling.LANCZOS)
 
-        # Start with quality 70 to ensure we stay under 127KB
+        # Compress to stay under 127KB
         buffer = BytesIO()
-        cover_resized.save(buffer, format='JPEG', quality=70, optimize=True)
+        cover_resized.save(buffer, format='JPEG', quality=75, optimize=True)
         cover_data = buffer.getvalue()
 
-        # If still too large, compress to quality 60
         if len(cover_data) > 127 * 1024:
-            print(f"[COVER] Cover too large ({len(cover_data)//1024}KB), compressing to quality 60", flush=True)
+            print(f"[COVER] Cover too large ({len(cover_data)//1024}KB), compressing to quality 65", flush=True)
             buffer = BytesIO()
-            cover_resized.save(buffer, format='JPEG', quality=60, optimize=True)
+            cover_resized.save(buffer, format='JPEG', quality=65, optimize=True)
             cover_data = buffer.getvalue()
 
-        # Final fallback - very aggressive compression at quality 50
         if len(cover_data) > 127 * 1024:
-            print(f"[COVER] Still too large ({len(cover_data)//1024}KB), compressing to quality 50", flush=True)
+            print(f"[COVER] Still too large ({len(cover_data)//1024}KB), compressing to quality 55", flush=True)
             buffer = BytesIO()
-            cover_resized.save(buffer, format='JPEG', quality=50, optimize=True)
+            cover_resized.save(buffer, format='JPEG', quality=55, optimize=True)
             cover_data = buffer.getvalue()
 
         print(f"[COVER] Final cover size: {len(cover_data)//1024}KB", flush=True)
         img_base64 = base64.b64encode(cover_data).decode('utf-8')
 
-        # Return as data URL for consistency with illustrations
         return f"data:image/jpeg;base64,{img_base64}"
+
+    def _draw_gradient_bar(
+        self,
+        draw: ImageDraw.ImageDraw,
+        y_start: int,
+        y_end: int,
+        base_color: tuple,
+        opacity_start: int,
+        opacity_end: int,
+        direction: str = 'down'
+    ):
+        """
+        Draw a vertical gradient bar with smooth opacity transition
+
+        Args:
+            draw: ImageDraw object
+            y_start: Top Y coordinate
+            y_end: Bottom Y coordinate
+            base_color: RGB tuple (e.g., (0, 0, 0) for black)
+            opacity_start: Starting opacity (0-255)
+            opacity_end: Ending opacity (0-255)
+            direction: 'down' (fade down) or 'up' (fade up)
+        """
+        height = y_end - y_start
+
+        for i in range(height):
+            # Calculate opacity for this row
+            progress = i / height
+            if direction == 'down':
+                opacity = int(opacity_start + (opacity_end - opacity_start) * progress)
+            else:  # 'up'
+                opacity = int(opacity_start + (opacity_end - opacity_start) * (1 - progress))
+
+            # Draw horizontal line with calculated opacity
+            draw.rectangle(
+                [0, y_start + i, self.COVER_WIDTH, y_start + i + 1],
+                fill=(*base_color, opacity)
+            )
 
     def _prepare_background(self, design: Image.Image) -> Image.Image:
         """Resize and crop design to fit cover"""
-        # Target aspect ratio
         target_ratio = self.COVER_WIDTH / self.COVER_HEIGHT
-
-        # Calculate current ratio
         design_ratio = design.width / design.height
 
         if design_ratio > target_ratio:
