@@ -241,7 +241,8 @@ Write the complete first page NOW. Make it unforgettable."""
         book_structure: Dict,
         current_page: int,
         previous_pages: list,
-        user_input: Optional[str] = None
+        user_input: Optional[str] = None,
+        style_instructions: Optional[str] = None
     ) -> Dict:
         """
         Generate the next page with autopublisher polish and professional flow
@@ -251,6 +252,7 @@ Write the complete first page NOW. Make it unforgettable."""
             current_page: Current page number (0-indexed in list)
             previous_pages: List of previously generated pages
             user_input: Optional user guidance for this page
+            style_instructions: Optional writing style instructions from style profile
 
         Returns:
             Dict containing page number and content
@@ -296,7 +298,18 @@ This page must feel like it was written by the SAME AUTHOR who wrote the previou
 📄 PAGE MISSION:
 Section: {page_outline['section']}
 Goal: {page_outline['content_brief']}
+"""
 
+        # Inject style instructions if provided
+        if style_instructions:
+            user_prompt += f"""
+🎨 WRITING STYLE REQUIREMENTS:
+{style_instructions}
+
+CRITICAL: Apply this style consistently throughout the page. Match the tone, vocabulary level, sentence structure, and voice characteristics specified above.
+"""
+
+        user_prompt += f"""
 📚 STORY SO FAR:
 {context}
 

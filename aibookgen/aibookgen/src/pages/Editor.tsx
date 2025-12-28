@@ -19,6 +19,8 @@ import {
   Redo2,
   BookOpen,
   AlertCircle,
+  Users,
+  BarChart3,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -26,6 +28,10 @@ import EditBookModal from '../components/EditBookModal';
 import PageNotes from '../components/PageNotes';
 import BulkExportModal from '../components/BulkExportModal';
 import AutoSaveIndicator, { SaveStatus } from '../components/AutoSaveIndicator';
+import StyleConfigModal, { StyleProfile } from '../components/StyleConfigModal';
+import ChapterOutlineEditor, { BookStructure } from '../components/ChapterOutlineEditor';
+import CharacterBuilder from '../components/CharacterBuilder';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
@@ -59,6 +65,12 @@ export default function Editor() {
   const [autoGenerating, setAutoGenerating] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date>();
+  const [showStyleConfigModal, setShowStyleConfigModal] = useState(false);
+  const [applyingStyle, setApplyingStyle] = useState(false);
+  const [showOutlineEditor, setShowOutlineEditor] = useState(false);
+  const [savingStructure, setSavingStructure] = useState(false);
+  const [showCharacterBuilder, setShowCharacterBuilder] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -391,6 +403,75 @@ export default function Editor() {
     completeBookMutation.mutate(book.book_id);
   };
 
+  const handleApplyStyleProfile = async (styleProfile: StyleProfile) => {
+    if (!book) return;
+
+    setApplyingStyle(true);
+
+    try {
+      const response = await fetch('/api/style/create-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('license_key')}`
+        },
+        body: JSON.stringify({
+          book_id: book.book_id,
+          ...styleProfile
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to apply style profile');
+      }
+
+      const data = await response.json();
+
+      // Refresh book data to get updated style_profile
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+
+      setShowStyleConfigModal(false);
+      toast.success('Writing style applied successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to apply style profile');
+    } finally {
+      setApplyingStyle(false);
+    }
+  };
+
+  const handleSaveStructure = async (structure: BookStructure) => {
+    if (!book) return;
+
+    setSavingStructure(true);
+
+    try {
+      const response = await fetch(`/api/books/${book.book_id}/structure`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('license_key')}`
+        },
+        body: JSON.stringify({ structure })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update structure');
+      }
+
+      // Refresh book data
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+
+      setShowOutlineEditor(false);
+      toast.success('Book structure updated successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update structure');
+    } finally {
+      setSavingStructure(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -438,6 +519,34 @@ export default function Editor() {
                   title="Edit book details"
                 >
                   <Edit3 className="w-5 h-5 text-gray-400 hover:text-white" />
+                </button>
+                <button
+                  onClick={() => setShowStyleConfigModal(true)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                  title="Configure writing style"
+                >
+                  <Palette className="w-5 h-5 text-purple-400 hover:text-purple-300" />
+                </button>
+                <button
+                  onClick={() => setShowOutlineEditor(true)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                  title="Edit chapter outline"
+                >
+                  <BookOpen className="w-5 h-5 text-blue-400 hover:text-blue-300" />
+                </button>
+                <button
+                  onClick={() => setShowCharacterBuilder(true)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                  title="Manage characters"
+                >
+                  <Users className="w-5 h-5 text-green-400 hover:text-green-300" />
+                </button>
+                <button
+                  onClick={() => setShowAnalytics(true)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
+                  title="View analytics"
+                >
+                  <BarChart3 className="w-5 h-5 text-orange-400 hover:text-orange-300" />
                 </button>
               </div>
               {book.subtitle && (
@@ -1267,6 +1376,39 @@ export default function Editor() {
             </div>
           </div>
         </div>
+      )}
+
+      {showStyleConfigModal && (
+        <StyleConfigModal
+          onClose={() => setShowStyleConfigModal(false)}
+          onApply={handleApplyStyleProfile}
+          currentProfile={book?.style_profile || null}
+          loading={applyingStyle}
+        />
+      )}
+
+      {showOutlineEditor && book && (
+        <ChapterOutlineEditor
+          onClose={() => setShowOutlineEditor(false)}
+          onSave={handleSaveStructure}
+          currentStructure={book.structure as BookStructure}
+          loading={savingStructure}
+        />
+      )}
+
+      {showCharacterBuilder && (
+        <CharacterBuilder
+          onClose={() => setShowCharacterBuilder(false)}
+          bookId={bookId!}
+        />
+      )}
+
+      {showAnalytics && (
+        <AnalyticsDashboard
+          onClose={() => setShowAnalytics(false)}
+          bookId={bookId!}
+          content={currentPage?.content || ''}
+        />
       )}
     </Layout>
   );
