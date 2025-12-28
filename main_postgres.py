@@ -1658,8 +1658,11 @@ async def export_book(
     if not book_data:
         raise HTTPException(status_code=404, detail="Book not found")
 
+    # Extract user_id early (before any long operations that might detach the session)
+    user_id = user.user_id
+
     # Consume credit for export
-    user_repo.consume_credits(user.user_id, 1)
+    user_repo.consume_credits(user_id, 1)
 
     try:
         # Generate file based on format
@@ -1758,17 +1761,17 @@ async def export_book(
             user_repo = UserRepository(db)
             usage_repo = UsageRepository(db)
 
-        # Log export
+        # Log export (use user_id variable, not user.user_id)
         usage_repo.create_export(
             book_id=uuid.UUID(request.book_id),
-            user_id=user.user_id,
+            user_id=user_id,
             format=export_format,
             file_size_bytes=file_buffer.getbuffer().nbytes
         )
 
         # Log usage
         usage_repo.log_action(
-            user_id=user.user_id,
+            user_id=user_id,
             action_type='book_exported',
             credits_consumed=1,
             book_id=uuid.UUID(request.book_id),
@@ -1776,7 +1779,7 @@ async def export_book(
         )
 
         # Update stats
-        user_repo.increment_export_count(user.user_id)
+        user_repo.increment_export_count(user_id)
 
         db.commit()
     except Exception as e:
