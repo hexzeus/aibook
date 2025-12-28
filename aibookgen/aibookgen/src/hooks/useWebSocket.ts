@@ -29,7 +29,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
   } = options;
 
   const ws = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<number | undefined>(undefined);
   const [isConnected, setIsConnected] = useState(false);
 
   const connect = useCallback(() => {
@@ -71,7 +71,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
         // Attempt reconnection
         if (reconnect) {
           console.log('[WebSocket] Reconnecting in 3 seconds...');
-          reconnectTimeout.current = setTimeout(() => {
+          reconnectTimeout.current = window.setTimeout(() => {
             connect();
           }, 3000);
         }
