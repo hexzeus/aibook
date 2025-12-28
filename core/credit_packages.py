@@ -20,16 +20,17 @@ class CreditPackage:
 
 
 # Credit Package Configurations
-# Base rate: ~$0.05 per credit (1000 credits = $50)
-# Discount structure: Larger packages = better value
+# Premium pricing based on value delivery (5 illustrated books from 1000 credits)
+# API costs: ~$0.02-0.03/credit | User value: $2000+ worth of content
+# Discount structure: Larger packages = better value (up to 43% savings)
 
 CREDIT_PACKAGES: List[CreditPackage] = [
     CreditPackage(
         id="starter_100",
         name="Starter Pack",
         credits=100,
-        price_usd=500,  # $5.00
-        price_display="$5",
+        price_usd=700,  # $7.00
+        price_display="$7",
         savings_percent=0,
         gumroad_permalink="aibook-credits-100",
         badge="Getting Started",
@@ -39,9 +40,9 @@ CREDIT_PACKAGES: List[CreditPackage] = [
         id="popular_500",
         name="Popular Pack",
         credits=500,
-        price_usd=2000,  # $20.00 (was $25, save 20%)
-        price_display="$20",
-        savings_percent=20,
+        price_usd=2900,  # $29.00 (save 17%)
+        price_display="$29",
+        savings_percent=17,
         gumroad_permalink="aibook-credits-500",
         badge="Most Popular",
         is_featured=True
@@ -50,8 +51,8 @@ CREDIT_PACKAGES: List[CreditPackage] = [
         id="pro_1000",
         name="Pro Pack",
         credits=1000,
-        price_usd=3500,  # $35.00 (was $50, save 30%)
-        price_display="$35",
+        price_usd=4900,  # $49.00 (save 30%)
+        price_display="$49",
         savings_percent=30,
         gumroad_permalink="aibook-credits-1000",
         badge="Best Value",
@@ -61,9 +62,9 @@ CREDIT_PACKAGES: List[CreditPackage] = [
         id="business_5000",
         name="Business Pack",
         credits=5000,
-        price_usd=15000,  # $150.00 (was $250, save 40%)
-        price_display="$150",
-        savings_percent=40,
+        price_usd=19900,  # $199.00 (save 43%)
+        price_display="$199",
+        savings_percent=43,
         gumroad_permalink="aibook-credits-5000",
         badge="For Agencies",
         is_featured=False

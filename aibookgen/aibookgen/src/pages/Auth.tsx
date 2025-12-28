@@ -7,41 +7,41 @@ import { authApi } from '../lib/api';
 const pricingTiers = [
   {
     name: 'Starter',
-    price: '$19',
+    price: '$49',
     credits: '1,000',
     icon: Sparkles,
     color: 'brand',
-    features: ['1,000 AI credits', 'Perfect for beginners', 'All core features', 'Export to EPUB/PDF'],
+    features: ['1,000 AI credits', 'Create 1-2 illustrated books', 'All core features', 'Export to EPUB/PDF'],
     url: 'https://blazestudiox.gumroad.com/l/aibook-starter-1k',
     popular: false
   },
   {
     name: 'Pro',
-    price: '$49',
+    price: '$129',
     credits: '3,000',
     icon: Crown,
     color: 'accent-purple',
-    features: ['3,000 AI credits', 'Best for authors', 'Priority support', 'Advanced export options'],
+    features: ['3,000 AI credits', 'Create 3-5 illustrated books', 'Priority support', 'Advanced export options'],
     url: 'https://blazestudiox.gumroad.com/l/aibook-pro-3k',
     popular: true
   },
   {
     name: 'Business',
-    price: '$99',
+    price: '$279',
     credits: '7,000',
     icon: Building2,
     color: 'accent-cyan',
-    features: ['7,000 AI credits', 'For small teams', 'Premium support', 'Bulk operations'],
+    features: ['7,000 AI credits', 'For publishers & agencies', 'Premium support', 'Bulk operations'],
     url: 'https://blazestudiox.gumroad.com/l/aibook-business-7k',
     popular: false
   },
   {
     name: 'Enterprise',
-    price: '$199',
+    price: '$599',
     credits: '17,000',
     icon: Rocket,
     color: 'accent-emerald',
-    features: ['17,000 AI credits', 'For agencies', 'White-label options', 'Dedicated support'],
+    features: ['17,000 AI credits', 'Unlimited illustrated books', 'White-label options', 'Dedicated support'],
     url: 'https://blazestudiox.gumroad.com/l/aibook-enterprise-17k',
     popular: false
   }
