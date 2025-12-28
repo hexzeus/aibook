@@ -28,128 +28,166 @@ export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBo
   const estimatedCredits = 2 + targetPages;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain">
-      <div className="glass-morphism rounded-2xl max-w-2xl w-full p-4 sm:p-6 md:p-8 animate-slide-up my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-brand-500/20 rounded-xl">
-              <BookOpen className="w-6 h-6 text-brand-400" />
-            </div>
-            <h2 className="text-2xl font-display font-bold">Create New Book</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-all"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-3 text-gray-300">
-              Book Type
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {bookTypes.map((type) => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setBookType(type.id)}
-                  className={`p-4 rounded-xl border-2 transition-all text-left ${
-                    bookType === type.id
-                      ? 'border-brand-500 bg-brand-500/10'
-                      : 'border-white/10 hover:border-white/20 bg-white/5'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">{type.icon}</div>
-                  <div className="font-semibold mb-1">{type.label}</div>
-                  <div className="text-xs text-gray-400">{type.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-300">
-              What's your book about?
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your book idea in detail. Include themes, plot, characters, or main topics..."
-              className="input-field min-h-32 resize-none"
-              required
-              minLength={10}
-              maxLength={1000}
-            />
-            <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
-              <span>Be specific for better results</span>
-              <span>{description.length}/1000</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-gray-300">
-              Target Pages: {targetPages}
-            </label>
-            <input
-              type="range"
-              min="5"
-              max="100"
-              value={targetPages}
-              onChange={(e) => setTargetPages(Number(e.target.value))}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-500"
-            />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>5 pages</span>
-              <span>100 pages</span>
-            </div>
-          </div>
-
-          <div className="glass-morphism rounded-xl p-4 bg-brand-500/5">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <div className="font-semibold mb-1">Initial Setup Cost</div>
-                <div className="text-sm text-gray-400">
-                  • 1 credit for book structure (title, outline, themes)<br />
-                  • Then auto-generate all pages: 1 credit/page + 3 credits/illustration (optional)
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto overscroll-contain animate-fade-in">
+      <div className="relative max-w-2xl w-full my-auto">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-2xl opacity-60" />
+        <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 lg:p-8 animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain shadow-premium-lg">
+          {/* Premium Header */}
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-brand-500 rounded-xl blur-md opacity-50" />
+                <div className="relative p-2.5 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div className="mt-3 pt-3 border-t border-white/10 font-semibold text-brand-400">
-                  Total: 1 credit now
+              </div>
+              <h2 className="text-xl sm:text-2xl font-display font-bold gradient-text">Create New Book</h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-surface-2 rounded-xl transition-all group"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-text-tertiary group-hover:text-text-primary" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            {/* Premium Book Type Selection */}
+            <div>
+              <label className="block text-sm font-semibold mb-3 text-text-secondary">
+                Book Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {bookTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setBookType(type.id)}
+                    className={`group relative p-4 rounded-xl border-2 transition-all text-left ${
+                      bookType === type.id
+                        ? 'border-brand-500/60 bg-brand-500/10'
+                        : 'border-white/10 hover:border-brand-500/30 bg-surface-2'
+                    }`}
+                  >
+                    {bookType === type.id && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-transparent rounded-xl blur-md" />
+                    )}
+                    <div className="relative">
+                      <div className="text-2xl mb-2">{type.icon}</div>
+                      <div className={`font-semibold mb-1 ${bookType === type.id ? 'text-brand-400' : 'text-text-primary'}`}>
+                        {type.label}
+                      </div>
+                      <div className="text-xs text-text-tertiary">{type.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium Description Field */}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-text-secondary">
+                What's your book about?
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe your book idea in detail. Include themes, plot, characters, or main topics..."
+                className="input-field min-h-32 resize-none"
+                required
+                minLength={10}
+                maxLength={1000}
+              />
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <span className="text-text-muted">Be specific for better results</span>
+                <span className={`font-medium ${description.length > 900 ? 'text-accent-amber' : 'text-text-tertiary'}`}>
+                  {description.length}/1000
+                </span>
+              </div>
+            </div>
+
+            {/* Premium Range Slider */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-semibold text-text-secondary">
+                  Target Pages
+                </label>
+                <span className="px-3 py-1 bg-brand-500/10 border border-brand-500/20 rounded-lg text-brand-400 font-bold text-sm">
+                  {targetPages}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  value={targetPages}
+                  onChange={(e) => setTargetPages(Number(e.target.value))}
+                  className="w-full h-2 bg-surface-2 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                  style={{
+                    background: `linear-gradient(to right, rgb(245, 158, 11) 0%, rgb(245, 158, 11) ${((targetPages - 5) / 95) * 100}%, rgb(28, 28, 31) ${((targetPages - 5) / 95) * 100}%, rgb(28, 28, 31) 100%)`
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-text-muted mt-2">
+                <span>5 pages</span>
+                <span>100 pages</span>
+              </div>
+            </div>
+
+            {/* Premium Cost Card */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+              <div className="relative bg-gradient-to-br from-surface-2 to-surface-1 border border-brand-500/20 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-brand-500/10 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-brand-400 flex-shrink-0" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold mb-2 text-text-primary">Initial Setup Cost</div>
+                    <div className="text-sm text-text-secondary space-y-1">
+                      <div>• 1 credit for book structure (title, outline, themes)</div>
+                      <div>• Then auto-generate all pages: 1 credit/page</div>
+                      <div>• Add illustrations later: 3 credits each (optional)</div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                      <span className="font-semibold text-text-secondary">Total now:</span>
+                      <span className="text-lg font-bold text-brand-400">1 credit</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !description.trim() || description.length < 10}
-              className="btn-primary flex-1"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Create Book
-                </span>
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Premium Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !description.trim() || description.length < 10}
+                className="btn-primary flex-1"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Create Book
+                  </span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

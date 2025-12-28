@@ -45,47 +45,52 @@ export default function ConfirmModal({
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 animate-fade-in">
-      {/* Backdrop */}
+      {/* Premium Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
         onClick={onCancel}
       />
 
-      {/* Modal */}
-      <div className="relative glass-morphism rounded-2xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-        <button
-          onClick={onCancel}
-          className="absolute top-4 right-4 p-1 hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5 text-gray-400" />
-        </button>
-
-        <div className={`glass-morphism border-2 rounded-xl p-4 mb-6 bg-gradient-to-r ${styles.bg}`}>
-          <div className="flex items-start gap-3">
-            <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${styles.iconColor}`} />
-            <div>
-              <h2 className="font-display font-bold text-xl mb-2">{title}</h2>
-              <p className="text-gray-300 text-sm leading-relaxed">{message}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
+      {/* Premium Modal */}
+      <div className="relative max-w-md w-full">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-2xl opacity-60" />
+        <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-6 shadow-premium-lg animate-scale-in">
           <button
             onClick={onCancel}
-            className="flex-1 btn-secondary"
+            className="absolute top-4 right-4 p-1.5 hover:bg-surface-2 rounded-lg transition-all group"
           >
-            {cancelText}
+            <X className="w-5 h-5 text-text-tertiary group-hover:text-text-primary" />
           </button>
-          <button
-            onClick={() => {
-              onConfirm();
-              onCancel();
-            }}
-            className={`flex-1 font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-glow ${styles.buttonBg} text-white`}
-          >
-            {confirmText}
-          </button>
+
+          <div className={`relative bg-gradient-to-br from-surface-2 to-surface-1 border-2 rounded-xl p-4 mb-6 ${styles.bg}`}>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-surface-1/50 rounded-lg">
+                <AlertTriangle className={`w-6 h-6 flex-shrink-0 ${styles.iconColor}`} />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-display font-bold text-lg sm:text-xl mb-2 text-text-primary">{title}</h2>
+                <p className="text-text-secondary text-sm leading-relaxed">{message}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="flex-1 btn-secondary"
+            >
+              {cancelText}
+            </button>
+            <button
+              onClick={() => {
+                onConfirm();
+                onCancel();
+              }}
+              className={`flex-1 font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-glow hover:shadow-glow-lg hover:scale-[1.02] ${styles.buttonBg} text-white`}
+            >
+              {confirmText}
+            </button>
+          </div>
         </div>
       </div>
     </div>
