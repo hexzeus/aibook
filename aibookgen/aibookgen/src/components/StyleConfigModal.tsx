@@ -145,7 +145,8 @@ export default function StyleConfigModal({ onClose, onApply, currentProfile, loa
 
     setAnalyzing(true);
     try {
-      const response = await fetch('/api/style/analyze', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aibook-9rbb.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/style/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

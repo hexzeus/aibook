@@ -409,7 +409,8 @@ export default function Editor() {
     setApplyingStyle(true);
 
     try {
-      const response = await fetch('/api/style/create-profile', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aibook-9rbb.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/style/create-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
