@@ -12,6 +12,7 @@ from datetime import datetime
 import os
 import uuid
 import json
+from urllib.parse import parse_qs
 from dotenv import load_dotenv
 
 from database import initialize_database, get_db
@@ -2122,14 +2123,20 @@ async def gumroad_webhook(
 
     print("[WEBHOOK] Signature verification PASSED")
 
-    # Parse JSON from body bytes
+    # Parse form data (Gumroad sends URL-encoded form data, not JSON)
     try:
-        data = json.loads(body.decode('utf-8')) if body else {}
-        print(f"[WEBHOOK] Parsed data: {json.dumps(data, indent=2)}")
+        # Decode URL-encoded body
+        body_str = body.decode('utf-8')
+        parsed = parse_qs(body_str)
+
+        # Convert parsed query string to dict (parse_qs returns lists for values)
+        data = {key: value[0] if len(value) == 1 else value for key, value in parsed.items()}
+
+        print(f"[WEBHOOK] Parsed form data: {json.dumps(data, indent=2)}")
     except Exception as e:
-        print(f"[WEBHOOK] JSON parsing failed: {e}")
-        print(f"[WEBHOOK] Raw body: {body[:500]}")  # Print first 500 bytes for debugging
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+        print(f"[WEBHOOK] Form parsing failed: {e}")
+        print(f"[WEBHOOK] Raw body: {body[:500]}")
+        raise HTTPException(status_code=400, detail="Invalid form data")
 
     # Process webhook
     print("[WEBHOOK] Processing webhook...")
