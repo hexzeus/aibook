@@ -78,14 +78,11 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
     sale_data = data.get("sale", data)  # Sometimes nested, sometimes not
 
     # Extract key data
-    license_key = sale_data.get("license_key")
+    license_key = sale_data.get("license_key")  # May be None for credit refills
     email = sale_data.get("email")
     product_permalink = sale_data.get("product_permalink", "")
     sale_id = sale_data.get("sale_id")
     price_cents = int(float(sale_data.get("price", 0)) * 100)
-
-    if not license_key:
-        return {"success": False, "error": "No license key in webhook"}
 
     user_repo = UserRepository(db)
 
@@ -141,31 +138,68 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
                 "message": "Purchase already processed (duplicate webhook)"
             }
 
-        # New purchase - grant credits
-        user = user_repo.get_by_license_key(license_key)
+        # Determine how to find the user
+        user = None
 
-        if not user:
-            # Create new user
-            user = user_repo.create_user(
-                license_key=license_key,
-                email=email,
-                total_credits=credits_to_grant,
-                gumroad_sale_id=sale_id,
-                gumroad_product_id=product_permalink
-            )
-        else:
-            # Existing user - add credits
-            user_repo.add_credits(
-                user_id=user.user_id,
-                credits=credits_to_grant,
-                purchase_data={
-                    "sale_id": sale_id,
-                    "product_name": product_permalink,
-                    "price_cents": price_cents,
-                    "credits": credits_to_grant,
-                    "email": email
+        if purchase_type == "license_tier":
+            # License tier purchase: license_key is provided, create new user or find existing
+            if not license_key:
+                return {"success": False, "error": "License tier purchase missing license_key"}
+
+            user = user_repo.get_by_license_key(license_key)
+            if not user:
+                # Create new user with license tier
+                user = user_repo.create_user(
+                    license_key=license_key,
+                    email=email,
+                    total_credits=credits_to_grant,
+                    gumroad_sale_id=sale_id,
+                    gumroad_product_id=product_permalink
+                )
+                print(f"[WEBHOOK] Created new user with license key: {license_key[:8]}...")
+            else:
+                # Existing user buying same tier again (unusual, but add credits)
+                user_repo.add_credits(
+                    user_id=user.user_id,
+                    credits=credits_to_grant,
+                    purchase_data={
+                        "sale_id": sale_id,
+                        "product_name": product_permalink,
+                        "price_cents": price_cents,
+                        "credits": credits_to_grant,
+                        "email": email
+                    }
+                )
+                print(f"[WEBHOOK] Added credits to existing user: {license_key[:8]}...")
+
+        elif purchase_type == "credit_refill":
+            # Credit refill: license_key should be in custom fields or email lookup
+            # Gumroad passes custom URL params in the webhook
+            if license_key:
+                # License key provided (from URL parameter)
+                user = user_repo.get_by_license_key(license_key)
+                if not user:
+                    return {"success": False, "error": f"User with license key {license_key[:8]}... not found"}
+
+                user_repo.add_credits(
+                    user_id=user.user_id,
+                    credits=credits_to_grant,
+                    purchase_data={
+                        "sale_id": sale_id,
+                        "product_name": product_permalink,
+                        "price_cents": price_cents,
+                        "credits": credits_to_grant,
+                        "email": email
+                    }
+                )
+                print(f"[WEBHOOK] Added {credits_to_grant} credits to user: {license_key[:8]}...")
+            else:
+                return {
+                    "success": False,
+                    "error": "Credit refill purchase missing license_key. User must purchase through dashboard."
                 }
-            )
+        else:
+            return {"success": False, "error": f"Unknown purchase type or no matching product: {product_permalink}"}
 
         db.commit()
 

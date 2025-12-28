@@ -307,8 +307,8 @@ async def get_credits(
 
 
 @app.get("/api/credit-packages")
-async def get_credit_packages():
-    """Get available credit packages for purchase"""
+async def get_credit_packages(user = Depends(get_current_user)):
+    """Get available credit packages for purchase with user's license key embedded"""
     packages = get_all_packages()
 
     return {
@@ -323,7 +323,8 @@ async def get_credit_packages():
                 "savings_percent": p.savings_percent,
                 "badge": p.badge,
                 "is_featured": p.is_featured,
-                "purchase_url": get_gumroad_url(p.id)
+                # Append license key to Gumroad URL so webhook can identify the user
+                "purchase_url": f"{get_gumroad_url(p.id)}?wanted=true&license_key={user.license_key}"
             }
             for p in packages
         ]
