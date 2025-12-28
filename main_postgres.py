@@ -2122,12 +2122,13 @@ async def gumroad_webhook(
 
     print("[WEBHOOK] Signature verification PASSED")
 
-    # Parse JSON
+    # Parse JSON from body bytes
     try:
-        data = json.loads(body) if body else {}
+        data = json.loads(body.decode('utf-8')) if body else {}
         print(f"[WEBHOOK] Parsed data: {json.dumps(data, indent=2)}")
     except Exception as e:
         print(f"[WEBHOOK] JSON parsing failed: {e}")
+        print(f"[WEBHOOK] Raw body: {body[:500]}")  # Print first 500 bytes for debugging
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
     # Process webhook
