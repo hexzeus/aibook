@@ -193,27 +193,29 @@ export default function BookView() {
 
   return (
     <Layout>
-      <div className="page-container max-w-5xl">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigate('/library')}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Library
-            </button>
-            <QuickActionsMenu actions={quickActions} />
-          </div>
+      <div className="page-container max-w-6xl">
+        {/* Premium Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/library')}
+            className="group flex items-center gap-2 text-text-tertiary hover:text-brand-400 transition-all mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Library</span>
+          </button>
 
-          <div className="flex flex-col md:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            {/* Premium Book Cover */}
             {book.cover_svg && (
-              <div className="w-full md:w-64 flex-shrink-0">
-                <img
-                  src={book.cover_svg}
-                  alt={book.title}
-                  className="w-full rounded-2xl shadow-2xl mb-3"
-                />
+              <div className="w-full lg:w-72 flex-shrink-0">
+                <div className="group relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-500/30 to-accent-purple/30 rounded-2xl blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+                  <img
+                    src={book.cover_svg}
+                    alt={book.title}
+                    className="relative w-full rounded-2xl shadow-premium-lg border border-white/10 mb-4 group-hover:scale-[1.02] transition-transform duration-300"
+                  />
+                </div>
                 <button
                   onClick={async () => {
                     if (await confirm({
@@ -236,43 +238,56 @@ export default function BookView() {
                   ) : (
                     <>
                       <Edit className="w-4 h-4" />
-                      Regenerate Cover (2 credits)
+                      Regenerate Cover
+                      <span className="text-xs text-brand-400">(2)</span>
                     </>
                   )}
                 </button>
               </div>
             )}
 
-            <div className="flex-1">
-              <h1 className="text-4xl font-display font-bold mb-2">{book.title}</h1>
-              {book.subtitle && (
-                <p className="text-xl text-gray-400 mb-4">{book.subtitle}</p>
-              )}
-              <p className="text-gray-400 mb-6">{book.description}</p>
-
-              <div className="flex items-center gap-4 mb-6 text-sm text-gray-400">
-                <span>{pages.length} {pages.length === 1 ? 'section' : 'sections'}</span>
-                <span>•</span>
-                {book.epub_page_count && (
-                  <>
-                    <span>~{book.epub_page_count} EPUB pages</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span>{pages.reduce((sum, page) => sum + countWords(page.content), 0).toLocaleString()} words</span>
-                <span>•</span>
-                <span>{book.book_type}</span>
-                <span>•</span>
-                <span>Completed</span>
+            {/* Premium Book Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-h1 font-display font-bold gradient-text mb-3">{book.title}</h1>
+                  {book.subtitle && (
+                    <p className="text-lg sm:text-xl text-text-secondary mb-4">{book.subtitle}</p>
+                  )}
+                </div>
+                <QuickActionsMenu actions={quickActions} />
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-text-secondary mb-6 leading-relaxed">{book.description}</p>
+
+              {/* Premium Metadata */}
+              <div className="flex items-center gap-2 sm:gap-3 mb-8 text-xs sm:text-sm flex-wrap">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+                  <BookOpen className="w-3.5 h-3.5 text-brand-400" />
+                  <span className="text-brand-400 font-semibold">{pages.length} sections</span>
+                </div>
+                {book.epub_page_count && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 border border-white/10 rounded-lg">
+                    <span className="text-text-secondary">~{book.epub_page_count} EPUB pages</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 border border-white/10 rounded-lg">
+                  <span className="text-text-secondary">{pages.reduce((sum, page) => sum + countWords(page.content), 0).toLocaleString()} words</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-sage/10 border border-accent-sage/20 rounded-lg">
+                  <span className="text-accent-sage font-semibold">Completed</span>
+                </div>
+              </div>
+
+              {/* Premium Action Buttons */}
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <button
                   onClick={() => setShowValidationResults(true)}
-                  className="btn-primary flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  className="btn-primary flex items-center gap-2 text-sm sm:text-base"
                 >
-                  <Rocket className="w-5 h-5" />
-                  Publish
+                  <Rocket className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Publish</span>
+                  <span className="sm:hidden">Publish</span>
                 </button>
                 <ExportDropdown
                   bookId={book.book_id}
@@ -286,67 +301,85 @@ export default function BookView() {
                 />
                 <button
                   onClick={() => navigate(`/editor/${book.book_id}`)}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary flex items-center gap-2 text-sm sm:text-base"
                 >
-                  <Edit className="w-5 h-5" />
-                  Edit
+                  <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Edit</span>
+                  <span className="sm:hidden">Edit</span>
                 </button>
                 <button
                   onClick={() => setShowReorderModal(true)}
                   disabled={pages.length < 2}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary flex items-center gap-2 text-sm sm:text-base disabled:opacity-30"
                   title={pages.length < 2 ? 'Need at least 2 pages to reorder' : 'Reorder pages'}
                 >
-                  <GripVertical className="w-5 h-5" />
-                  Reorder
+                  <GripVertical className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Reorder</span>
                 </button>
                 <button
                   onClick={() => setShowShareModal(true)}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary flex items-center gap-2 text-sm sm:text-base"
                   title="Share this book"
                 >
-                  <Share2 className="w-5 h-5" />
-                  Share
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Share</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <BookStats
-              totalWords={pages.reduce((sum, page) => sum + countWords(page.content), 0)}
-              readingTime={estimateReadingTime(pages.reduce((sum, page) => sum + countWords(page.content), 0))}
-              pageCount={pages.length}
-              completionDate={book.completed_at}
-            />
+        {/* Premium Stats & Readiness Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative">
+              <BookStats
+                totalWords={pages.reduce((sum, page) => sum + countWords(page.content), 0)}
+                readingTime={estimateReadingTime(pages.reduce((sum, page) => sum + countWords(page.content), 0))}
+                pageCount={pages.length}
+                completionDate={book.completed_at}
+              />
+            </div>
           </div>
-          <ReadinessCard bookId={book.book_id} bookTitle={book.title} bookData={book} />
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative">
+              <ReadinessCard bookId={book.book_id} bookTitle={book.title} bookData={book} />
+            </div>
+          </div>
         </div>
 
-        <div className="card">
-          <h2 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-brand-400" />
-            Preview
-          </h2>
+        {/* Premium Preview Section */}
+        <div className="group relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 lg:p-8 hover:border-brand-500/30 transition-all">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 bg-brand-500/10 rounded-xl">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-brand-400" />
+              </div>
+              <h2 className="text-h2 font-display font-bold">Preview</h2>
+            </div>
 
-          <div className="space-y-8 max-h-[600px] overflow-y-auto pr-4 scrollbar-hide">
-            {pages.map((page) => (
-              <div key={page.page_id} className="pb-8 border-b border-white/10 last:border-0">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-sm text-brand-400 font-semibold">
-                    Page {page.page_number}
+            <div className="space-y-6 sm:space-y-8 max-h-[600px] overflow-y-auto pr-2 sm:pr-4 scrollbar-hide">
+              {pages.map((page) => (
+                <div key={page.page_id} className="group/page pb-6 sm:pb-8 border-b border-white/5 last:border-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+                      <span className="text-xs sm:text-sm text-brand-400 font-semibold">
+                        Page {page.page_number}
+                      </span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-text-tertiary px-3 py-1.5 bg-surface-2 rounded-lg">
+                      {page.section}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">{page.section}</div>
-                </div>
-                <div className="prose prose-invert prose-lg max-w-none">
-                  <div className="whitespace-pre-wrap font-serif text-base leading-relaxed">
+                  <div className="whitespace-pre-wrap font-serif text-sm sm:text-base leading-relaxed text-text-secondary group-hover/page:text-text-primary transition-colors">
                     {page.content}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
