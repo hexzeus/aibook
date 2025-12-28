@@ -1678,6 +1678,17 @@ async def export_book(
             media_type = "application/rtf"
             extension = "rtf"
 
+        # Refresh database connection before logging (export may have taken long time)
+        try:
+            db.execute("SELECT 1")  # Ping to test connection
+        except:
+            print(f"[EXPORT] Database connection stale, refreshing...", flush=True)
+            db.rollback()
+            db.close()
+            db = next(get_db())
+            user_repo = UserRepository(db)
+            usage_repo = UsageRepository(db)
+
         # Log export
         usage_repo.create_export(
             book_id=uuid.UUID(request.book_id),
@@ -2317,51 +2328,36 @@ CRITICAL RULES:
 - Professional digital art quality
 - Clean, detailed composition"""
 
-        # Generate image with DALL-E 3
+        # Generate image with DALL-E 3 - request base64 directly
         response = openai_client.images.generate(
             model="dall-e-3",
             prompt=enhanced_prompt,
-            size="1024x1024",  # DALL-E 3 supports 1024x1024, 1792x1024, or 1024x1792
-            quality="standard",  # or "hd" for higher quality (costs more)
+            size="1024x1024",
+            quality="standard",
             n=1,
+            response_format="b64_json"  # Get base64 directly, no temporary URLs
         )
 
-        illustration_url = response.data[0].url
-        print(f"[ILLUSTRATION] DALL-E generated URL: {illustration_url[:100]}...", flush=True)
+        img_base64 = response.data[0].b64_json
+        print(f"[ILLUSTRATION] DALL-E returned base64 image ({len(img_base64)} chars)", flush=True)
 
-        # Download and store the image as base64 (DALL-E URLs are temporary!)
-        print(f"[ILLUSTRATION] Downloading image from DALL-E URL...", flush=True)
-        import httpx
+        # Upload to S3 if available, otherwise use base64 data URL
         import base64
+        if USE_S3 and s3_storage:
+            print(f"[ILLUSTRATION] Uploading to S3...", flush=True)
+            illustration_url = s3_storage.upload_image_base64(
+                img_base64,
+                folder='illustrations',
+                optimize=True,
+                max_width=800
+            )
+            print(f"[ILLUSTRATION] Uploaded to S3: {illustration_url}", flush=True)
+        else:
+            illustration_url = f"data:image/png;base64,{img_base64}"
+            print(f"[ILLUSTRATION] Stored as base64 data URL (length: {len(illustration_url)})", flush=True)
 
-        stored_url = None  # Track what we actually stored
-
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                img_response = client.get(illustration_url)
-                img_response.raise_for_status()
-                img_data = img_response.content
-
-            # Convert to base64 data URL for storage
-            img_base64 = base64.b64encode(img_data).decode('utf-8')
-            data_url = f"data:image/png;base64,{img_base64}"
-
-            print(f"[ILLUSTRATION] Image downloaded and converted to base64 ({len(img_base64)} chars)", flush=True)
-
-            # Store as data URL (permanent, not temporary!)
-            page.illustration_url = data_url
-            stored_url = data_url
-            print(f"[ILLUSTRATION] Set page.illustration_url to data URL (length: {len(data_url)})", flush=True)
-
-        except Exception as e:
-            print(f"[ILLUSTRATION] ERROR downloading image: {str(e)}", flush=True)
-            import traceback
-            print(f"[ILLUSTRATION] Traceback: {traceback.format_exc()}", flush=True)
-            # Fall back to storing URL (will expire, but better than nothing)
-            page.illustration_url = illustration_url
-            stored_url = illustration_url
-            print(f"[ILLUSTRATION] Fallback: stored temporary DALL-E URL", flush=True)
-
+        # Store illustration
+        page.illustration_url = illustration_url
         page.updated_at = datetime.utcnow()
 
         print(f"[ILLUSTRATION] Committing to database...", flush=True)
