@@ -1,7 +1,7 @@
 """
 AI Book Generator API - PostgreSQL Version with Credit System
 """
-from fastapi import FastAPI, HTTPException, Header, Depends, Request
+from fastapi import FastAPI, HTTPException, Header, Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -37,6 +37,7 @@ from core.white_label_service import WhiteLabelService
 from core.bulk_import_service import BulkImportService
 from core.translation_service import TranslationService
 from core.audiobook_service import AudiobookService
+from core.websocket_manager import ws_manager
 
 # Load environment
 load_dotenv()
@@ -276,6 +277,39 @@ async def health_check():
         "version": "2.0.0",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+@app.websocket("/ws/notifications/{license_key}")
+async def websocket_notifications(websocket: WebSocket, license_key: str):
+    """
+    WebSocket endpoint for real-time notifications
+    Client connects with their license key to receive instant notifications
+    when credits are added or other account events occur
+    """
+    await ws_manager.connect(websocket, license_key)
+
+    try:
+        # Send initial connection confirmation
+        await websocket.send_json({
+            "type": "connected",
+            "message": "WebSocket connection established",
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+        # Keep connection alive and wait for client disconnect
+        while True:
+            # Receive any messages from client (like heartbeat pings)
+            try:
+                data = await websocket.receive_text()
+                # Echo back for heartbeat/ping-pong
+                if data == "ping":
+                    await websocket.send_json({"type": "pong"})
+            except WebSocketDisconnect:
+                break
+    except Exception as e:
+        print(f"[WEBSOCKET] Error in connection: {e}")
+    finally:
+        ws_manager.disconnect(websocket, license_key)
 
 
 @app.get("/api/credits")
@@ -2141,7 +2175,7 @@ async def gumroad_webhook(
 
     # Process webhook
     print("[WEBHOOK] Processing webhook...")
-    result = process_gumroad_webhook(data, db)
+    result = await process_gumroad_webhook(data, db)
     print(f"[WEBHOOK] Result: {result}")
 
     return result

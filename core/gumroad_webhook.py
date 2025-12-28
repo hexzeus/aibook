@@ -10,6 +10,7 @@ from database.repositories import UserRepository
 from database.models import LicensePurchase
 from core.credit_packages import get_all_packages
 import os
+import asyncio
 
 
 def verify_gumroad_signature(payload: bytes, signature: str) -> bool:
@@ -57,7 +58,7 @@ def verify_gumroad_signature(payload: bytes, signature: str) -> bool:
     return hmac.compare_digest(signature, expected_signature)
 
 
-def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
+async def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
     """
     Process Gumroad webhook and grant credits
 
@@ -209,6 +210,22 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
             return {"success": False, "error": f"Unknown purchase type or no matching product: {product_permalink}"}
 
         db.commit()
+
+        # Send WebSocket notification to user that credits were added
+        try:
+            from core.websocket_manager import ws_manager
+            # Get updated user stats
+            updated_user = user_repo.get_by_license_key(license_key)
+            if updated_user:
+                await ws_manager.broadcast_credit_added(
+                    license_key=license_key,
+                    credits_added=credits_to_grant,
+                    new_total=updated_user.total_credits
+                )
+                print(f"[WEBHOOK] Sent WebSocket notification for {credits_to_grant} credits added")
+        except Exception as e:
+            print(f"[WEBHOOK] Failed to send WebSocket notification: {e}")
+            # Don't fail the webhook if WebSocket notification fails
 
         return {
             "success": True,

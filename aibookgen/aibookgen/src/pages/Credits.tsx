@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Zap, TrendingUp, ShoppingCart, Check } from 'lucide-react';
+import { CreditCard, Zap, TrendingUp, ShoppingCart, Check, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
 import Layout from '../components/Layout';
 import { creditsApi } from '../lib/api';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuthStore } from '../store/authStore';
 
 export default function Credits() {
-  const { data: stats } = useQuery({
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [creditsAdded, setCreditsAdded] = useState(0);
+  const { licenseKey } = useAuthStore();
+
+  const { data: stats, refetch } = useQuery({
     queryKey: ['credits'],
     queryFn: creditsApi.getCredits,
   });
@@ -16,9 +23,63 @@ export default function Credits() {
 
   const packages = packagesData?.packages || [];
 
+  // WebSocket connection for real-time credit notifications
+  const { isConnected } = useWebSocket({
+    license_key: licenseKey || '',
+    onMessage: (message) => {
+      console.log('[Credits] WebSocket message:', message);
+
+      // Handle credits_added notification
+      if (message.type === 'credits_added') {
+        setCreditsAdded(message.credits_added);
+        setShowSuccessToast(true);
+
+        // Refetch credit stats to update UI
+        refetch();
+
+        // Hide toast after 5 seconds
+        setTimeout(() => setShowSuccessToast(false), 5000);
+      }
+    },
+    onConnect: () => {
+      console.log('[Credits] WebSocket connected');
+    },
+    onDisconnect: () => {
+      console.log('[Credits] WebSocket disconnected');
+    }
+  });
+
   return (
     <Layout>
       <div className="page-container">
+        {/* Success Toast Notification */}
+        {showSuccessToast && (
+          <div className="fixed top-4 right-4 z-50 animate-fade-in">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-green/30 to-brand-500/30 rounded-2xl blur-xl" />
+              <div className="relative bg-surface-1 border-2 border-accent-green/50 rounded-2xl p-4 shadow-premium-lg min-w-[300px]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-accent-green/20 rounded-xl">
+                    <CheckCircle2 className="w-6 h-6 text-accent-green" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-text-primary mb-1">Credits Added!</div>
+                    <div className="text-sm text-text-secondary">
+                      +{creditsAdded.toLocaleString()} credits successfully added to your account
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowSuccessToast(false)}
+                    className="text-text-tertiary hover:text-text-primary transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-4xl font-display font-bold mb-2">Credits</h1>
           <p className="text-gray-400 text-lg">
