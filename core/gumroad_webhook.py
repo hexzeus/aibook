@@ -88,15 +88,41 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
 
     user_repo = UserRepository(db)
 
+    # License tier mapping (permalink → credits)
+    LICENSE_TIERS = {
+        "aibook-starter-1k": {"credits": 1000, "tier": "starter"},
+        "aibook-pro-3k": {"credits": 3000, "tier": "pro"},
+        "aibook-business-7k": {"credits": 7000, "tier": "business"},
+        "aibook-enterprise-17k": {"credits": 17000, "tier": "enterprise"}
+    }
+
     # Match product to credit package
     credits_to_grant = 0
     package_id = None
+    purchase_type = None  # 'license_tier' or 'credit_refill'
 
-    for package in get_all_packages():
-        if package.gumroad_permalink in product_permalink:
-            credits_to_grant = package.credits
-            package_id = package.id
+    # First, check if it's a license tier purchase
+    for tier_permalink, tier_data in LICENSE_TIERS.items():
+        if tier_permalink in product_permalink:
+            credits_to_grant = tier_data["credits"]
+            package_id = tier_data["tier"]
+            purchase_type = "license_tier"
+            print(f"[WEBHOOK] Matched license tier: {tier_permalink} → {credits_to_grant} credits")
             break
+
+    # If not a license tier, check credit refill packages
+    if not purchase_type:
+        for package in get_all_packages():
+            if package.gumroad_permalink in product_permalink:
+                credits_to_grant = package.credits
+                package_id = package.id
+                purchase_type = "credit_refill"
+                print(f"[WEBHOOK] Matched credit refill: {package.gumroad_permalink} → {credits_to_grant} credits")
+                break
+
+    # Log if no match found
+    if credits_to_grant == 0:
+        print(f"[WEBHOOK] WARNING: No matching package found for permalink: {product_permalink}")
 
     # Handle different events
     if event_type == "sale":
@@ -133,7 +159,8 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
             "event": "sale",
             "license_key": license_key,
             "credits_granted": credits_to_grant,
-            "package_id": package_id
+            "package_id": package_id,
+            "purchase_type": purchase_type
         }
 
     elif event_type == "refund":
