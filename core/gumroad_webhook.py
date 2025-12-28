@@ -118,7 +118,11 @@ async def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
 
     # If not a license tier, check credit refill packages
     if not purchase_type:
-        for package in get_all_packages():
+        # Sort packages by permalink length (longest first) to avoid substring matches
+        # e.g., "aibook-credits-1000" before "aibook-credits-100"
+        packages_sorted = sorted(get_all_packages(), key=lambda p: len(p.gumroad_permalink), reverse=True)
+
+        for package in packages_sorted:
             if package.gumroad_permalink in product_permalink:
                 credits_to_grant = package.credits
                 package_id = package.id
