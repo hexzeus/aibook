@@ -11,6 +11,7 @@ from typing import Optional
 from datetime import datetime
 import os
 import uuid
+import json
 from dotenv import load_dotenv
 
 from database import initialize_database, get_db
