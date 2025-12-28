@@ -515,44 +515,70 @@ export default function Editor() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
                 <h1 className="text-h1 font-display font-bold gradient-text truncate">{book.title}</h1>
-                {/* Floating Toolbar */}
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-surface-1 border border-white/10 rounded-xl p-1.5">
+              </div>
+
+              {/* Prominent Toolbar with Labels */}
+              <div className="mb-4 p-4 bg-gradient-to-r from-brand-500/10 via-accent-purple/10 to-accent-cyan/10 border border-white/10 rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-brand-400" />
+                  <span className="text-sm font-semibold text-text-primary">Book Configuration</span>
+                  <span className="text-xs text-text-tertiary ml-auto">Configure before auto-generating</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   <button
                     onClick={() => setIsEditBookModalOpen(true)}
-                    className="p-2 hover:bg-brand-500/10 rounded-lg transition-all group"
-                    title="Edit book details"
+                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-brand-500/20 rounded-lg transition-all group border border-white/5"
                   >
-                    <Edit3 className="w-4 h-4 text-text-tertiary group-hover:text-brand-400" />
+                    <Edit3 className="w-5 h-5 text-brand-400" />
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-brand-400">Details</span>
                   </button>
                   <button
                     onClick={() => setShowStyleConfigModal(true)}
-                    className="p-2 hover:bg-accent-purple/10 rounded-lg transition-all group"
-                    title="Configure writing style"
+                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-purple/20 rounded-lg transition-all group border border-white/5 relative"
                   >
-                    <Palette className="w-4 h-4 text-text-tertiary group-hover:text-accent-purple" />
+                    <Palette className="w-5 h-5 text-accent-purple" />
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-purple">Style</span>
+                    {book.style_profile && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-accent-purple rounded-full" title="Style configured" />
+                    )}
                   </button>
                   <button
                     onClick={() => setShowOutlineEditor(true)}
-                    className="p-2 hover:bg-accent-cyan/10 rounded-lg transition-all group"
-                    title="Edit chapter outline"
+                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-cyan/20 rounded-lg transition-all group border border-white/5"
                   >
-                    <BookOpen className="w-4 h-4 text-text-tertiary group-hover:text-accent-cyan" />
+                    <BookOpen className="w-5 h-5 text-accent-cyan" />
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-cyan">Outline</span>
                   </button>
                   <button
                     onClick={() => setShowCharacterBuilder(true)}
-                    className="p-2 hover:bg-accent-sage/10 rounded-lg transition-all group"
-                    title="Manage characters"
+                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-sage/20 rounded-lg transition-all group border border-white/5"
                   >
-                    <Users className="w-4 h-4 text-text-tertiary group-hover:text-accent-sage" />
+                    <Users className="w-5 h-5 text-accent-sage" />
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-sage">Characters</span>
                   </button>
                   <button
                     onClick={() => setShowAnalytics(true)}
-                    className="p-2 hover:bg-accent-amber/10 rounded-lg transition-all group"
-                    title="View analytics"
+                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-amber/20 rounded-lg transition-all group border border-white/5"
                   >
-                    <BarChart3 className="w-4 h-4 text-text-tertiary group-hover:text-accent-amber" />
+                    <BarChart3 className="w-5 h-5 text-accent-amber" />
+                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-amber">Analytics</span>
                   </button>
                 </div>
+
+                {/* Show selected writing style */}
+                {book.style_profile && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Palette className="w-3.5 h-3.5 text-accent-purple" />
+                      <span className="text-text-tertiary">Writing Style:</span>
+                      <span className="font-semibold text-accent-purple">
+                        {book.style_profile.author_preset
+                          ? book.style_profile.author_preset.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                          : `${book.style_profile.tone || 'Custom'} Style`}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
               {book.subtitle && (
                 <p className="text-text-secondary text-base sm:text-lg mb-2">{book.subtitle}</p>
@@ -1341,43 +1367,53 @@ export default function Editor() {
 
       {/* Auto-Generate Book Modal */}
       {showAutoGenerateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-800 border border-white/10 rounded-lg max-w-lg w-full p-6">
-            <h2 className="text-2xl font-bold mb-4">Auto-Generate Entire Book</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-2xl" />
+            <div className="relative bg-surface-1 border-2 border-brand-500/30 rounded-2xl max-w-lg w-full p-8 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl shadow-glow">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-display font-bold gradient-text">Auto-Generate Entire Book</h2>
+                  <p className="text-xs text-text-tertiary mt-1">AI-powered complete book generation</p>
+                </div>
+              </div>
 
-            <div className="space-y-4 mb-6">
-              <p className="text-gray-300">
-                Automatically generate all remaining pages and optionally illustrations, then complete the book with a cover.
-              </p>
+              <div className="space-y-4 mb-6">
+                <p className="text-text-secondary">
+                  Automatically generate all remaining pages and optionally illustrations, then complete the book with a professional AI cover.
+                </p>
 
               {book && (
-                <div className="card bg-white/5">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Remaining pages:</span>
-                      <span className="text-white font-semibold">{book.target_pages - pages.length}</span>
+                <div className="p-4 bg-gradient-to-br from-brand-500/10 to-accent-purple/10 border border-brand-500/20 rounded-xl">
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-tertiary">Remaining pages:</span>
+                      <span className="text-text-primary font-bold text-lg">{book.target_pages - pages.length}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Page credits:</span>
-                      <span className="text-white">{book.target_pages - pages.length} credits</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-tertiary">Page credits:</span>
+                      <span className="text-brand-400 font-semibold">{book.target_pages - pages.length} credits</span>
                     </div>
                     {autoGenWithIllustrations && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Illustration credits:</span>
-                        <span className="text-white">{(book.target_pages - pages.length) * 3} credits</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-text-tertiary">Illustration credits:</span>
+                        <span className="text-accent-purple font-semibold">{(book.target_pages - pages.length) * 3} credits</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Cover generation:</span>
-                      <span className="text-white">2 credits</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-tertiary">Cover generation:</span>
+                      <span className="text-accent-cyan font-semibold">2 credits</span>
                     </div>
-                    <div className="border-t border-white/10 pt-2 mt-2">
-                      <div className="flex justify-between font-semibold">
-                        <span className="text-brand-400">Total credits:</span>
-                        <span className="text-brand-400">
+                    <div className="border-t border-white/20 pt-2.5 mt-2.5">
+                      <div className="flex justify-between items-center font-bold">
+                        <span className="text-text-primary text-base">Total credits needed:</span>
+                        <span className="text-brand-400 text-xl">
                           {book.target_pages - pages.length +
                            (autoGenWithIllustrations ? (book.target_pages - pages.length) * 3 : 0) +
-                           2} credits
+                           2}
                         </span>
                       </div>
                     </div>
@@ -1385,67 +1421,68 @@ export default function Editor() {
                 </div>
               )}
 
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-4 cursor-pointer group p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all">
                 <input
                   type="checkbox"
                   checked={autoGenWithIllustrations}
                   onChange={(e) => setAutoGenWithIllustrations(e.target.checked)}
-                  className="w-5 h-5 rounded border-2 border-white/20 bg-white/5 text-brand-500 focus:ring-2 focus:ring-brand-500"
+                  className="w-5 h-5 rounded border-2 border-brand-500 bg-surface-2 text-brand-500 focus:ring-2 focus:ring-brand-500 focus:ring-offset-0 cursor-pointer"
                 />
                 <div className="flex-1">
-                  <div className="font-medium group-hover:text-brand-400 transition-colors">
+                  <div className="font-semibold text-text-primary group-hover:text-brand-400 transition-colors">
                     Generate illustrations for each page
                   </div>
-                  <div className="text-sm text-gray-400">
-                    +3 credits per page • AI will create visual scenes matching page content
+                  <div className="text-sm text-text-tertiary mt-1">
+                    +3 credits per page • AI will create stunning visual scenes matching your content
                   </div>
                 </div>
               </label>
 
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-yellow-200">
-                    <strong>Note:</strong> This will take several minutes to complete. You can close this page and come back later - the generation will continue in the background.
+                  <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-200">
+                    <strong className="text-amber-100">Note:</strong> This will take several minutes to complete. You can close this page and come back later - the generation will continue in the background.
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowAutoGenerateModal(false);
-                  setAutoGenWithIllustrations(false);
-                }}
-                disabled={autoGenerating}
-                className="btn-secondary flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setAutoGenerating(true);
-                  autoGenerateBookMutation.mutate({
-                    bookId: bookId!,
-                    withIllustrations: autoGenWithIllustrations,
-                  });
-                }}
-                disabled={autoGenerating}
-                className="btn-primary flex-1"
-              >
-                {autoGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Start Auto-Generation
-                  </>
-                )}
-              </button>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAutoGenerateModal(false);
+                    setAutoGenWithIllustrations(false);
+                  }}
+                  disabled={autoGenerating}
+                  className="btn-secondary flex-1 text-base py-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setAutoGenerating(true);
+                    autoGenerateBookMutation.mutate({
+                      bookId: bookId!,
+                      withIllustrations: autoGenWithIllustrations,
+                    });
+                  }}
+                  disabled={autoGenerating}
+                  className="btn-primary flex-1 text-base py-3 shadow-glow"
+                >
+                  {autoGenerating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Generating Book...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      Start Auto-Generation
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
