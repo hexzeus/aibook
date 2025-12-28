@@ -500,62 +500,72 @@ export default function Editor() {
   return (
     <Layout>
       <div className="page-container max-w-6xl">
-        <div className="mb-6">
+        {/* Premium Header */}
+        <div className="mb-8">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            className="group flex items-center gap-2 text-text-tertiary hover:text-brand-400 transition-all mb-6"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Dashboard</span>
           </button>
 
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-display font-bold">{book.title}</h1>
-                <button
-                  onClick={() => setIsEditBookModalOpen(true)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
-                  title="Edit book details"
-                >
-                  <Edit3 className="w-5 h-5 text-gray-400 hover:text-white" />
-                </button>
-                <button
-                  onClick={() => setShowStyleConfigModal(true)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
-                  title="Configure writing style"
-                >
-                  <Palette className="w-5 h-5 text-purple-400 hover:text-purple-300" />
-                </button>
-                <button
-                  onClick={() => setShowOutlineEditor(true)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
-                  title="Edit chapter outline"
-                >
-                  <BookOpen className="w-5 h-5 text-blue-400 hover:text-blue-300" />
-                </button>
-                <button
-                  onClick={() => setShowCharacterBuilder(true)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
-                  title="Manage characters"
-                >
-                  <Users className="w-5 h-5 text-green-400 hover:text-green-300" />
-                </button>
-                <button
-                  onClick={() => setShowAnalytics(true)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-all"
-                  title="View analytics"
-                >
-                  <BarChart3 className="w-5 h-5 text-orange-400 hover:text-orange-300" />
-                </button>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+                <h1 className="text-h1 font-display font-bold gradient-text truncate">{book.title}</h1>
+                {/* Floating Toolbar */}
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-surface-1 border border-white/10 rounded-xl p-1.5">
+                  <button
+                    onClick={() => setIsEditBookModalOpen(true)}
+                    className="p-2 hover:bg-brand-500/10 rounded-lg transition-all group"
+                    title="Edit book details"
+                  >
+                    <Edit3 className="w-4 h-4 text-text-tertiary group-hover:text-brand-400" />
+                  </button>
+                  <button
+                    onClick={() => setShowStyleConfigModal(true)}
+                    className="p-2 hover:bg-accent-purple/10 rounded-lg transition-all group"
+                    title="Configure writing style"
+                  >
+                    <Palette className="w-4 h-4 text-text-tertiary group-hover:text-accent-purple" />
+                  </button>
+                  <button
+                    onClick={() => setShowOutlineEditor(true)}
+                    className="p-2 hover:bg-accent-cyan/10 rounded-lg transition-all group"
+                    title="Edit chapter outline"
+                  >
+                    <BookOpen className="w-4 h-4 text-text-tertiary group-hover:text-accent-cyan" />
+                  </button>
+                  <button
+                    onClick={() => setShowCharacterBuilder(true)}
+                    className="p-2 hover:bg-accent-sage/10 rounded-lg transition-all group"
+                    title="Manage characters"
+                  >
+                    <Users className="w-4 h-4 text-text-tertiary group-hover:text-accent-sage" />
+                  </button>
+                  <button
+                    onClick={() => setShowAnalytics(true)}
+                    className="p-2 hover:bg-accent-amber/10 rounded-lg transition-all group"
+                    title="View analytics"
+                  >
+                    <BarChart3 className="w-4 h-4 text-text-tertiary group-hover:text-accent-amber" />
+                  </button>
+                </div>
               </div>
               {book.subtitle && (
-                <p className="text-gray-400 text-lg mb-2">{book.subtitle}</p>
+                <p className="text-text-secondary text-base sm:text-lg mb-2">{book.subtitle}</p>
               )}
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>{pages.length}/{book.target_pages} pages</span>
-                <span>•</span>
-                <span>{book.completion_percentage}% complete</span>
+              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-brand-400 font-semibold">{pages.length}</span>
+                  <span className="text-text-tertiary">/</span>
+                  <span className="text-text-secondary">{book.target_pages} pages</span>
+                </span>
+                <span className="w-1 h-1 bg-text-muted rounded-full" />
+                <span className="px-2 py-1 bg-brand-500/10 text-brand-400 font-semibold rounded-lg">
+                  {book.completion_percentage}% complete
+                </span>
               </div>
             </div>
 
@@ -665,38 +675,51 @@ export default function Editor() {
             </div>
           </div>
 
-          <div className="mt-4 w-full h-2 bg-white/5 rounded-full overflow-hidden progress-bar">
-            <div
-              className="h-full bg-gradient-to-r from-brand-500 to-accent-purple transition-all duration-500 progress-bar-glow"
-              style={{ width: `${book.completion_percentage}%` }}
-            />
+          {/* Premium Progress Bar */}
+          <div className="mt-6 relative">
+            <div className="flex items-center justify-between mb-2 text-xs">
+              <span className="text-text-muted">Progress</span>
+              <span className="text-brand-400 font-semibold">{book.completion_percentage}%</span>
+            </div>
+            <div className="relative h-2 bg-surface-2 rounded-full overflow-hidden">
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-brand-500 to-brand-600 rounded-full transition-all duration-500 shadow-glow"
+                style={{ width: `${book.completion_percentage}%` }}
+              />
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
+            {/* Premium Page Editor */}
             {currentPage && (
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setCurrentPageIndex(Math.max(0, currentPageIndex - 1))}
-                      disabled={currentPageIndex === 0}
-                      className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-30 transition-all"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="font-semibold">
-                      Page {currentPage.page_number} of {pages.length}
-                    </span>
-                    <button
-                      onClick={() => setCurrentPageIndex(Math.min(pages.length - 1, currentPageIndex + 1))}
-                      disabled={currentPageIndex === pages.length - 1}
-                      className="p-2 hover:bg-white/10 rounded-lg disabled:opacity-30 transition-all"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-brand-500/30 transition-all">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <button
+                        onClick={() => setCurrentPageIndex(Math.max(0, currentPageIndex - 1))}
+                        disabled={currentPageIndex === 0}
+                        className="p-2 hover:bg-surface-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                      >
+                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <div className="flex flex-col items-center">
+                        <span className="font-display font-semibold text-sm sm:text-base">
+                          Page {currentPage.page_number}
+                        </span>
+                        <span className="text-xs text-text-muted">of {pages.length}</span>
+                      </div>
+                      <button
+                        onClick={() => setCurrentPageIndex(Math.min(pages.length - 1, currentPageIndex + 1))}
+                        disabled={currentPageIndex === pages.length - 1}
+                        className="p-2 hover:bg-surface-2 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                      >
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    </div>
 
                   <div className="flex items-center gap-2">
                     <button
@@ -739,14 +762,16 @@ export default function Editor() {
                   </div>
                 </div>
 
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm text-brand-400 font-semibold">
-                    {currentPage.section}
-                  </span>
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
-                    <span>{formatWordCount(countWords(currentPage.content))}</span>
-                    <span>•</span>
-                    <span>{estimateReadingTime(countWords(currentPage.content))}</span>
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <div className="px-3 py-1.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+                    <span className="text-xs sm:text-sm text-brand-400 font-semibold">
+                      {currentPage.section}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 text-xs">
+                    <span className="text-text-secondary">{formatWordCount(countWords(currentPage.content))}</span>
+                    <span className="w-1 h-1 bg-text-muted rounded-full" />
+                    <span className="text-text-tertiary">{estimateReadingTime(countWords(currentPage.content))}</span>
                   </div>
                 </div>
 
@@ -869,96 +894,129 @@ export default function Editor() {
                 )}
 
                 {!editMode && (
-                  <div className="mt-4 pt-4 border-t border-white/10">
+                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => setShowIllustrationModal(true)}
                       className="btn-secondary flex items-center gap-2 text-sm"
                     >
                       <Image className="w-4 h-4" />
-                      Generate Illustration
-                      <span className="text-xs text-brand-400">(3 credits)</span>
+                      <span className="hidden sm:inline">Generate Illustration</span>
+                      <span className="sm:hidden">Illustration</span>
+                      <span className="text-xs text-brand-400">(3)</span>
+                    </button>
                     <button
                       onClick={() => setShowStyleModal(true)}
                       className="btn-secondary flex items-center gap-2 text-sm"
                     >
                       <Palette className="w-4 h-4" />
-                      Apply Style
-                      <span className="text-xs text-brand-400">(2 credits)</span>
-                    </button>
+                      <span className="hidden sm:inline">Apply Style</span>
+                      <span className="sm:hidden">Style</span>
+                      <span className="text-xs text-brand-400">(2)</span>
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             )}
 
+            {/* Premium Generate Next Page Card */}
             {canGenerateNext && (
-              <div className="card bg-gradient-to-r from-brand-500/10 to-accent-purple/10 border-brand-500/20">
-                <div className="flex items-start gap-4">
-                  <Sparkles className="w-6 h-6 text-brand-400 flex-shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-2">Generate Next Page</h3>
-                    <textarea
-                      value={userGuidance}
-                      onChange={(e) => setUserGuidance(e.target.value)}
-                      placeholder="Optional: Guide the AI with specific instructions for the next page..."
-                      className="input-field mb-4 min-h-24 resize-none"
-                    />
-                    <button
-                      onClick={handleGenerateNext}
-                      disabled={generatingPage}
-                      className="btn-primary"
-                    >
-                      {generatingPage ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                          Generating Page {pages.length + 1}...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-5 h-5 mr-2" />
-                          Generate Page {pages.length + 1}
-                        </>
-                      )}
-                    </button>
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-xl opacity-50" />
+                <div className="relative bg-gradient-to-br from-surface-1 to-surface-2 border border-brand-500/30 rounded-2xl p-5 sm:p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-brand-500 rounded-xl blur-md opacity-50" />
+                      <div className="relative p-2.5 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl">
+                        <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display font-semibold text-base sm:text-lg mb-3 gradient-text">
+                        Generate Next Page
+                      </h3>
+                      <textarea
+                        value={userGuidance}
+                        onChange={(e) => setUserGuidance(e.target.value)}
+                        placeholder="Optional: Guide the AI with specific instructions for the next page..."
+                        className="input-field mb-4 min-h-24 resize-none text-sm"
+                      />
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleGenerateNext}
+                          disabled={generatingPage}
+                          className="btn-primary w-full"
+                        >
+                          {generatingPage ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                              Generating Page {pages.length + 1}...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              Generate Page {pages.length + 1}
+                            </>
+                          )}
+                        </button>
 
-                    {/* Auto-Generate Book Button */}
-                    <button
-                      onClick={() => setShowAutoGenerateModal(true)}
-                      className="btn-secondary mt-3 w-full text-sm"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Auto-Generate Entire Book
-                    </button>
+                        {/* Auto-Generate Book Button */}
+                        <button
+                          onClick={() => setShowAutoGenerateModal(true)}
+                          className="btn-secondary w-full text-sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Auto-Generate Entire Book
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Premium AI Writing Indicator */}
             {generatingPage && (
-              <div className="card bg-brand-500/5 border-brand-500/20">
-                <div className="flex items-center gap-3 mb-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
-                  <div className="flex-1">
-                    <div className="font-semibold mb-1">AI is writing page {pages.length + 1}...</div>
-                    <div className="text-sm text-gray-400">Analyzing context and generating content</div>
+              <div className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-xl opacity-75 animate-pulse" />
+                <div className="relative bg-surface-1 border border-brand-500/30 rounded-2xl p-5 sm:p-6">
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className="relative flex-shrink-0">
+                      <div className="absolute inset-0 bg-brand-500 rounded-full blur-md opacity-50 animate-pulse" />
+                      <Loader2 className="relative w-6 h-6 sm:w-8 sm:h-8 animate-spin text-brand-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display font-semibold text-base sm:text-lg mb-1">
+                        AI is writing page {pages.length + 1}...
+                      </div>
+                      <div className="text-xs sm:text-sm text-text-tertiary">
+                        Analyzing context and generating content
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-brand-500 via-accent-purple to-brand-500 animate-loading-bar" />
-                </div>
-                <div className="mt-3 text-xs text-gray-500 text-center">
-                  This typically takes 20-40 seconds • 1 credit will be consumed
+                  <div className="relative h-2 bg-surface-2 rounded-full overflow-hidden mb-4">
+                    <div className="absolute inset-0 bg-gradient-to-r from-brand-500 via-accent-purple to-brand-500 rounded-full animate-loading-bar shadow-glow" />
+                  </div>
+                  <div className="text-xs text-text-muted text-center">
+                    This typically takes 20-40 seconds • 1 credit will be consumed
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="space-y-6 order-1 lg:order-2">
-            <div className="card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-brand-400" />
-                Table of Contents
-              </h3>
+          {/* Premium Sidebar */}
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
+            {/* Table of Contents */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-brand-500/30 transition-all">
+                <h3 className="font-display font-semibold text-base sm:text-lg mb-5 flex items-center gap-3">
+                  <div className="p-2 bg-brand-500/10 rounded-xl">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-brand-400" />
+                  </div>
+                  <span>Table of Contents</span>
+                </h3>
               <div className="space-y-1 max-h-96 overflow-y-auto scrollbar-hide">
                 {(() => {
                   // Group pages by section with page ranges
@@ -1081,39 +1139,53 @@ export default function Editor() {
                   });
                 })()}
                 {pages.length === 0 && (
-                  <div className="text-sm text-gray-500 text-center py-8">
-                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                  <div className="text-sm text-text-muted text-center py-8">
+                    <BookOpen className="w-12 h-12 mx-auto mb-3 text-text-muted/50" />
                     <p>No pages yet</p>
                     <p className="text-xs mt-1">Generate pages to see your book's structure</p>
                   </div>
                 )}
               </div>
+              </div>
             </div>
 
-            <div className="card">
-              <h3 className="font-semibold mb-4">Pages</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
-                {pages.map((page, idx) => (
-                  <button
-                    key={page.page_id}
-                    onClick={() => setCurrentPageIndex(idx)}
-                    className={`w-full p-3 rounded-lg text-left transition-all ${
-                      currentPageIndex === idx
-                        ? 'bg-brand-500/20 border-2 border-brand-500'
-                        : 'bg-white/5 hover:bg-white/10 border-2 border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">Page {page.page_number}</span>
-                      {page.is_title_page && (
-                        <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded">
-                          Title
+            {/* Pages List */}
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-purple/10 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-accent-purple/30 transition-all">
+                <h3 className="font-display font-semibold text-base sm:text-lg mb-5 flex items-center gap-3">
+                  <div className="p-2 bg-accent-purple/10 rounded-xl">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-accent-purple" />
+                  </div>
+                  <span>Pages</span>
+                </h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
+                  {pages.map((page, idx) => (
+                    <button
+                      key={page.page_id}
+                      onClick={() => setCurrentPageIndex(idx)}
+                      className={`w-full p-3 rounded-xl text-left transition-all group/item ${
+                        currentPageIndex === idx
+                          ? 'bg-brand-500/10 border border-brand-500/40'
+                          : 'bg-surface-2 hover:bg-surface-3 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-medium text-xs sm:text-sm ${
+                          currentPageIndex === idx ? 'text-brand-400' : 'text-text-primary group-hover/item:text-brand-400'
+                        }`}>
+                          Page {page.page_number}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-400 truncate">{page.section}</div>
-                  </button>
-                ))}
+                        {page.is_title_page && (
+                          <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-lg">
+                            Title
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-text-tertiary truncate">{page.section}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
