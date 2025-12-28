@@ -83,29 +83,38 @@ class GumroadValidator:
             return False, "Gumroad not configured", None
 
         try:
-            # Use all configured product IDs
-            product_ids_to_check = ','.join(self.product_ids.values())
-
-            print(f"[GUMROAD] Checking license key against products: {product_ids_to_check}")
+            # Try each product ID separately (Gumroad doesn't support comma-separated IDs)
+            print(f"[GUMROAD] Checking license key against {len(self.product_ids)} products...")
 
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    'https://api.gumroad.com/v2/licenses/verify',
-                    data={
-                        'product_id': product_ids_to_check,
-                        'license_key': license_key,
-                        'increment_uses_count': 'true' if increment_uses else 'false'
-                    },
-                    headers={'Authorization': f'Bearer {self.access_token}'}
-                )
+                # Try each product ID until we find a match
+                for tier, product_id in self.product_ids.items():
+                    print(f"[GUMROAD] Trying product: {tier} ({product_id})")
 
-                data = response.json()
-                print(f"[GUMROAD] API Response: {data}")
+                    response = await client.post(
+                        'https://api.gumroad.com/v2/licenses/verify',
+                        data={
+                            'product_id': product_id,
+                            'license_key': license_key,
+                            'increment_uses_count': 'true' if increment_uses else 'false'
+                        },
+                        headers={'Authorization': f'Bearer {self.access_token}'}
+                    )
 
-                if not data.get('success'):
-                    # Check if license exists but is refunded
-                    if data.get('message') == 'That license does not exist for the provided product.':
+                    data = response.json()
+                    print(f"[GUMROAD] API Response for {tier}: {data}")
+
+                    # If successful, we found the right product
+                    if data.get('success'):
+                        print(f"[GUMROAD] License key matched to product: {tier}")
+                        break
+
+                    # If this is the last product and still no match, return error
+                    if tier == list(self.product_ids.keys())[-1]:
                         return False, "Invalid license key", None
+
+                # If we get here, data contains the successful response
+                if not data.get('success'):
                     return False, data.get('message', 'License validation failed'), None
 
                 purchase = data.get('purchase', {})
