@@ -32,9 +32,26 @@ export function useWebSocket(options: UseWebSocketOptions) {
   const reconnectTimeout = useRef<number | undefined>(undefined);
   const [isConnected, setIsConnected] = useState(false);
 
+  // Store callbacks in refs to avoid recreating connect function
+  const onMessageRef = useRef(onMessage);
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+  }, [onMessage, onConnect, onDisconnect]);
+
   const connect = useCallback(() => {
     if (!license_key) {
       console.log('[WebSocket] No license key provided, skipping connection');
+      return;
+    }
+
+    // Don't reconnect if already connected
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      console.log('[WebSocket] Already connected, skipping');
       return;
     }
 
@@ -50,14 +67,14 @@ export function useWebSocket(options: UseWebSocketOptions) {
       ws.current.onopen = () => {
         console.log('[WebSocket] Connected');
         setIsConnected(true);
-        onConnect?.();
+        onConnectRef.current?.();
       };
 
       ws.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
           console.log('[WebSocket] Received message:', message);
-          onMessage?.(message);
+          onMessageRef.current?.(message);
         } catch (error) {
           console.error('[WebSocket] Failed to parse message:', error);
         }
@@ -66,7 +83,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
       ws.current.onclose = () => {
         console.log('[WebSocket] Disconnected');
         setIsConnected(false);
-        onDisconnect?.();
+        onDisconnectRef.current?.();
 
         // Attempt reconnection
         if (reconnect) {
@@ -83,7 +100,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
     } catch (error) {
       console.error('[WebSocket] Connection failed:', error);
     }
-  }, [license_key, onMessage, onConnect, onDisconnect, reconnect]);
+  }, [license_key, reconnect]);
 
   useEffect(() => {
     connect();
@@ -95,6 +112,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
       }
       if (ws.current) {
         ws.current.close();
+        ws.current = null;
       }
     };
   }, [connect]);
