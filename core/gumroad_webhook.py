@@ -7,6 +7,7 @@ import hashlib
 from typing import Dict, Optional
 from sqlalchemy.orm import Session
 from database.repositories import UserRepository
+from database.models import LicensePurchase
 from core.credit_packages import get_all_packages
 import os
 
@@ -126,6 +127,20 @@ def process_gumroad_webhook(data: Dict, db: Session) -> Dict:
 
     # Handle different events
     if event_type == "sale":
+        # Check if this purchase was already processed (idempotency check)
+        existing_purchase = db.query(LicensePurchase).filter_by(gumroad_sale_id=sale_id).first()
+        if existing_purchase:
+            print(f"[WEBHOOK] Purchase {sale_id} already processed, skipping")
+            return {
+                "success": True,
+                "event": "sale",
+                "license_key": license_key,
+                "credits_granted": 0,
+                "package_id": package_id,
+                "purchase_type": purchase_type,
+                "message": "Purchase already processed (duplicate webhook)"
+            }
+
         # New purchase - grant credits
         user = user_repo.get_by_license_key(license_key)
 
