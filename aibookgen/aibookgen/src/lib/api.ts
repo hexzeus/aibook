@@ -76,6 +76,7 @@ export interface Book {
     themes?: string[];
     tone?: string;
   };
+  style_profile?: any;  // Style profile configuration
   pages?: Page[];
 }
 

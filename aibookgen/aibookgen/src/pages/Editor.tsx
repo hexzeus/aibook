@@ -1387,11 +1387,24 @@ export default function Editor() {
         />
       )}
 
-      {showOutlineEditor && book && (
+      {showOutlineEditor && book && book.structure && (
         <ChapterOutlineEditor
           onClose={() => setShowOutlineEditor(false)}
           onSave={handleSaveStructure}
-          currentStructure={book.structure as BookStructure}
+          currentStructure={{
+            title: book.structure.title,
+            subtitle: book.structure.subtitle,
+            target_pages: book.target_pages,
+            outline: book.structure.sections?.map((s, i) => ({
+              page_number: i + 1,
+              section: s.title,
+              content_brief: `Content for ${s.title}`,
+              chapter_number: i + 1,
+              pacing: 'medium' as const
+            })) || [],
+            themes: book.structure.themes,
+            tone: book.structure.tone
+          }}
           loading={savingStructure}
         />
       )}
