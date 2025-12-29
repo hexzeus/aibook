@@ -41,19 +41,31 @@ export default function Settings() {
 
   const currentModel = stats?.preferred_model || 'claude';
 
-  // Load notification preferences from localStorage
+  // Load notification preferences from database
+  const { data: savedPreferences } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: userApi.getNotificationPreferences,
+  });
+
   useEffect(() => {
-    const saved = localStorage.getItem('notification_preferences');
-    if (saved) {
-      setNotifications(JSON.parse(saved));
+    if (savedPreferences) {
+      setNotifications(savedPreferences);
     }
-  }, []);
+  }, [savedPreferences]);
+
+  const updateNotificationsMutation = useMutation({
+    mutationFn: (preferences: Record<string, boolean>) =>
+      userApi.updateNotificationPreferences(preferences),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+      toast.success('Notification preferences updated');
+    },
+  });
 
   const handleNotificationToggle = (key: keyof typeof notifications) => {
     const updated = { ...notifications, [key]: !notifications[key] };
     setNotifications(updated);
-    localStorage.setItem('notification_preferences', JSON.stringify(updated));
-    toast.success('Notification preferences updated');
+    updateNotificationsMutation.mutate(updated);
   };
 
   return (

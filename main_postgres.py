@@ -38,6 +38,7 @@ from core.bulk_import_service import BulkImportService
 from core.translation_service import TranslationService
 from core.audiobook_service import AudiobookService
 from core.websocket_manager import ws_manager
+from core.email_service import EmailService
 
 # Load environment
 load_dotenv()
@@ -75,6 +76,9 @@ app.add_middleware(
 # Initialize database
 db_manager = initialize_database(DATABASE_URL)
 db_manager.create_tables()
+
+# Initialize email service
+email_service = EmailService()
 
 # Cleanup any stale transactions from previous crashes
 print("[STARTUP] Cleaning up idle transactions...", flush=True)
@@ -263,6 +267,27 @@ async def root():
         "version": "2.0.0",
         "features": ["credit_system", "postgresql", "enhanced_epub"]
     }
+
+
+def check_and_send_low_credits_email(user, db: Session):
+    """Helper function to check credits and send low credits warning email"""
+    try:
+        # Send email if credits are below 100 and user has email and preferences enabled
+        if (user.credits_remaining < 100 and
+            user.email and
+            user.preferences and
+            user.preferences.get('notifications', {}).get('creditLow', True)):
+
+            user_name = user.name or user.email.split('@')[0]
+            email_service.send_low_credits_email(
+                to_email=user.email,
+                user_name=user_name,
+                credits_remaining=user.credits_remaining
+            )
+            print(f"[CREDITS] Low credits email sent to {user.email} ({user.credits_remaining} remaining)", flush=True)
+    except Exception as email_error:
+        print(f"[CREDITS] Email notification failed: {str(email_error)}", flush=True)
+        # Don't fail the request if email fails
 
 
 @app.get("/health")
@@ -650,6 +675,27 @@ async def generate_page(
         # Get fresh credits count
         fresh_user = user_repo.get_by_id(user_id)
         target_pages = book_repo.get_book(book_id, user_id).target_pages
+
+        # Check and send low credits warning email
+        check_and_send_low_credits_email(fresh_user, db)
+
+        # Send page generation email notification
+        try:
+            if fresh_user.email and fresh_user.preferences and fresh_user.preferences.get('notifications', {}).get('pageGenerated', False):
+                book_obj = book_repo.get_book(book_id, user_id)
+                user_name = fresh_user.name or fresh_user.email.split('@')[0]
+                email_service.send_page_generated_email(
+                    to_email=fresh_user.email,
+                    user_name=user_name,
+                    book_title=book_obj.title,
+                    book_id=str(book_id),
+                    page_number=next_page['page_number'],
+                    page_title=next_page.get('title', f"Page {next_page['page_number']}")
+                )
+                print(f"[PAGE] Page generation email sent to {fresh_user.email}", flush=True)
+        except Exception as email_error:
+            print(f"[PAGE] Email notification failed: {str(email_error)}", flush=True)
+            # Don't fail the request if email fails
 
         return {
             "success": True,
@@ -1177,6 +1223,24 @@ async def complete_book(
         print(f"[COMPLETE] Committing book completion...", flush=True)
         db.commit()
         print(f"[COMPLETE] Transaction committed successfully", flush=True)
+
+        # Send book completion email notification
+        try:
+            if user.email and user.preferences and user.preferences.get('notifications', {}).get('bookComplete', True):
+                pages = book_repo.get_pages_by_book(uuid.UUID(book_id_str))
+                page_count = len(pages)
+                user_name = user.name or user.email.split('@')[0]
+                email_service.send_book_completion_email(
+                    to_email=user.email,
+                    user_name=user_name,
+                    book_title=book_title,
+                    book_id=book_id_str,
+                    page_count=page_count
+                )
+                print(f"[COMPLETE] Book completion email sent to {user.email}", flush=True)
+        except Exception as email_error:
+            print(f"[COMPLETE] Email notification failed: {str(email_error)}", flush=True)
+            # Don't fail the request if email fails
 
         return {
             "success": True,
@@ -4557,4 +4621,63 @@ async def update_preferred_model_endpoint(
         "success": True,
         "preferred_model": model_provider,
         "message": f"Preferred model updated to {model_provider}"
+    }
+
+
+@app.get("/api/users/notification-preferences")
+async def get_notification_preferences_endpoint(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's notification preferences
+    """
+    # Get preferences from JSONB field, default to all enabled
+    preferences = user.preferences or {}
+
+    default_prefs = {
+        "bookComplete": True,
+        "pageGenerated": False,
+        "creditLow": True,
+        "weeklyDigest": False,
+        "affiliateEarnings": True,
+    }
+
+    # Merge with defaults
+    notification_prefs = {**default_prefs, **preferences.get('notifications', {})}
+
+    return {
+        "success": True,
+        "preferences": notification_prefs
+    }
+
+
+@app.post("/api/users/notification-preferences")
+async def update_notification_preferences_endpoint(
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user's notification preferences
+    """
+    preferences = request.get('preferences')
+
+    if not preferences or not isinstance(preferences, dict):
+        raise HTTPException(status_code=400, detail="Preferences object is required")
+
+    # Get current preferences or initialize
+    current_prefs = user.preferences or {}
+
+    # Update notification preferences
+    current_prefs['notifications'] = preferences
+
+    # Update user
+    user.preferences = current_prefs
+    db.commit()
+
+    return {
+        "success": True,
+        "preferences": preferences,
+        "message": "Notification preferences updated successfully"
     }

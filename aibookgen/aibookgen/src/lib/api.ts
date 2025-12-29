@@ -355,6 +355,16 @@ export const userApi = {
     const response = await api.post('/api/users/update-preferred-model', { model_provider: modelProvider });
     return response.data;
   },
+
+  getNotificationPreferences: async () => {
+    const response = await api.get('/api/users/notification-preferences');
+    return response.data.preferences;
+  },
+
+  updateNotificationPreferences: async (preferences: Record<string, boolean>) => {
+    const response = await api.post('/api/users/notification-preferences', { preferences });
+    return response.data;
+  },
 };
 
 export const premiumApi = {

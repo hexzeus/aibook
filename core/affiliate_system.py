@@ -100,6 +100,27 @@ class AffiliateSystem:
 
         self.session.flush()
 
+        # Send affiliate earnings email notification
+        try:
+            from core.email_service import EmailService
+            email_service = EmailService()
+
+            if (referrer.email and
+                referrer.preferences and
+                referrer.preferences.get('notifications', {}).get('affiliateEarnings', True)):
+
+                user_name = referrer.name or referrer.email.split('@')[0]
+                email_service.send_affiliate_earnings_email(
+                    to_email=referrer.email,
+                    user_name=user_name,
+                    commission_amount=commission_cents / 100,
+                    total_earnings=referrer.affiliate_earnings_cents / 100
+                )
+                print(f"[AFFILIATE] Earnings email sent to {referrer.email} (${commission_cents/100:.2f})", flush=True)
+        except Exception as email_error:
+            print(f"[AFFILIATE] Email notification failed: {str(email_error)}", flush=True)
+            # Don't fail the commission if email fails
+
         return {
             "referrer_id": str(referrer.user_id),
             "commission_cents": commission_cents,
