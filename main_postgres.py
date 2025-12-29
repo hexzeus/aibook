@@ -3984,19 +3984,23 @@ async def translate_book(
     if user.credits_remaining < credits_needed:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
+    # Store IDs before committing (so we can close the connection)
+    user_id = user.user_id
+    pages = book_data['pages']
+    book_context = {
+        'genre': book_data.get('genre'),
+        'age_range': book_data.get('age_range')
+    }
+
+    # Consume credits and commit immediately (prevents SSL timeout during translation)
+    user_repo = UserRepository(db)
+    user_repo.consume_credits(user_id, credits_needed)
+    db.commit()
+
     try:
+        # NOW do the translations (DB connection is closed, no timeout risk)
         translation_service = TranslationService()
-        user_repo = UserRepository(db)
-        usage_repo = UsageRepository(db)
-
-        # Translate all pages
-        pages = book_data['pages']
         translated_pages = []
-
-        book_context = {
-            'genre': book_data.get('genre'),
-            'age_range': book_data.get('age_range')
-        }
 
         for page in pages:
             translated_content = translation_service.translate_book_page(
@@ -4008,6 +4012,7 @@ async def translate_book(
 
             translated_pages.append({
                 'page_number': page['page_number'],
+                'page_id': page['page_id'],
                 'content': translated_content
             })
 
@@ -4019,11 +4024,10 @@ async def translate_book(
             target_language=target_language
         )
 
-        # Consume credits
-        user_repo.consume_credits(user.user_id, credits_needed)
-
+        # Log usage
+        usage_repo = UsageRepository(db)
         usage_repo.log_action(
-            user_id=user.user_id,
+            user_id=user_id,
             action_type='translate_book',
             book_id=uuid.UUID(book_id),
             credits_consumed=credits_needed
@@ -4043,6 +4047,14 @@ async def translate_book(
     except Exception as e:
         db.rollback()
         print(f"[TRANSLATION] Error: {str(e)}", flush=True)
+        # Refund credits (user_id was stored before commit)
+        try:
+            user_repo.refund_credits(user_id, credits_needed)
+            db.commit()
+            print(f"[TRANSLATION] Refunded {credits_needed} credits to user {user_id}", flush=True)
+        except Exception as refund_error:
+            print(f"[TRANSLATION] Failed to refund credits: {str(refund_error)}", flush=True)
+            pass  # If refund fails, at least we rolled back the original transaction
         raise HTTPException(status_code=500, detail=str(e))
 
 
