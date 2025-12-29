@@ -2967,7 +2967,7 @@ REWRITTEN TEXT:"""
         if claude_client:
             # Use Claude API
             response = claude_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-3-5-sonnet-latest",
                 max_tokens=4000,
                 temperature=0.7,
                 messages=[{
@@ -3364,7 +3364,7 @@ Content Sample:
 Create a {style} description (250-300 words) with a hook, benefits, and urgency."""
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-5-sonnet-latest",
             max_tokens=1000,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -3430,7 +3430,7 @@ async def generate_social_posts(
 JSON: {{"posts": [{{"platform": "Twitter", "content": "..."}}, ...]}}"""
 
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-5-sonnet-latest",
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
         )
