@@ -3,6 +3,7 @@ import { X, Languages, Zap, Globe, Book, FileText, Sparkles } from 'lucide-react
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { translationApi } from '../lib/api';
 import { useToastStore } from '../store/toastStore';
+import TranslationProgressModal from './TranslationProgressModal';
 
 interface TranslationModalProps {
   isOpen: boolean;
@@ -88,6 +89,24 @@ export default function TranslationModal({ isOpen, onClose, bookId, currentPageN
   const creditCost = mode === 'page' ? 1 : 5;
 
   if (!isOpen) return null;
+
+  // Show progress modal when translating
+  if (isTranslating && selectedLanguage) {
+    const targetLangName = languages[selectedLanguage] || selectedLanguage;
+    return (
+      <TranslationProgressModal
+        isOpen={isTranslating}
+        sourceLanguage="en"
+        targetLanguage={selectedLanguage}
+        sourceFlag={LANGUAGE_FLAGS['en']}
+        targetFlag={LANGUAGE_FLAGS[selectedLanguage] || '🌐'}
+        sourceLangName="English"
+        targetLangName={targetLangName}
+        mode={mode}
+        pageNumber={currentPageNumber}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
