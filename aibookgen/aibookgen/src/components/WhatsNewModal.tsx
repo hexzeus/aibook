@@ -9,6 +9,19 @@ interface Update {
 
 const updates: Update[] = [
   {
+    version: '1.3.0',
+    date: '2025-12-28',
+    features: [
+      'Translate entire books into 15 languages (5 credits)',
+      'Single page translation (1 credit)',
+      'High-quality AI translations with Claude Sonnet 4',
+      'Automatic illustration and cover copying in translations',
+      'Premium redesign with Pinterest-style book grids',
+      'Distraction-free editor with polished modals',
+      'Enhanced mobile experience and iOS PWA support',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2025-12-26',
     features: [

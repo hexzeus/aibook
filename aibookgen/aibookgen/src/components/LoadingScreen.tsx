@@ -18,7 +18,7 @@ export default function LoadingScreen() {
 
         <div className="text-center">
           <h1 className="text-3xl font-display font-bold mb-2 gradient-text">
-            AI Book Generator
+            Chaptera
           </h1>
           <p className="text-gray-400 animate-pulse">Loading your creative workspace...</p>
         </div>
