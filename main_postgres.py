@@ -3998,6 +3998,7 @@ async def translate_book(
     original_structure = book_data.get('structure')
     original_book_type = book_data.get('book_type')
     original_target_pages = book_data.get('target_pages', len(pages))
+    original_cover_image = original_book.cover_image_url if original_book else None
 
     # Consume credits and commit immediately (prevents SSL timeout during translation)
     user_repo = UserRepository(db)
@@ -4022,7 +4023,8 @@ async def translate_book(
                 'section': page['section'],
                 'content': translated_content,
                 'is_title_page': page.get('is_title_page', False),
-                'word_count': len(translated_content.split())
+                'word_count': len(translated_content.split()),
+                'illustration_url': page.get('illustration_url')
             })
 
         # Translate metadata
@@ -4051,23 +4053,24 @@ async def translate_book(
 
         # Create all translated pages in the new book
         for page_data in translated_pages:
-            book_repo.create_page(
+            # Create page with illustration if it exists
+            new_page = book_repo.create_page(
                 book_id=new_book.book_id,
                 page_number=page_data['page_number'],
                 section=page_data['section'],
                 content=page_data['content'],
                 user_guidance=None,
-                ai_model_used='claude-sonnet-4-20250514'
+                ai_model_used='claude-sonnet-4-20250514',
+                is_title_page=page_data['is_title_page']
             )
 
-            # Update is_title_page if needed
-            if page_data['is_title_page']:
-                page = db.query(Page).filter(
-                    Page.book_id == new_book.book_id,
-                    Page.page_number == page_data['page_number']
-                ).first()
-                if page:
-                    page.is_title_page = True
+            # Copy illustration from original page if it exists
+            if page_data.get('illustration_url'):
+                new_page.illustration_url = page_data['illustration_url']
+
+        # Copy cover image from original book if it exists
+        if original_cover_image:
+            new_book.cover_image_url = original_cover_image
 
         # Update new book progress
         new_book.current_page_count = len(translated_pages)
