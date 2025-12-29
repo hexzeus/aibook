@@ -414,6 +414,16 @@ export const exportsApi = {
     const response = await api.get('/api/exports/history', { params: { limit, offset } });
     return response.data;
   },
+
+  deleteExport: async (exportId: string) => {
+    const response = await api.delete(`/api/exports/${exportId}`);
+    return response.data;
+  },
+
+  deleteAllExports: async () => {
+    const response = await api.delete('/api/exports');
+    return response.data;
+  },
 };
 
 export default api;

@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Clock, HardDrive, Eye } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Download, FileText, Clock, HardDrive, Eye, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import Layout from '../components/Layout';
+import ConfirmModal from '../components/ConfirmModal';
 import { exportsApi } from '../lib/api';
+import { useToastStore } from '../store/toastStore';
 
 function formatBytes(bytes?: number): string {
   if (!bytes) return 'N/A';
@@ -56,10 +59,38 @@ function getFormatColor(format: string): string {
 
 export default function ExportHistory() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const toast = useToastStore();
+  const [showDeleteAll, setShowDeleteAll] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['exports', 'history'],
     queryFn: () => exportsApi.getHistory(100, 0),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: exportsApi.deleteExport,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exports', 'history'] });
+      toast.success('Export deleted successfully');
+      setDeleteTarget(null);
+    },
+    onError: () => {
+      toast.error('Failed to delete export');
+    },
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: exportsApi.deleteAllExports,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['exports', 'history'] });
+      toast.success(`Deleted ${data.deleted_count} export${data.deleted_count !== 1 ? 's' : ''}`);
+      setShowDeleteAll(false);
+    },
+    onError: () => {
+      toast.error('Failed to delete exports');
+    },
   });
 
   const exports = data?.exports || [];
@@ -67,11 +98,22 @@ export default function ExportHistory() {
   return (
     <Layout>
       <div className="page-container">
-        <div className="mb-8">
-          <h1 className="text-4xl font-display font-bold mb-2">Export History</h1>
-          <p className="text-gray-400 text-lg">
-            View all your exported books and download history
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-display font-bold mb-2">Export History</h1>
+            <p className="text-gray-400 text-lg">
+              View all your exported books and download history
+            </p>
+          </div>
+          {exports.length > 0 && (
+            <button
+              onClick={() => setShowDeleteAll(true)}
+              className="btn-secondary flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 whitespace-nowrap"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete All
+            </button>
+          )}
         </div>
 
         {isLoading ? (
@@ -155,6 +197,13 @@ export default function ExportHistory() {
                     >
                       <Eye className="w-5 h-5 text-brand-400" />
                     </button>
+                    <button
+                      onClick={() => setDeleteTarget(exportRecord.export_id)}
+                      className="p-2 hover:bg-red-500/20 rounded-lg transition-all"
+                      title="Delete Export"
+                    >
+                      <Trash2 className="w-5 h-5 text-red-400" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -166,6 +215,32 @@ export default function ExportHistory() {
           <div className="mt-6 text-center text-sm text-gray-500">
             Showing {exports.length} export{exports.length !== 1 ? 's' : ''}
           </div>
+        )}
+
+        {/* Delete single export confirmation */}
+        {deleteTarget && (
+          <ConfirmModal
+            isOpen={true}
+            title="Delete Export"
+            message="Are you sure you want to delete this export record? This action cannot be undone."
+            confirmText="Delete"
+            variant="danger"
+            onConfirm={() => deleteMutation.mutate(deleteTarget)}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+
+        {/* Delete all exports confirmation */}
+        {showDeleteAll && (
+          <ConfirmModal
+            isOpen={true}
+            title="Delete All Exports"
+            message={`Are you sure you want to delete all ${exports.length} export records? This action cannot be undone.`}
+            confirmText="Delete All"
+            variant="danger"
+            onConfirm={() => deleteAllMutation.mutate()}
+            onCancel={() => setShowDeleteAll(false)}
+          />
         )}
       </div>
     </Layout>

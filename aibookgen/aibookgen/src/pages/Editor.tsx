@@ -584,71 +584,106 @@ export default function Editor() {
                 <h1 className="text-h1 font-display font-bold gradient-text truncate">{book.title}</h1>
               </div>
 
-              {/* Prominent Toolbar with Labels */}
-              <div className="mb-4 p-4 bg-gradient-to-r from-brand-500/10 via-accent-purple/10 to-accent-cyan/10 border border-white/10 rounded-xl">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <Sparkles className="w-4 h-4 text-brand-400 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-text-primary">Book Configuration</span>
-                  <span className="text-xs text-text-tertiary">
-                    <span className="hidden sm:inline">• </span>
-                    <span className="italic">Optional - configure before auto-generating</span>
-                  </span>
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  <button
-                    onClick={() => setIsEditBookModalOpen(true)}
-                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-brand-500/20 rounded-lg transition-all group border border-white/5"
-                  >
-                    <Edit3 className="w-5 h-5 text-brand-400" />
-                    <span className="text-xs font-medium text-text-secondary group-hover:text-brand-400">Details</span>
-                  </button>
-                  <button
-                    onClick={() => setShowStyleConfigModal(true)}
-                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-purple/20 rounded-lg transition-all group border border-white/5 relative"
-                  >
-                    <Palette className="w-5 h-5 text-accent-purple" />
-                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-purple">Style</span>
-                    {book.style_profile && (
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-accent-purple rounded-full" title="Style configured" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowOutlineEditor(true)}
-                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-cyan/20 rounded-lg transition-all group border border-white/5"
-                  >
-                    <BookOpen className="w-5 h-5 text-accent-cyan" />
-                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-cyan">Outline</span>
-                  </button>
-                  <button
-                    onClick={() => setShowCharacterBuilder(true)}
-                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-sage/20 rounded-lg transition-all group border border-white/5"
-                  >
-                    <Users className="w-5 h-5 text-accent-sage" />
-                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-sage">Characters</span>
-                  </button>
-                  <button
-                    onClick={() => setShowAnalytics(true)}
-                    className="flex flex-col items-center gap-1.5 p-3 hover:bg-accent-amber/20 rounded-lg transition-all group border border-white/5"
-                  >
-                    <BarChart3 className="w-5 h-5 text-accent-amber" />
-                    <span className="text-xs font-medium text-text-secondary group-hover:text-accent-amber">Analytics</span>
-                  </button>
-                </div>
-
-                {/* Show selected writing style */}
-                {book.style_profile && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Palette className="w-3.5 h-3.5 text-accent-purple" />
-                      <span className="text-text-tertiary">Writing Style:</span>
-                      <span className="font-semibold text-accent-purple">
-                        {book.style_profile.author_preset
-                          ? book.style_profile.author_preset.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-                          : `${book.style_profile.tone || 'Custom'} Style`}
-                      </span>
+              {/* Premium Book Configuration */}
+              <div className="mb-6 relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 hover:border-brand-500/20 transition-all">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-1.5 bg-brand-500/10 rounded-lg">
+                      <Sparkles className="w-4 h-4 text-brand-400" />
                     </div>
+                    <span className="text-sm font-semibold text-text-primary">Book Configuration</span>
+                    <span className="text-xs text-text-muted ml-auto">Optional</span>
                   </div>
-                )}
+
+                  <div className="grid grid-cols-5 gap-3">
+                    <button
+                      onClick={() => setIsEditBookModalOpen(true)}
+                      className="group/btn relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-brand-500/0 group-hover/btn:bg-brand-500/10 transition-all duration-300 rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-brand-500/30 transition-all">
+                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-brand-500/20 transition-all">
+                          <Edit3 className="w-4 h-4 text-text-tertiary group-hover/btn:text-brand-400 transition-colors" />
+                        </div>
+                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-brand-400 transition-colors">Details</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setShowStyleConfigModal(true)}
+                      className="group/btn relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-accent-purple/0 group-hover/btn:bg-accent-purple/10 transition-all duration-300 rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-purple/30 transition-all">
+                        <div className="relative p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-purple/20 transition-all">
+                          <Palette className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-purple transition-colors" />
+                          {book.style_profile && (
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-purple opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent-purple"></span>
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-purple transition-colors">Style</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setShowOutlineEditor(true)}
+                      className="group/btn relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-accent-cyan/0 group-hover/btn:bg-accent-cyan/10 transition-all duration-300 rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-cyan/30 transition-all">
+                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-cyan/20 transition-all">
+                          <BookOpen className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-cyan transition-colors" />
+                        </div>
+                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-cyan transition-colors">Outline</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setShowCharacterBuilder(true)}
+                      className="group/btn relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-accent-sage/0 group-hover/btn:bg-accent-sage/10 transition-all duration-300 rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-sage/30 transition-all">
+                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-sage/20 transition-all">
+                          <Users className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-sage transition-colors" />
+                        </div>
+                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-sage transition-colors">Characters</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setShowAnalytics(true)}
+                      className="group/btn relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-accent-amber/0 group-hover/btn:bg-accent-amber/10 transition-all duration-300 rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-amber/30 transition-all">
+                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-amber/20 transition-all">
+                          <BarChart3 className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-amber transition-colors" />
+                        </div>
+                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-amber transition-colors">Analytics</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Active Style Indicator */}
+                  {book.style_profile && (
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-accent-purple/5 border border-accent-purple/20 rounded-lg">
+                        <Palette className="w-3.5 h-3.5 text-accent-purple flex-shrink-0" />
+                        <span className="text-xs text-text-tertiary">Active Style:</span>
+                        <span className="text-xs font-semibold text-accent-purple">
+                          {book.style_profile.author_preset
+                            ? book.style_profile.author_preset.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                            : `${book.style_profile.tone || 'Custom'} Style`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               {book.subtitle && (
                 <p className="text-text-secondary text-base sm:text-lg mb-2">{book.subtitle}</p>

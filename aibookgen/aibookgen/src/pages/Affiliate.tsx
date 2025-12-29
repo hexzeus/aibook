@@ -96,7 +96,7 @@ export default function Affiliate() {
         {stats?.affiliate_code ? (
           <div className="card mb-8 bg-gradient-to-r from-brand-500/10 to-accent-purple/10 border-brand-500/20">
             <h3 className="text-xl font-bold mb-4">Your Referral Link</h3>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <input
                 type="text"
                 value={`${window.location.origin}?ref=${stats.affiliate_code}`}
@@ -105,7 +105,7 @@ export default function Affiliate() {
               />
               <button
                 onClick={copyReferralLink}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 {copied ? (
                   <>
@@ -115,7 +115,7 @@ export default function Affiliate() {
                 ) : (
                   <>
                     <Copy className="w-5 h-5" />
-                    Copy
+                    Copy Link
                   </>
                 )}
               </button>
@@ -162,7 +162,7 @@ export default function Affiliate() {
               e.preventDefault();
               updateEmailMutation.mutate(payoutEmail);
             }}
-            className="flex items-center gap-3"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
           >
             <input
               type="email"
@@ -175,7 +175,7 @@ export default function Affiliate() {
             <button
               type="submit"
               disabled={updateEmailMutation.isPending || !payoutEmail.trim()}
-              className="btn-primary"
+              className="btn-primary whitespace-nowrap"
             >
               {updateEmailMutation.isPending ? 'Saving...' : 'Update Email'}
             </button>

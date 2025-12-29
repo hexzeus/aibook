@@ -2197,6 +2197,59 @@ async def get_export_history(
     }
 
 
+@app.delete("/api/exports/{export_id}")
+async def delete_export(
+    export_id: str,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a single export record - FREE"""
+    usage_repo = UsageRepository(db)
+
+    # Get export and verify ownership
+    export = usage_repo.get_export(uuid.UUID(export_id))
+    if not export:
+        raise HTTPException(status_code=404, detail="Export not found")
+
+    if export.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this export")
+
+    # Delete the export record
+    db.delete(export)
+    db.commit()
+
+    print(f"[EXPORT] Deleted export {export_id} for user {user.user_id}", flush=True)
+
+    return {
+        "success": True,
+        "message": "Export deleted successfully"
+    }
+
+
+@app.delete("/api/exports")
+async def delete_all_exports(
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete all export records for current user - FREE"""
+    from database.models import BookExport
+
+    # Delete all exports for this user
+    deleted_count = db.query(BookExport).filter(
+        BookExport.user_id == user.user_id
+    ).delete()
+
+    db.commit()
+
+    print(f"[EXPORT] Deleted {deleted_count} exports for user {user.user_id}", flush=True)
+
+    return {
+        "success": True,
+        "message": f"Deleted {deleted_count} export records",
+        "deleted_count": deleted_count
+    }
+
+
 # Error handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
