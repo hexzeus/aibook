@@ -131,6 +131,7 @@ class CreateBookRequest(BaseModel):
     description: str = Field(..., min_length=10, max_length=1000)
     target_pages: int = Field(..., ge=5, le=100)
     book_type: str = Field(default="general")
+    target_language: Optional[str] = None  # Language code (e.g., 'es', 'fr', 'de')
 
 
 class GeneratePageRequest(BaseModel):
@@ -468,7 +469,8 @@ async def create_book(
             structure=structure,
             subtitle=structure.get('subtitle'),
             tone=structure.get('tone'),
-            themes=structure.get('themes')
+            themes=structure.get('themes'),
+            language=request.target_language or 'en'  # Set target language
         )
 
         # Log usage
@@ -590,12 +592,28 @@ async def generate_page(
             style_instructions=style_instructions
         )
 
+        # Translate page content if book has non-English language
+        page_content = next_page['content']
+        if book.language and book.language != 'en':
+            from core.translation_service import TranslationService
+            translation_service = TranslationService()
+            try:
+                page_content = translation_service.translate_book_page(
+                    page_content=page_content,
+                    target_language=book.language,
+                    book_genre=book.book_type
+                )
+                print(f"[TRANSLATION] Translated page {next_page['page_number']} to {book.language}", flush=True)
+            except Exception as e:
+                print(f"[TRANSLATION] Failed to translate page: {str(e)}", flush=True)
+                # Continue with English content if translation fails
+
         # Save page
         book_repo.create_page(
             book_id=book_id,
             page_number=next_page['page_number'],
             section=next_page['section'],
-            content=next_page['content'],
+            content=page_content,
             user_guidance=request.user_input,
             ai_model_used='claude-3-5-sonnet-20241022'
         )
@@ -1379,12 +1397,28 @@ CRITICAL RULES:
                     user_input=None
                 )
 
+                # Translate page content if book has non-English language
+                page_content = next_page['content']
+                if book_data.get('language') and book_data['language'] != 'en':
+                    from core.translation_service import TranslationService
+                    translation_service = TranslationService()
+                    try:
+                        page_content = translation_service.translate_book_page(
+                            page_content=page_content,
+                            target_language=book_data['language'],
+                            book_genre=book_data.get('book_type')
+                        )
+                        print(f"[AUTO-GEN][TRANSLATION] Translated page {page_number} to {book_data['language']}", flush=True)
+                    except Exception as e:
+                        print(f"[AUTO-GEN][TRANSLATION] Failed to translate page: {str(e)}", flush=True)
+                        # Continue with English content if translation fails
+
                 # Save page (connection will be refreshed automatically)
                 created_page = book_repo.create_page(
                     book_id=book_id,
                     page_number=next_page['page_number'],
                     section=next_page['section'],
-                    content=next_page['content'],
+                    content=page_content,
                     user_guidance=None,
                     ai_model_used='claude-3-5-sonnet-20241022'
                 )

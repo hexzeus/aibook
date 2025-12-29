@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X, BookOpen, FileText, Sparkles } from 'lucide-react';
+import { X, BookOpen, FileText, Sparkles, Globe } from 'lucide-react';
 
 interface CreateBookModalProps {
   onClose: () => void;
-  onSubmit: (data: { description: string; target_pages: number; book_type: string }) => void;
+  onSubmit: (data: { description: string; target_pages: number; book_type: string; target_language?: string }) => void;
   loading: boolean;
 }
 
@@ -14,14 +14,39 @@ const bookTypes = [
   { id: 'educational', label: 'Educational', icon: '🎓', description: 'Textbooks, learning materials' },
 ];
 
+const LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+];
+
 export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBookModalProps) {
   const [description, setDescription] = useState('');
   const [targetPages, setTargetPages] = useState(25);
   const [bookType, setBookType] = useState('fiction');
+  const [targetLanguage, setTargetLanguage] = useState('en');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ description, target_pages: targetPages, book_type: bookType });
+    onSubmit({
+      description,
+      target_pages: targetPages,
+      book_type: bookType,
+      target_language: targetLanguage !== 'en' ? targetLanguage : undefined
+    });
   };
 
   // Credit cost: 2 for structure/first page + 1 per additional page (illustrations optional later)
@@ -103,6 +128,37 @@ export default function CreateBookModal({ onClose, onSubmit, loading }: CreateBo
                 <span className={`font-medium ${description.length > 900 ? 'text-accent-amber' : 'text-text-tertiary'}`}>
                   {description.length}/1000
                 </span>
+              </div>
+            </div>
+
+            {/* Language Selection */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold mb-3 text-text-secondary">
+                <Globe className="w-4 h-4 text-brand-400" />
+                Language
+              </label>
+              <div className="relative">
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="input-field appearance-none cursor-pointer pr-10"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <Globe className="w-4 h-4 text-text-tertiary" />
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-text-muted">
+                {targetLanguage === 'en' ? (
+                  'Generate your book in English'
+                ) : (
+                  <>Generate your book directly in {LANGUAGES.find(l => l.code === targetLanguage)?.name}</>
+                )}
               </div>
             </div>
 

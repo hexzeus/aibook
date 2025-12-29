@@ -174,7 +174,7 @@ export const creditsApi = {
 };
 
 export const booksApi = {
-  createBook: async (data: { description: string; target_pages: number; book_type: string }) => {
+  createBook: async (data: { description: string; target_pages: number; book_type: string; target_language?: string }) => {
     const response = await api.post('/api/books', data);
     return response.data;
   },
