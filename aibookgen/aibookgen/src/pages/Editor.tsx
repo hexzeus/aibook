@@ -1813,6 +1813,7 @@ export default function Editor() {
           bookId={bookId!}
           currentPageNumber={currentPage?.page_number}
           mode={translationMode}
+          currentLanguage={(book as any)?.language || 'en'}
         />
       )}
     </Layout>

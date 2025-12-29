@@ -11,6 +11,7 @@ interface TranslationModalProps {
   bookId: string;
   currentPageNumber?: number;
   mode: 'page' | 'book';
+  currentLanguage?: string; // Current language code (e.g., 'en', 'zh', 'es')
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -32,7 +33,7 @@ const LANGUAGE_FLAGS: Record<string, string> = {
   tr: '🇹🇷'
 };
 
-export default function TranslationModal({ isOpen, onClose, bookId, currentPageNumber, mode }: TranslationModalProps) {
+export default function TranslationModal({ isOpen, onClose, bookId, currentPageNumber, mode, currentLanguage = 'en' }: TranslationModalProps) {
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -93,14 +94,15 @@ export default function TranslationModal({ isOpen, onClose, bookId, currentPageN
   // Show progress modal when translating
   if (isTranslating && selectedLanguage) {
     const targetLangName = languages[selectedLanguage] || selectedLanguage;
+    const sourceLangName = languages[currentLanguage] || 'English';
     return (
       <TranslationProgressModal
         isOpen={isTranslating}
-        sourceLanguage="en"
+        sourceLanguage={currentLanguage}
         targetLanguage={selectedLanguage}
-        sourceFlag={LANGUAGE_FLAGS['en']}
+        sourceFlag={LANGUAGE_FLAGS[currentLanguage] || '🌐'}
         targetFlag={LANGUAGE_FLAGS[selectedLanguage] || '🌐'}
-        sourceLangName="English"
+        sourceLangName={sourceLangName}
         targetLangName={targetLangName}
         mode={mode}
         pageNumber={currentPageNumber}
