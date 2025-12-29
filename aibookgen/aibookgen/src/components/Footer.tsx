@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <span>Made with</span>
             <Heart className="w-4 h-4 text-red-400 fill-red-400" />
-            <span>by AI Book Generator</span>
+            <span>by Inkwell AI</span>
           </div>
 
           <div className="flex items-center gap-6 text-sm">
@@ -42,7 +42,7 @@ export default function Footer() {
           </div>
 
           <div className="text-sm text-gray-500 flex flex-col items-center md:items-end gap-1">
-            <div>© {new Date().getFullYear()} AI Book Generator. All rights reserved.</div>
+            <div>© {new Date().getFullYear()} Inkwell AI. All rights reserved.</div>
             <div className="text-xs text-gray-600">
               v1.2.0 • Built with React & FastAPI
             </div>

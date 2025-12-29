@@ -88,7 +88,7 @@ export default function Dashboard() {
         <div className="mb-8 sm:mb-10">
           <div className="flex items-center gap-3 mb-3">
             <h1 className="text-hero font-display font-bold gradient-text">
-              Welcome back
+              Ready to create something extraordinary?
             </h1>
             <div className="relative">
               <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse" />
@@ -96,7 +96,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="text-text-secondary text-base sm:text-lg max-w-2xl">
-            Your creative workspace for AI-powered books
+            Your AI-powered publishing studio • Write, illustrate, and export books in 16 languages
           </p>
         </div>
 

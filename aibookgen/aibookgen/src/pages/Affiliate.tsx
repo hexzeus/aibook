@@ -123,8 +123,8 @@ export default function Affiliate() {
             <div className="mt-4 pt-4 border-t border-white/10">
               <SocialShareButtons
                 url={`${window.location.origin}?ref=${stats.affiliate_code}`}
-                title="Check out AI Book Generator - Create AI-powered books!"
-                description="I'm using AI Book Generator to create amazing books. Join me and earn 1000 free credits with my referral link!"
+                title="Check out Inkwell AI - Transform ideas into published books!"
+                description="I'm using Inkwell AI to create amazing books. Join me and earn 1000 free credits with my referral link!"
               />
             </div>
             <div className="mt-3 text-sm text-gray-400">
@@ -135,7 +135,7 @@ export default function Affiliate() {
           <div className="card mb-8 text-center">
             <h3 className="text-xl font-bold mb-4">Generate Your Affiliate Code</h3>
             <p className="text-gray-400 mb-6">
-              Start earning by sharing AI Book Generator with others
+              Start earning by sharing Inkwell AI with others
             </p>
             <button
               onClick={() => generateCodeMutation.mutate()}
