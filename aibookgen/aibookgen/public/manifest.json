@@ -1,0 +1,24 @@
+{
+  "name": "Inkwell AI",
+  "short_name": "Inkwell",
+  "description": "Transform ideas into published books with AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f23",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='42' fill='%237c3aed'/><path d='M57.6 48h76.8v96H57.6z' fill='white'/><path d='M63.36 54.4h65.28v84.48H63.36z' fill='%237c3aed'/><rect x='69.12' y='61.44' width='53.76' height='3.84' fill='white'/><rect x='69.12' y='72.96' width='53.76' height='3.84' fill='white'/><rect x='69.12' y='84.48' width='38.4' height='3.84' fill='white'/><rect x='69.12' y='96' width='46.08' height='3.84' fill='white'/><rect x='69.12' y='107.52' width='53.76' height='3.84' fill='white'/><rect x='69.12' y='119.04' width='34.56' height='3.84' fill='white'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%237c3aed'/><path d='M153.6 128h204.8v256H153.6z' fill='white'/><path d='M169.6 144.64h174.08v225.28H169.6z' fill='%237c3aed'/><rect x='184.32' y='163.84' width='143.36' height='10.24' fill='white'/><rect x='184.32' y='194.56' width='143.36' height='10.24' fill='white'/><rect x='184.32' y='225.28' width='102.4' height='10.24' fill='white'/><rect x='184.32' y='256' width='122.88' height='10.24' fill='white'/><rect x='184.32' y='286.72' width='143.36' height='10.24' fill='white'/><rect x='184.32' y='317.44' width='92.16' height='10.24' fill='white'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
