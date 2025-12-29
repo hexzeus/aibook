@@ -13,6 +13,7 @@ interface TranslationModalProps {
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
+  en: '🇺🇸',
   es: '🇪🇸',
   fr: '🇫🇷',
   de: '🇩🇪',

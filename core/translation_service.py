@@ -10,6 +10,7 @@ class TranslationService:
     def __init__(self):
         self.client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
         self.supported_languages = {
+            'en': 'English',
             'es': 'Spanish',
             'fr': 'French',
             'de': 'German',
