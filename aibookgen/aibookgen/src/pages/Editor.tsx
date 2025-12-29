@@ -587,26 +587,26 @@ export default function Editor() {
               {/* Premium Book Configuration */}
               <div className="mb-6 relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 hover:border-brand-500/20 transition-all">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 bg-brand-500/10 rounded-lg">
-                      <Sparkles className="w-4 h-4 text-brand-400" />
+                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-2.5 sm:p-3 md:p-4 lg:p-5 hover:border-brand-500/20 transition-all">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3 md:mb-4">
+                    <div className="p-1 sm:p-1.5 bg-brand-500/10 rounded-lg">
+                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-brand-400" />
                     </div>
-                    <span className="text-sm font-semibold text-text-primary">Book Configuration</span>
-                    <span className="text-xs text-text-muted ml-auto">Optional</span>
+                    <span className="text-[10px] sm:text-xs md:text-sm font-semibold text-text-primary">Book Configuration</span>
+                    <span className="text-[9px] sm:text-[10px] md:text-xs text-text-muted ml-auto">Optional</span>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-5 gap-1 sm:gap-1.5 md:gap-2 lg:gap-3">
                     <button
                       onClick={() => setIsEditBookModalOpen(true)}
                       className="group/btn relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-brand-500/0 group-hover/btn:bg-brand-500/10 transition-all duration-300 rounded-xl" />
-                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-brand-500/30 transition-all">
-                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-brand-500/20 transition-all">
-                          <Edit3 className="w-4 h-4 text-text-tertiary group-hover/btn:text-brand-400 transition-colors" />
+                      <div className="absolute inset-0 bg-brand-500/0 group-hover/btn:bg-brand-500/10 transition-all duration-300 rounded-lg sm:rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2 p-1.5 sm:p-2 md:p-3 border border-white/5 rounded-lg sm:rounded-xl hover:border-brand-500/30 transition-all">
+                        <div className="p-1 sm:p-1.5 md:p-2 bg-surface-2 rounded-md sm:rounded-lg group-hover/btn:bg-brand-500/20 transition-all">
+                          <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-text-tertiary group-hover/btn:text-brand-400 transition-colors" />
                         </div>
-                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-brand-400 transition-colors">Details</span>
+                        <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-text-secondary group-hover/btn:text-brand-400 transition-colors text-center">Details</span>
                       </div>
                     </button>
 
@@ -614,18 +614,18 @@ export default function Editor() {
                       onClick={() => setShowStyleConfigModal(true)}
                       className="group/btn relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-accent-purple/0 group-hover/btn:bg-accent-purple/10 transition-all duration-300 rounded-xl" />
-                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-purple/30 transition-all">
-                        <div className="relative p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-purple/20 transition-all">
-                          <Palette className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-purple transition-colors" />
+                      <div className="absolute inset-0 bg-accent-purple/0 group-hover/btn:bg-accent-purple/10 transition-all duration-300 rounded-lg sm:rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2 p-1.5 sm:p-2 md:p-3 border border-white/5 rounded-lg sm:rounded-xl hover:border-accent-purple/30 transition-all">
+                        <div className="relative p-1 sm:p-1.5 md:p-2 bg-surface-2 rounded-md sm:rounded-lg group-hover/btn:bg-accent-purple/20 transition-all">
+                          <Palette className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-text-tertiary group-hover/btn:text-accent-purple transition-colors" />
                           {book.style_profile && (
-                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 flex h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-purple opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-3 w-3 bg-accent-purple"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 bg-accent-purple"></span>
                             </span>
                           )}
                         </div>
-                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-purple transition-colors">Style</span>
+                        <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-text-secondary group-hover/btn:text-accent-purple transition-colors text-center">Style</span>
                       </div>
                     </button>
 
@@ -633,12 +633,12 @@ export default function Editor() {
                       onClick={() => setShowOutlineEditor(true)}
                       className="group/btn relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-accent-cyan/0 group-hover/btn:bg-accent-cyan/10 transition-all duration-300 rounded-xl" />
-                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-cyan/30 transition-all">
-                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-cyan/20 transition-all">
-                          <BookOpen className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-cyan transition-colors" />
+                      <div className="absolute inset-0 bg-accent-cyan/0 group-hover/btn:bg-accent-cyan/10 transition-all duration-300 rounded-lg sm:rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2 p-1.5 sm:p-2 md:p-3 border border-white/5 rounded-lg sm:rounded-xl hover:border-accent-cyan/30 transition-all">
+                        <div className="p-1 sm:p-1.5 md:p-2 bg-surface-2 rounded-md sm:rounded-lg group-hover/btn:bg-accent-cyan/20 transition-all">
+                          <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-text-tertiary group-hover/btn:text-accent-cyan transition-colors" />
                         </div>
-                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-cyan transition-colors">Outline</span>
+                        <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-text-secondary group-hover/btn:text-accent-cyan transition-colors text-center">Outline</span>
                       </div>
                     </button>
 
@@ -646,12 +646,12 @@ export default function Editor() {
                       onClick={() => setShowCharacterBuilder(true)}
                       className="group/btn relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-accent-sage/0 group-hover/btn:bg-accent-sage/10 transition-all duration-300 rounded-xl" />
-                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-sage/30 transition-all">
-                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-sage/20 transition-all">
-                          <Users className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-sage transition-colors" />
+                      <div className="absolute inset-0 bg-accent-sage/0 group-hover/btn:bg-accent-sage/10 transition-all duration-300 rounded-lg sm:rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2 p-1.5 sm:p-2 md:p-3 border border-white/5 rounded-lg sm:rounded-xl hover:border-accent-sage/30 transition-all">
+                        <div className="p-1 sm:p-1.5 md:p-2 bg-surface-2 rounded-md sm:rounded-lg group-hover/btn:bg-accent-sage/20 transition-all">
+                          <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-text-tertiary group-hover/btn:text-accent-sage transition-colors" />
                         </div>
-                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-sage transition-colors">Characters</span>
+                        <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-text-secondary group-hover/btn:text-accent-sage transition-colors text-center">Characters</span>
                       </div>
                     </button>
 
@@ -659,12 +659,12 @@ export default function Editor() {
                       onClick={() => setShowAnalytics(true)}
                       className="group/btn relative overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-accent-amber/0 group-hover/btn:bg-accent-amber/10 transition-all duration-300 rounded-xl" />
-                      <div className="relative flex flex-col items-center gap-2 p-3 border border-white/5 rounded-xl hover:border-accent-amber/30 transition-all">
-                        <div className="p-2 bg-surface-2 rounded-lg group-hover/btn:bg-accent-amber/20 transition-all">
-                          <BarChart3 className="w-4 h-4 text-text-tertiary group-hover/btn:text-accent-amber transition-colors" />
+                      <div className="absolute inset-0 bg-accent-amber/0 group-hover/btn:bg-accent-amber/10 transition-all duration-300 rounded-lg sm:rounded-xl" />
+                      <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 md:gap-2 p-1.5 sm:p-2 md:p-3 border border-white/5 rounded-lg sm:rounded-xl hover:border-accent-amber/30 transition-all">
+                        <div className="p-1 sm:p-1.5 md:p-2 bg-surface-2 rounded-md sm:rounded-lg group-hover/btn:bg-accent-amber/20 transition-all">
+                          <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-text-tertiary group-hover/btn:text-accent-amber transition-colors" />
                         </div>
-                        <span className="text-xs font-medium text-text-secondary group-hover/btn:text-accent-amber transition-colors">Analytics</span>
+                        <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-text-secondary group-hover/btn:text-accent-amber transition-colors text-center">Analytics</span>
                       </div>
                     </button>
                   </div>

@@ -87,41 +87,41 @@ export default function Credits() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="card group hover:scale-105 transition-transform">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-brand-500/20 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-brand-400" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-brand-500/20 rounded-xl">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-brand-400" />
               </div>
             </div>
-            <div className="text-3xl font-bold mb-1">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">
               {stats?.credits.remaining.toLocaleString() || 0}
             </div>
-            <div className="text-sm text-gray-400">Credits Remaining</div>
+            <div className="text-xs sm:text-sm text-gray-400">Credits Remaining</div>
           </div>
 
           <div className="card group hover:scale-105 transition-transform">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-accent-purple/20 rounded-xl">
-                <CreditCard className="w-6 h-6 text-accent-purple" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-accent-purple/20 rounded-xl">
+                <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-accent-purple" />
               </div>
             </div>
-            <div className="text-3xl font-bold mb-1">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">
               {stats?.credits.total.toLocaleString() || 0}
             </div>
-            <div className="text-sm text-gray-400">Total Credits</div>
+            <div className="text-xs sm:text-sm text-gray-400">Total Credits</div>
           </div>
 
           <div className="card group hover:scale-105 transition-transform">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-accent-pink/20 rounded-xl">
-                <Zap className="w-6 h-6 text-accent-pink" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-accent-pink/20 rounded-xl">
+                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-accent-pink" />
               </div>
             </div>
-            <div className="text-3xl font-bold mb-1">
+            <div className="text-2xl sm:text-3xl font-bold mb-1">
               {stats?.credits.used.toLocaleString() || 0}
             </div>
-            <div className="text-sm text-gray-400">Credits Used</div>
+            <div className="text-xs sm:text-sm text-gray-400">Credits Used</div>
           </div>
         </div>
 
