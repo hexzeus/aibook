@@ -83,16 +83,38 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="page-container page-enter">
+      <div className="page-container page-enter relative">
+        {/* Floating Background Elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+          {/* Animated gradient orbs */}
+          <div className="absolute top-20 left-[10%] w-64 h-64 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute top-40 right-[15%] w-96 h-96 bg-gradient-to-br from-accent-purple/15 to-accent-cyan/15 rounded-full blur-3xl animate-float-delayed" />
+          <div className="absolute bottom-20 left-[20%] w-80 h-80 bg-gradient-to-br from-accent-emerald/10 to-brand-500/10 rounded-full blur-3xl animate-float-slow" />
+
+          {/* Floating particles */}
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-brand-400/30 rounded-full animate-float-particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 10}s`,
+                animationDuration: `${15 + Math.random() * 10}s`,
+              }}
+            />
+          ))}
+        </div>
+
         {/* Premium Header */}
-        <div className="mb-8 sm:mb-10">
-          <div className="flex items-center gap-3 mb-3">
-            <h1 className="text-hero font-display font-bold gradient-text">
+        <div className="mb-8 sm:mb-10 relative z-10">
+          <div className="flex items-center gap-3 mb-3 group">
+            <h1 className="text-hero font-display font-bold gradient-text transition-all group-hover:scale-[1.02]">
               Ready to create something extraordinary?
             </h1>
             <div className="relative">
-              <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse" />
-              <Sparkles className="relative w-6 h-6 sm:w-8 sm:h-8 text-brand-400" />
+              <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse group-hover:opacity-75 transition-opacity" />
+              <Sparkles className="relative w-6 h-6 sm:w-8 sm:h-8 text-brand-400 group-hover:rotate-12 transition-transform" />
             </div>
           </div>
           <p className="text-text-secondary text-base sm:text-lg max-w-2xl">
