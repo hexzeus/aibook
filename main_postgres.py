@@ -59,7 +59,7 @@ app = FastAPI(
 )
 
 # CORS - Restrict to production frontend
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://aibooktool.netlify.app")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://chaptera.netlify.app")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
