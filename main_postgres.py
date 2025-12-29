@@ -3984,13 +3984,20 @@ async def translate_book(
     if user.credits_remaining < credits_needed:
         raise HTTPException(status_code=402, detail="Insufficient credits")
 
-    # Store IDs before committing (so we can close the connection)
+    # Store data before committing (so we can close the connection)
     user_id = user.user_id
     pages = book_data['pages']
     book_context = {
         'genre': book_data.get('genre'),
         'age_range': book_data.get('age_range')
     }
+
+    # Store original book data for cloning
+    original_book = book_repo.get_book(uuid.UUID(book_id), user_id)
+    original_title = book_data['title']
+    original_structure = book_data.get('structure')
+    original_book_type = book_data.get('book_type')
+    original_target_pages = book_data.get('target_pages', len(pages))
 
     # Consume credits and commit immediately (prevents SSL timeout during translation)
     user_repo = UserRepository(db)
@@ -4012,8 +4019,10 @@ async def translate_book(
 
             translated_pages.append({
                 'page_number': page['page_number'],
-                'page_id': page['page_id'],
-                'content': translated_content
+                'section': page['section'],
+                'content': translated_content,
+                'is_title_page': page.get('is_title_page', False),
+                'word_count': len(translated_content.split())
             })
 
         # Translate metadata
@@ -4024,24 +4033,71 @@ async def translate_book(
             target_language=target_language
         )
 
+        # Get language name for the new book title
+        language_name = translation_service.supported_languages.get(target_language, target_language.upper())
+
+        # Create new translated book
+        new_book_title = f"{metadata.get('title', original_title)} ({language_name})"
+        new_book = book_repo.create_book(
+            user_id=user_id,
+            title=new_book_title,
+            subtitle=metadata.get('subtitle'),
+            description=metadata.get('description'),
+            book_type=original_book_type,
+            target_pages=original_target_pages,
+            structure=original_structure,
+            language=target_language
+        )
+
+        # Create all translated pages in the new book
+        for page_data in translated_pages:
+            book_repo.create_page(
+                book_id=new_book.book_id,
+                page_number=page_data['page_number'],
+                section=page_data['section'],
+                content=page_data['content'],
+                user_guidance=None,
+                ai_model_used='claude-sonnet-4-20250514'
+            )
+
+            # Update is_title_page if needed
+            if page_data['is_title_page']:
+                page = db.query(Page).filter(
+                    Page.book_id == new_book.book_id,
+                    Page.page_number == page_data['page_number']
+                ).first()
+                if page:
+                    page.is_title_page = True
+
+        # Update new book progress
+        new_book.current_page_count = len(translated_pages)
+        if new_book.target_pages > 0:
+            new_book.completion_percentage = int((len(translated_pages) / new_book.target_pages) * 100)
+
         # Log usage
         usage_repo = UsageRepository(db)
         usage_repo.log_action(
             user_id=user_id,
             action_type='translate_book',
             book_id=uuid.UUID(book_id),
-            credits_consumed=credits_needed
+            credits_consumed=credits_needed,
+            metadata={'new_book_id': str(new_book.book_id), 'target_language': target_language}
         )
+
+        # Update user stats
+        user_repo.increment_book_count(user_id, 1)
 
         db.commit()
 
-        print(f"[TRANSLATION] Translated book {book_id} to {target_language}", flush=True)
+        print(f"[TRANSLATION] Created translated book {new_book.book_id} from {book_id} in {target_language}", flush=True)
 
         return {
             "success": True,
-            "translated_pages": translated_pages,
-            "translated_metadata": metadata,
-            "credits_consumed": credits_needed
+            "new_book_id": str(new_book.book_id),
+            "new_book_title": new_book_title,
+            "translated_pages_count": len(translated_pages),
+            "credits_consumed": credits_needed,
+            "message": f"Translation complete! New book created: {new_book_title}"
         }
 
     except Exception as e:
