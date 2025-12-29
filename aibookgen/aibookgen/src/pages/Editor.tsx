@@ -583,25 +583,25 @@ export default function Editor() {
             <span>Back to Dashboard</span>
           </button>
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                <h1 className="text-h1 font-display font-bold gradient-text break-words">{book.title}</h1>
+          <div className="flex flex-col md:flex-row items-start justify-between gap-4 w-full">
+            <div className="flex-1 w-full md:min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3 w-full">
+                <h1 className="text-h1 font-display font-bold gradient-text break-words w-full">{book.title}</h1>
               </div>
 
               {/* Premium Book Configuration */}
-              <div className="mb-6 relative group">
+              <div className="mb-6 relative group w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-3 md:p-4 lg:p-5 hover:border-brand-500/20 transition-all overflow-x-auto">
-                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-3 md:p-4 lg:p-5 hover:border-brand-500/20 transition-all w-full">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4 w-full">
                     <div className="p-1.5 bg-brand-500/10 rounded-lg flex-shrink-0">
                       <Sparkles className="w-4 h-4 text-brand-400" />
                     </div>
-                    <span className="text-xs md:text-sm font-semibold text-text-primary whitespace-nowrap">Book Configuration</span>
-                    <span className="text-xs text-text-muted ml-auto whitespace-nowrap">Optional</span>
+                    <span className="text-xs md:text-sm font-semibold text-text-primary">Book Configuration</span>
+                    <span className="text-xs text-text-muted ml-auto">Optional</span>
                   </div>
 
-                  <div className="grid grid-cols-5 gap-2 md:gap-3 lg:gap-4 min-w-[420px]">
+                  <div className="grid grid-cols-5 gap-2 md:gap-3 lg:gap-4 w-full">
                     <button
                       onClick={() => setIsEditBookModalOpen(true)}
                       className="group/btn relative overflow-hidden"
@@ -691,9 +691,9 @@ export default function Editor() {
                 </div>
               </div>
               {book.subtitle && (
-                <p className="text-text-secondary text-base sm:text-lg mb-2">{book.subtitle}</p>
+                <p className="text-text-secondary text-base sm:text-lg mb-2 w-full break-words">{book.subtitle}</p>
               )}
-              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm w-full flex-wrap">
                 <span className="flex items-center gap-1.5">
                   <span className="text-brand-400 font-semibold">{pages.length}</span>
                   <span className="text-text-tertiary">/</span>
@@ -706,7 +706,7 @@ export default function Editor() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto">
               {isComplete && !book.is_completed && (
                 <button
                   onClick={handleCompleteBook}
