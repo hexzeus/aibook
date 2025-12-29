@@ -4012,6 +4012,85 @@ async def translate_book(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/books/{book_id}/pages/{page_number}/translate")
+async def translate_page(
+    book_id: str,
+    page_number: int,
+    request: dict,
+    user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Translate a single page (1 credit)"""
+    target_language = request.get('target_language')
+
+    if not target_language:
+        raise HTTPException(status_code=400, detail="Missing target_language")
+
+    # Verify book ownership
+    book_repo = BookRepository(db)
+    book_data = book_repo.get_book_with_pages(uuid.UUID(book_id), user.user_id)
+
+    if not book_data:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Find the specific page
+    page = next((p for p in book_data['pages'] if p['page_number'] == page_number), None)
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Check credits (1 credit per page translation)
+    credits_needed = 1
+    if user.credits_remaining < credits_needed:
+        raise HTTPException(status_code=402, detail="Insufficient credits")
+
+    try:
+        translation_service = TranslationService()
+        user_repo = UserRepository(db)
+        usage_repo = UsageRepository(db)
+
+        # Translate the page
+        translated_content = translation_service.translate_book_page(
+            page_content=page['content'],
+            target_language=target_language,
+            book_genre=book_data.get('book_type'),
+            age_range=None
+        )
+
+        # Update the page content
+        book_repo.update_page(
+            book_id=uuid.UUID(book_id),
+            page_number=page_number,
+            content=translated_content
+        )
+
+        # Consume credits
+        user_repo.consume_credits(user.user_id, credits_needed)
+
+        usage_repo.log_action(
+            user_id=user.user_id,
+            action_type='translate_page',
+            book_id=uuid.UUID(book_id),
+            credits_consumed=credits_needed,
+            metadata={'page_number': page_number, 'target_language': target_language}
+        )
+
+        db.commit()
+
+        print(f"[TRANSLATION] Translated page {page_number} of book {book_id} to {target_language}", flush=True)
+
+        return {
+            "success": True,
+            "page_number": page_number,
+            "translated_content": translated_content,
+            "credits_consumed": credits_needed
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"[TRANSLATION] Error: {str(e)}", flush=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ====================
 # AUDIOBOOK ENDPOINTS
 # ====================

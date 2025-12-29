@@ -426,4 +426,25 @@ export const exportsApi = {
   },
 };
 
+export const translationApi = {
+  getSupportedLanguages: async (): Promise<{ languages: Record<string, string> }> => {
+    const response = await api.get('/api/translation/languages');
+    return response.data;
+  },
+
+  translateBook: async (bookId: string, targetLanguage: string) => {
+    const response = await api.post(`/api/books/${bookId}/translate`, {
+      target_language: targetLanguage
+    });
+    return response.data;
+  },
+
+  translatePage: async (bookId: string, pageNumber: number, targetLanguage: string) => {
+    const response = await api.post(`/api/books/${bookId}/pages/${pageNumber}/translate`, {
+      target_language: targetLanguage
+    });
+    return response.data;
+  },
+};
+
 export default api;

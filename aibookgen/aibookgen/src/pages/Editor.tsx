@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Users,
   BarChart3,
+  Languages,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -32,6 +33,7 @@ import StyleConfigModal, { StyleProfile } from '../components/StyleConfigModal';
 import ChapterOutlineEditor, { BookStructure } from '../components/ChapterOutlineEditor';
 import CharacterBuilder from '../components/CharacterBuilder';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import TranslationModal from '../components/TranslationModal';
 import { booksApi, premiumApi } from '../lib/api';
 import { useBookStore } from '../store/bookStore';
 import { useConfirm } from '../hooks/useConfirm';
@@ -73,6 +75,8 @@ export default function Editor() {
   const [savingStructure, setSavingStructure] = useState(false);
   const [showCharacterBuilder, setShowCharacterBuilder] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showTranslationModal, setShowTranslationModal] = useState(false);
+  const [translationMode, setTranslationMode] = useState<'page' | 'book'>('page');
 
   // Auto-generation progress tracking
   const [showProgressModal, setShowProgressModal] = useState(false);
@@ -724,6 +728,19 @@ export default function Editor() {
                 </button>
               )}
 
+              <button
+                onClick={() => {
+                  setTranslationMode('book');
+                  setShowTranslationModal(true);
+                }}
+                className="btn-secondary flex items-center gap-2 text-sm sm:text-base"
+              >
+                <Languages className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Translate Book</span>
+                <span className="sm:hidden">Translate</span>
+                <span className="text-xs text-brand-400">(5)</span>
+              </button>
+
               {book.is_completed && (
                 <div className="relative">
                   <button
@@ -1026,7 +1043,7 @@ export default function Editor() {
                 )}
 
                 {!editMode && (
-                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 sm:gap-3">
+                  <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => setShowIllustrationModal(true)}
                       className="btn-secondary flex items-center gap-2 text-sm"
@@ -1044,6 +1061,18 @@ export default function Editor() {
                       <span className="hidden sm:inline">Apply Style</span>
                       <span className="sm:hidden">Style</span>
                       <span className="text-xs text-brand-400">(2)</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTranslationMode('page');
+                        setShowTranslationModal(true);
+                      }}
+                      className="btn-secondary flex items-center gap-2 text-sm"
+                    >
+                      <Languages className="w-4 h-4" />
+                      <span className="hidden sm:inline">Translate Page</span>
+                      <span className="sm:hidden">Translate</span>
+                      <span className="text-xs text-brand-400">(1)</span>
                     </button>
                   </div>
                 )}
@@ -1766,6 +1795,16 @@ export default function Editor() {
           onClose={() => setShowAnalytics(false)}
           bookId={bookId!}
           content={currentPage?.content || ''}
+        />
+      )}
+
+      {showTranslationModal && (
+        <TranslationModal
+          isOpen={showTranslationModal}
+          onClose={() => setShowTranslationModal(false)}
+          bookId={bookId!}
+          currentPageNumber={currentPage?.page_number}
+          mode={translationMode}
         />
       )}
     </Layout>
