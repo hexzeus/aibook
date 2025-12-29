@@ -158,29 +158,26 @@ export default function Dashboard() {
 
         {/* Premium Header with Rotating Messages */}
         <div className="mb-8 sm:mb-10 relative z-10">
-          <div className="flex items-start gap-3 mb-3 group min-h-[120px] sm:min-h-[140px]">
+          <div className="flex items-center gap-3 mb-3 group">
             <h1
-              className={`text-hero font-display font-bold gradient-text transition-all duration-500 group-hover:scale-[1.02] pb-2 ${
+              className={`text-hero font-display font-bold gradient-text transition-all duration-500 group-hover:scale-[1.02] ${
                 isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
               }`}
-              style={{ lineHeight: '1.3' }}
             >
               {currentMessage.title}
             </h1>
-            <div className="relative flex-shrink-0 mt-2">
+            <div className="relative flex-shrink-0">
               <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse group-hover:opacity-75 transition-opacity" />
               <Sparkles className="relative w-6 h-6 sm:w-8 sm:h-8 text-brand-400 group-hover:rotate-12 transition-transform" />
             </div>
           </div>
-          <div className="min-h-[48px] sm:min-h-[56px]">
-            <p
-              className={`text-text-secondary text-base sm:text-lg max-w-2xl transition-all duration-500 ${
-                isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
-              }`}
-            >
-              {currentMessage.subtitle}
-            </p>
-          </div>
+          <p
+            className={`text-text-secondary text-sm sm:text-base max-w-2xl transition-all duration-500 ${
+              isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+            }`}
+          >
+            {currentMessage.subtitle}
+          </p>
         </div>
 
         {!isLoadingInProgress && inProgressBooks && inProgressBooks.books.length > 0 && (
@@ -232,10 +229,10 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl sm:text-4xl font-display font-bold text-brand-400">
+                  <div className="text-2xl sm:text-3xl font-display font-bold text-brand-400">
                     {stats?.credits.remaining.toLocaleString() || 0}
                   </div>
-                  <div className="text-sm sm:text-base text-text-tertiary">
+                  <div className="text-xs sm:text-sm text-text-tertiary">
                     of {stats?.credits.total.toLocaleString() || 0} available
                   </div>
                 </div>
@@ -255,10 +252,10 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl sm:text-4xl font-display font-bold text-text-primary">
+                  <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
                     {stats?.usage.books_created || 0}
                   </div>
-                  <div className="text-sm sm:text-base text-text-tertiary">
+                  <div className="text-xs sm:text-sm text-text-tertiary">
                     Total created
                   </div>
                 </div>
@@ -278,10 +275,10 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl sm:text-4xl font-display font-bold text-text-primary">
+                  <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
                     {stats?.usage.pages_generated || 0}
                   </div>
-                  <div className="text-sm sm:text-base text-text-tertiary">
+                  <div className="text-xs sm:text-sm text-text-tertiary">
                     AI generated
                   </div>
                 </div>
@@ -301,10 +298,10 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-3xl sm:text-4xl font-display font-bold text-text-primary">
+                  <div className="text-2xl sm:text-3xl font-display font-bold text-text-primary">
                     {stats?.usage.exports || 0}
                   </div>
-                  <div className="text-sm sm:text-base text-text-tertiary">
+                  <div className="text-xs sm:text-sm text-text-tertiary">
                     Downloads
                   </div>
                 </div>
@@ -318,7 +315,7 @@ export default function Dashboard() {
           {/* In Progress Books */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl sm:text-3xl font-display font-bold flex items-center gap-3">
+              <h2 className="text-h2 font-display font-bold flex items-center gap-3">
                 <div className="p-2 bg-brand-500/10 rounded-xl">
                   <Clock className="w-5 h-5 text-brand-400" />
                 </div>
@@ -370,10 +367,10 @@ export default function Dashboard() {
                     <div className="relative bg-surface-1 border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-brand-500/40 transition-all duration-300">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-display font-semibold text-lg sm:text-xl mb-2 group-hover:text-brand-400 transition-colors truncate">
+                          <h3 className="font-display font-semibold text-base sm:text-lg mb-2 group-hover:text-brand-400 transition-colors truncate">
                             {book.title}
                           </h3>
-                          <p className="text-sm sm:text-base text-text-tertiary line-clamp-2">
+                          <p className="text-sm text-text-tertiary line-clamp-2">
                             {book.description}
                           </p>
                         </div>
@@ -403,7 +400,7 @@ export default function Dashboard() {
 
           {/* Completed Books */}
           <div>
-            <h2 className="text-2xl sm:text-3xl font-display font-bold mb-6 flex items-center gap-3">
+            <h2 className="text-h2 font-display font-bold mb-6 flex items-center gap-3">
               <div className="p-2 bg-accent-sage/10 rounded-xl">
                 <CheckCircle className="w-5 h-5 text-accent-sage" />
               </div>
@@ -448,11 +445,11 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-display font-semibold text-base sm:text-lg mb-1 group-hover:text-brand-400 transition-colors truncate">
+                        <h3 className="font-display font-semibold text-sm sm:text-base mb-1 group-hover:text-brand-400 transition-colors truncate">
                           {book.title}
                         </h3>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm sm:text-base text-text-tertiary">
+                          <span className="text-sm text-text-tertiary">
                             {book.page_count || book.pages_generated || 0} pages
                           </span>
                           <span className="w-1 h-1 bg-text-muted rounded-full" />

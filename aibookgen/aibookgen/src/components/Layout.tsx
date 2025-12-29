@@ -52,7 +52,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </div>
               <div className="hidden sm:block">
-                <span className="font-display font-bold text-2xl gradient-text">
+                <span className="font-display font-bold text-xl gradient-text">
                   Chaptera
                 </span>
               </div>
