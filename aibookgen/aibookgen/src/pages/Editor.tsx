@@ -22,6 +22,7 @@ import {
   Users,
   BarChart3,
   Languages,
+  StickyNote,
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
@@ -887,6 +888,7 @@ export default function Editor() {
                       bookId={book.book_id}
                       pageId={currentPage.page_id}
                       pageNumber={currentPage.page_number}
+                      initialNotes={currentPage.notes}
                     />
                     {!currentPage.is_title_page && (
                       <>
@@ -1322,29 +1324,35 @@ export default function Editor() {
                 </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
                   {pages.map((page, idx) => (
-                    <button
-                      key={page.page_id}
-                      onClick={() => setCurrentPageIndex(idx)}
-                      className={`w-full p-3 rounded-xl text-left transition-all group/item ${
-                        currentPageIndex === idx
-                          ? 'bg-brand-500/10 border border-brand-500/40'
-                          : 'bg-surface-2 hover:bg-surface-3 border border-transparent'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`font-medium text-xs sm:text-sm ${
-                          currentPageIndex === idx ? 'text-brand-400' : 'text-text-primary group-hover/item:text-brand-400'
-                        }`}>
-                          Page {page.page_number}
-                        </span>
-                        {page.is_title_page && (
-                          <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-lg">
-                            Title
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-text-tertiary truncate">{page.section}</div>
-                    </button>
+                    <div key={page.page_id} className="relative">
+                      <button
+                        onClick={() => setCurrentPageIndex(idx)}
+                        className={`w-full p-3 rounded-xl text-left transition-all group/item ${
+                          currentPageIndex === idx
+                            ? 'bg-brand-500/10 border border-brand-500/40'
+                            : 'bg-surface-2 hover:bg-surface-3 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium text-xs sm:text-sm ${
+                              currentPageIndex === idx ? 'text-brand-400' : 'text-text-primary group-hover/item:text-brand-400'
+                            }`}>
+                              Page {page.page_number}
+                            </span>
+                            {page.notes && page.notes.trim().length > 0 && (
+                              <StickyNote className="w-3 h-3 text-yellow-400 flex-shrink-0" />
+                            )}
+                          </div>
+                          {page.is_title_page && (
+                            <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-lg">
+                              Title
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-text-tertiary truncate">{page.section}</div>
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
