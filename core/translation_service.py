@@ -1,5 +1,6 @@
 """
 Translation Service using Claude AI for high-quality book translations
+Supports 16 languages including English for reverse translation
 """
 from typing import Dict, List, Optional
 import os
