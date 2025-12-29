@@ -85,7 +85,7 @@ export default function Auth() {
             <BookOpen className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-display font-bold mb-3 gradient-text">
-            Inkwell AI
+            Chaptera
           </h1>
           <p className="text-text-secondary text-lg sm:text-xl max-w-2xl mx-auto">
             Transform ideas into published books with the power of AI

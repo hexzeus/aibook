@@ -53,7 +53,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
               <div className="hidden sm:block">
                 <span className="font-display font-bold text-xl gradient-text">
-                  Inkwell AI
+                  Chaptera
                 </span>
               </div>
             </Link>

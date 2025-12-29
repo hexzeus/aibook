@@ -9,7 +9,7 @@ interface OnboardingModalProps {
 const onboardingSteps = [
   {
     icon: BookOpen,
-    title: 'Welcome to Inkwell AI!',
+    title: 'Welcome to Chaptera!',
     description: 'Transform your ideas into published books with the power of AI. Let\'s get you started with a quick tour.',
     image: '📚',
   },
