@@ -147,7 +147,7 @@ Respond ONLY with valid JSON, no markdown formatting."""
 
         try:
             message = self.client.messages.create(
-                model="claude-3-5-sonnet-latest",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1000,
                 messages=[{"role": "user", "content": analysis_prompt}]
             )

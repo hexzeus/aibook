@@ -65,7 +65,7 @@ TEXT TO TRANSLATE:
 TRANSLATION:"""
 
         message = self.client.messages.create(
-            model="claude-3-5-sonnet-latest",
+            model="claude-sonnet-4-20250514",
             max_tokens=4000,
             temperature=0.3,  # Lower temperature for more consistent translations
             messages=[{"role": "user", "content": prompt}]
@@ -178,7 +178,7 @@ Text:
 {text[:500]}"""  # Only analyze first 500 chars
 
         message = self.client.messages.create(
-            model="claude-3-5-sonnet-latest",
+            model="claude-sonnet-4-20250514",
             max_tokens=50,
             messages=[{"role": "user", "content": prompt}]
         )
@@ -229,7 +229,7 @@ Respond in JSON format:
 }}"""
 
         message = self.client.messages.create(
-            model="claude-3-5-sonnet-latest",
+            model="claude-sonnet-4-20250514",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
         )
