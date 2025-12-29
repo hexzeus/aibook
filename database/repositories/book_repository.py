@@ -297,6 +297,7 @@ class BookRepository:
                     'word_count': page.word_count,
                     'is_title_page': page.is_title_page,
                     'illustration_url': page.illustration_url,
+                    'notes': page.notes,
                     'created_at': page.created_at.isoformat() if page.created_at else None,
                     'updated_at': page.updated_at.isoformat() if page.updated_at else None
                 }
