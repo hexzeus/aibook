@@ -158,26 +158,29 @@ export default function Dashboard() {
 
         {/* Premium Header with Rotating Messages */}
         <div className="mb-8 sm:mb-10 relative z-10">
-          <div className="flex items-center gap-3 mb-3 group">
+          <div className="flex items-start gap-3 mb-3 group min-h-[120px] sm:min-h-[140px]">
             <h1
-              className={`text-hero font-display font-bold gradient-text transition-all duration-500 group-hover:scale-[1.02] ${
+              className={`text-hero font-display font-bold gradient-text transition-all duration-500 group-hover:scale-[1.02] pb-2 ${
                 isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
               }`}
+              style={{ lineHeight: '1.3' }}
             >
               {currentMessage.title}
             </h1>
-            <div className="relative">
+            <div className="relative flex-shrink-0 mt-2">
               <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse group-hover:opacity-75 transition-opacity" />
               <Sparkles className="relative w-6 h-6 sm:w-8 sm:h-8 text-brand-400 group-hover:rotate-12 transition-transform" />
             </div>
           </div>
-          <p
-            className={`text-text-secondary text-base sm:text-lg max-w-2xl transition-all duration-500 ${
-              isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
-            }`}
-          >
-            {currentMessage.subtitle}
-          </p>
+          <div className="min-h-[48px] sm:min-h-[56px]">
+            <p
+              className={`text-text-secondary text-base sm:text-lg max-w-2xl transition-all duration-500 ${
+                isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+              }`}
+            >
+              {currentMessage.subtitle}
+            </p>
+          </div>
         </div>
 
         {!isLoadingInProgress && inProgressBooks && inProgressBooks.books.length > 0 && (

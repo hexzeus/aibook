@@ -46,11 +46,11 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        display: ['Poppins', 'system-ui', 'sans-serif'],
+        display: ['Christmas Brand', 'Poppins', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       fontSize: {
-        'hero': ['clamp(2.5rem, 5vw, 4rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'hero': ['clamp(2.5rem, 5vw, 4rem)', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
         'h1': ['clamp(2rem, 4vw, 3rem)', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
         'h2': ['clamp(1.5rem, 3vw, 2rem)', { lineHeight: '1.3' }],
         'h3': ['clamp(1.25rem, 2vw, 1.5rem)', { lineHeight: '1.4' }],
