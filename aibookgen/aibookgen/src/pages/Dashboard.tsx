@@ -14,6 +14,38 @@ import { DashboardStatsSkeleton, BookCardSkeleton } from '../components/Skeleton
 import { useToastStore } from '../store/toastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
+// Rotating welcome messages - cycles through these with smooth transitions
+const welcomeMessages = [
+  {
+    title: "Ready to create something extraordinary?",
+    subtitle: "Your AI-powered publishing studio • Write, illustrate, and export books in 16 languages"
+  },
+  {
+    title: "What story will you tell today?",
+    subtitle: "From blank page to published masterpiece • Let AI bring your vision to life"
+  },
+  {
+    title: "Your next bestseller starts here",
+    subtitle: "Professional illustrations • Multi-language support • Export to any format"
+  },
+  {
+    title: "Transform ideas into reality",
+    subtitle: "AI-powered creativity meets human imagination • Publish in minutes, not months"
+  },
+  {
+    title: "Every great book begins with a spark",
+    subtitle: "Ignite your creativity • Generate, edit, and export with unprecedented ease"
+  },
+  {
+    title: "Build your literary empire",
+    subtitle: "Create unlimited books • Translate globally • Share your stories with the world"
+  },
+  {
+    title: "Where imagination meets innovation",
+    subtitle: "Advanced AI technology • Stunning visuals • Professional-grade exports"
+  }
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -24,6 +56,8 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dismissedResumeBook, setDismissedResumeBook] = useState<string | null>(null);
   const [dismissedLowCredit, setDismissedLowCredit] = useState(false);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useKeyboardShortcuts([
     { key: 'n', ctrl: true, action: () => setShowCreateModal(true), description: 'Create new book' },
@@ -54,6 +88,22 @@ export default function Dashboard() {
     localStorage.setItem('onboarding_completed', 'true');
     setShowOnboarding(false);
   };
+
+  // Cycle through welcome messages every 6 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+
+      setTimeout(() => {
+        setCurrentMessageIndex((prev) => (prev + 1) % welcomeMessages.length);
+        setIsTransitioning(false);
+      }, 500); // Fade out duration
+    }, 6000); // Change message every 6 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentMessage = welcomeMessages[currentMessageIndex];
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['credits'],
@@ -106,19 +156,27 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Premium Header */}
+        {/* Premium Header with Rotating Messages */}
         <div className="mb-8 sm:mb-10 relative z-10">
           <div className="flex items-center gap-3 mb-3 group">
-            <h1 className="text-hero font-display font-bold gradient-text transition-all group-hover:scale-[1.02]">
-              Ready to create something extraordinary?
+            <h1
+              className={`text-hero font-display font-bold gradient-text transition-all duration-500 group-hover:scale-[1.02] ${
+                isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+              }`}
+            >
+              {currentMessage.title}
             </h1>
             <div className="relative">
               <div className="absolute inset-0 bg-brand-500 rounded-full blur-lg opacity-50 animate-pulse group-hover:opacity-75 transition-opacity" />
               <Sparkles className="relative w-6 h-6 sm:w-8 sm:h-8 text-brand-400 group-hover:rotate-12 transition-transform" />
             </div>
           </div>
-          <p className="text-text-secondary text-base sm:text-lg max-w-2xl">
-            Your AI-powered publishing studio • Write, illustrate, and export books in 16 languages
+          <p
+            className={`text-text-secondary text-base sm:text-lg max-w-2xl transition-all duration-500 ${
+              isTransitioning ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+            }`}
+          >
+            {currentMessage.subtitle}
           </p>
         </div>
 
