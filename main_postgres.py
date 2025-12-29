@@ -4152,7 +4152,7 @@ async def translate_book(
         )
 
         # Update user stats
-        user_repo.increment_book_count(user_id, 1)
+        user_repo.increment_book_count(user_id)
 
         db.commit()
 
@@ -4236,7 +4236,6 @@ async def translate_page(
         # Update the page content in database
         book_repo.update_page_content(
             page_id=uuid.UUID(page_id),
-            user_id=user_id,
             content=translated_content
         )
 
