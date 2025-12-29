@@ -50,10 +50,19 @@ export default {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       fontSize: {
-        'hero': ['clamp(2.5rem, 5vw, 4rem)', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
-        'h1': ['clamp(2rem, 4vw, 3rem)', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
-        'h2': ['clamp(1.5rem, 3vw, 2rem)', { lineHeight: '1.3' }],
-        'h3': ['clamp(1.25rem, 2vw, 1.5rem)', { lineHeight: '1.4' }],
+        // Increased base sizes for better readability
+        'xs': ['0.875rem', { lineHeight: '1.5' }],      // 14px (was 12px)
+        'sm': ['1rem', { lineHeight: '1.6' }],          // 16px (was 14px)
+        'base': ['1.125rem', { lineHeight: '1.7' }],    // 18px (was 16px)
+        'lg': ['1.25rem', { lineHeight: '1.7' }],       // 20px (was 18px)
+        'xl': ['1.375rem', { lineHeight: '1.6' }],      // 22px (was 20px)
+        '2xl': ['1.625rem', { lineHeight: '1.5' }],     // 26px (was 24px)
+        '3xl': ['2rem', { lineHeight: '1.4' }],         // 32px (was 30px)
+        // Custom heading sizes
+        'hero': ['clamp(2.75rem, 5vw, 4.5rem)', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
+        'h1': ['clamp(2.25rem, 4vw, 3.5rem)', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        'h2': ['clamp(1.75rem, 3vw, 2.5rem)', { lineHeight: '1.3' }],
+        'h3': ['clamp(1.5rem, 2vw, 2rem)', { lineHeight: '1.4' }],
       },
       spacing: {
         '18': '4.5rem',

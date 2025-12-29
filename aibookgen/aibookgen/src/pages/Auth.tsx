@@ -4,6 +4,18 @@ import { BookOpen, Key, Sparkles, Zap, Check, Crown, Building2, Rocket, ChevronD
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../lib/api';
 
+// All tiers include the same features - only credit amount differs
+const allFeatures = [
+  'AI book generation with Claude & GPT-4',
+  'Export to EPUB, PDF & DOCX',
+  'Translate books to 16 languages',
+  'AI illustration generation',
+  'Professional writing style presets',
+  'Character builder & management',
+  'Publishing wizard for marketplaces',
+  '30% affiliate commission program'
+];
+
 const pricingTiers = [
   {
     name: 'Starter',
@@ -11,7 +23,7 @@ const pricingTiers = [
     credits: '1,000',
     icon: Sparkles,
     color: 'brand',
-    features: ['1,000 AI credits', 'Create 1-2 illustrated books', 'All core features', 'Export to EPUB/PDF'],
+    features: allFeatures,
     url: 'https://blazestudiox.gumroad.com/l/aibook-starter-1k',
     popular: false
   },
@@ -21,7 +33,7 @@ const pricingTiers = [
     credits: '3,000',
     icon: Crown,
     color: 'accent-purple',
-    features: ['3,000 AI credits', 'Create 3-5 illustrated books', 'Priority support', 'Advanced export options'],
+    features: allFeatures,
     url: 'https://blazestudiox.gumroad.com/l/aibook-pro-3k',
     popular: true
   },
@@ -31,7 +43,7 @@ const pricingTiers = [
     credits: '7,000',
     icon: Building2,
     color: 'accent-cyan',
-    features: ['7,000 AI credits', 'For publishers & agencies', 'Premium support', 'Bulk operations'],
+    features: allFeatures,
     url: 'https://blazestudiox.gumroad.com/l/aibook-business-7k',
     popular: false
   },
@@ -41,7 +53,7 @@ const pricingTiers = [
     credits: '17,000',
     icon: Rocket,
     color: 'accent-emerald',
-    features: ['17,000 AI credits', 'Unlimited illustrated books', 'White-label options', 'Dedicated support'],
+    features: allFeatures,
     url: 'https://blazestudiox.gumroad.com/l/aibook-enterprise-17k',
     popular: false
   }
