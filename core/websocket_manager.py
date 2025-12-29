@@ -66,6 +66,30 @@ class WebSocketManager:
         }
         await self.send_notification(license_key, notification)
 
+    async def broadcast_auto_gen_progress(self, license_key: str, book_id: str, progress_data: dict):
+        """
+        Broadcast auto-generation progress to user
+
+        Args:
+            license_key: User's license key
+            book_id: ID of book being generated
+            progress_data: Dict with keys:
+                - status: 'started' | 'generating_page' | 'generating_illustration' | 'generating_cover' | 'completed' | 'error'
+                - current_page: Current page number being generated
+                - total_pages: Total pages to generate
+                - message: User-friendly message
+                - percentage: Progress percentage (0-100)
+                - with_illustrations: Whether illustrations are being generated
+                - error: Error message (if status='error')
+        """
+        notification = {
+            "type": "auto_gen_progress",
+            "book_id": book_id,
+            **progress_data,
+            "timestamp": asyncio.get_event_loop().time()
+        }
+        await self.send_notification(license_key, notification)
+
 
 # Global WebSocket manager instance
 ws_manager = WebSocketManager()

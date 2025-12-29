@@ -55,26 +55,42 @@ class UsageRepository:
         return log
 
     def _update_daily_summary(self, user_id: uuid.UUID, action_type: str, credits_consumed: int):
-        """Update or create daily usage summary"""
+        """Update or create daily usage summary with proper conflict handling"""
         today = date.today()
 
+        # Use with_for_update to prevent race conditions
         summary = self.session.query(DailyUsageSummary).filter(
             and_(
                 DailyUsageSummary.user_id == user_id,
                 DailyUsageSummary.date == today
             )
-        ).first()
+        ).with_for_update(skip_locked=True).first()
 
         if not summary:
-            summary = DailyUsageSummary(
-                user_id=user_id,
-                date=today,
-                books_created=0,
-                pages_generated=0,
-                books_exported=0,
-                credits_used=0
-            )
-            self.session.add(summary)
+            # Try to create, but handle conflict if another transaction created it
+            try:
+                summary = DailyUsageSummary(
+                    user_id=user_id,
+                    date=today,
+                    books_created=0,
+                    pages_generated=0,
+                    books_exported=0,
+                    credits_used=0
+                )
+                self.session.add(summary)
+                self.session.flush()
+            except Exception as e:
+                # If duplicate, rollback and fetch existing record
+                if 'UniqueViolation' in str(e) or 'duplicate key' in str(e):
+                    self.session.rollback()
+                    summary = self.session.query(DailyUsageSummary).filter(
+                        and_(
+                            DailyUsageSummary.user_id == user_id,
+                            DailyUsageSummary.date == today
+                        )
+                    ).first()
+                else:
+                    raise
 
         # Ensure fields are not None before incrementing
         if summary.books_created is None:

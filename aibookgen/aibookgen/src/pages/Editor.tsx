@@ -39,6 +39,8 @@ import { useToastStore } from '../store/toastStore';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { triggerConfetti } from '../utils/confetti';
 import { countWords, formatWordCount, estimateReadingTime } from '../utils/textUtils';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuthStore } from '../store/authStore';
 
 export default function Editor() {
   const { bookId } = useParams();
@@ -71,6 +73,63 @@ export default function Editor() {
   const [savingStructure, setSavingStructure] = useState(false);
   const [showCharacterBuilder, setShowCharacterBuilder] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+
+  // Auto-generation progress tracking
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressData, setProgressData] = useState<{
+    status: string;
+    current_page: number;
+    total_pages: number;
+    message: string;
+    percentage: number;
+    with_illustrations: boolean;
+    error?: string;
+  } | null>(null);
+
+  const { licenseKey } = useAuthStore();
+
+  // WebSocket connection for real-time progress updates
+  useWebSocket({
+    license_key: licenseKey || '',
+    onMessage: (message) => {
+      console.log('[Editor] WebSocket message:', message);
+
+      // Handle auto-generation progress notifications
+      if (message.type === 'auto_gen_progress' && message.book_id === bookId) {
+        // Show progress modal for any status (including in-progress from another device)
+        setProgressData({
+          status: message.status,
+          current_page: message.current_page,
+          total_pages: message.total_pages,
+          message: message.message,
+          percentage: message.percentage,
+          with_illustrations: message.with_illustrations,
+          error: message.error
+        });
+        setShowProgressModal(true);
+
+        // Close modal on completion or error after a delay
+        if (message.status === 'completed') {
+          setTimeout(() => {
+            setShowProgressModal(false);
+            setProgressData(null);
+            queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+            triggerConfetti();
+          }, 3000);
+        } else if (message.status === 'error') {
+          setTimeout(() => {
+            setShowProgressModal(false);
+            setProgressData(null);
+          }, 5000);
+        }
+      }
+    },
+    onConnect: () => {
+      console.log('[Editor] WebSocket connected - listening for auto-generation progress');
+      // WebSocket is now connected and will automatically receive any active auto-generation progress
+      // for this book if it's being generated on another device
+    }
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['book', bookId],
@@ -224,29 +283,37 @@ export default function Editor() {
   });
 
   const autoGenerateBookMutation = useMutation({
-    mutationFn: ({ bookId, withIllustrations }: { bookId: string; withIllustrations: boolean }) =>
-      booksApi.autoGenerateBook(bookId, withIllustrations),
+    mutationFn: ({ bookId, withIllustrations }: { bookId: string; withIllustrations: boolean }) => {
+      // Close auto-generate modal and show progress modal immediately
+      setShowAutoGenerateModal(false);
+      setShowProgressModal(true);
+      setProgressData({
+        status: 'started',
+        current_page: 0,
+        total_pages: book?.target_pages || 0,
+        message: 'Initializing auto-generation...',
+        percentage: 0,
+        with_illustrations: withIllustrations
+      });
+      return booksApi.autoGenerateBook(bookId, withIllustrations);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['credits'] });
       setAutoGenerating(false);
-      setShowAutoGenerateModal(false);
-      toast.success(
-        `Auto-generated ${data.pages_generated} pages${
-          data.illustrations_generated > 0 ? ` with ${data.illustrations_generated} illustrations` : ''
-        } and completed book!`
-      );
-      // Trigger confetti celebration
-      triggerConfetti(4000);
-      // Navigate to book view to show the completed book
+      // Progress modal will be closed by WebSocket completion event
+      // Navigate to book view to show the completed book after modal closes
       setTimeout(() => {
         navigate(`/book/${bookId}`);
-      }, 1500);
+      }, 4000);
     },
     onError: (error: any) => {
       setAutoGenerating(false);
-      toast.error(error?.response?.data?.detail || 'Auto-generation failed');
+      // Error will be shown via WebSocket or fallback toast
+      if (!showProgressModal) {
+        toast.error(error?.response?.data?.detail || 'Auto-generation failed');
+      }
     },
   });
 
@@ -519,12 +586,15 @@ export default function Editor() {
 
               {/* Prominent Toolbar with Labels */}
               <div className="mb-4 p-4 bg-gradient-to-r from-brand-500/10 via-accent-purple/10 to-accent-cyan/10 border border-white/10 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-brand-400" />
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <Sparkles className="w-4 h-4 text-brand-400 flex-shrink-0" />
                   <span className="text-sm font-semibold text-text-primary">Book Configuration</span>
-                  <span className="text-xs text-text-tertiary ml-auto">Configure before auto-generating</span>
+                  <span className="text-xs text-text-tertiary">
+                    <span className="hidden sm:inline">• </span>
+                    <span className="italic">Optional - configure before auto-generating</span>
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   <button
                     onClick={() => setIsEditBookModalOpen(true)}
                     className="flex flex-col items-center gap-1.5 p-3 hover:bg-brand-500/20 rounded-lg transition-all group border border-white/5"
@@ -1386,6 +1456,21 @@ export default function Editor() {
                   Automatically generate all remaining pages and optionally illustrations, then complete the book with a professional AI cover.
                 </p>
 
+                {/* Show selected writing style */}
+                {book.style_profile && (
+                  <div className="p-3 bg-accent-purple/10 border border-accent-purple/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Palette className="w-4 h-4 text-accent-purple flex-shrink-0" />
+                      <span className="text-sm text-text-secondary">Writing Style:</span>
+                      <span className="text-sm font-semibold text-accent-purple">
+                        {book.style_profile.author_preset
+                          ? book.style_profile.author_preset.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                          : `${book.style_profile.tone || 'Custom'} Style`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
               {book && (
                 <div className="p-4 bg-gradient-to-br from-brand-500/10 to-accent-purple/10 border border-brand-500/20 rounded-xl">
                   <div className="space-y-2.5 text-sm">
@@ -1483,6 +1568,121 @@ export default function Editor() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Progress Modal */}
+      {showProgressModal && progressData && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-500/20 to-accent-purple/20 rounded-2xl blur-2xl" />
+            <div className="relative bg-surface-1 border-2 border-brand-500/30 rounded-2xl max-w-lg w-full p-8 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`p-3 bg-gradient-to-br rounded-xl shadow-glow ${
+                  progressData.status === 'error'
+                    ? 'from-red-500 to-red-600'
+                    : progressData.status === 'completed'
+                    ? 'from-accent-green to-accent-green/80'
+                    : 'from-brand-500 to-brand-600'
+                }`}>
+                  {progressData.status === 'error' ? (
+                    <AlertCircle className="w-6 h-6 text-white" />
+                  ) : progressData.status === 'completed' ? (
+                    <Check className="w-6 h-6 text-white" />
+                  ) : (
+                    <Sparkles className="w-6 h-6 text-white" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-display font-bold gradient-text">
+                    {progressData.status === 'error'
+                      ? 'Generation Error'
+                      : progressData.status === 'completed'
+                      ? 'Book Complete!'
+                      : 'Generating Your Book'}
+                  </h2>
+                  <p className="text-xs text-text-tertiary mt-1">
+                    {progressData.status === 'completed'
+                      ? 'Auto-generation finished successfully'
+                      : progressData.status === 'error'
+                      ? 'An error occurred during generation'
+                      : 'AI is writing your book in real-time'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2 text-sm">
+                  <span className="text-text-secondary">Progress</span>
+                  <span className="text-brand-400 font-bold">{progressData.percentage}%</span>
+                </div>
+                <div className="h-3 bg-surface-2 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      progressData.status === 'error'
+                        ? 'bg-gradient-to-r from-red-500 to-red-600'
+                        : progressData.status === 'completed'
+                        ? 'bg-gradient-to-r from-accent-green to-accent-green/80'
+                        : 'bg-gradient-to-r from-brand-500 to-accent-purple'
+                    }`}
+                    style={{ width: `${progressData.percentage}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Message */}
+              <div className="p-4 bg-gradient-to-br from-brand-500/10 to-accent-purple/10 border border-brand-500/20 rounded-xl mb-4">
+                <div className="flex items-start gap-3">
+                  {progressData.status === 'generating_page' ? (
+                    <BookOpen className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />
+                  ) : progressData.status === 'generating_illustration' ? (
+                    <Image className="w-5 h-5 text-accent-purple mt-0.5 flex-shrink-0" />
+                  ) : progressData.status === 'generating_cover' ? (
+                    <Palette className="w-5 h-5 text-accent-cyan mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <Loader2 className="w-5 h-5 text-brand-400 animate-spin mt-0.5 flex-shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-text-primary font-medium">{progressData.message}</p>
+                    {progressData.status !== 'error' && progressData.status !== 'completed' && (
+                      <p className="text-xs text-text-tertiary mt-1">
+                        Page {progressData.current_page} of {progressData.total_pages}
+                        {progressData.with_illustrations && ' (with illustrations)'}
+                      </p>
+                    )}
+                    {progressData.error && (
+                      <p className="text-xs text-red-400 mt-2 font-mono">{progressData.error}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Text */}
+              {progressData.status !== 'error' && progressData.status !== 'completed' && (
+                <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                  <Sparkles className="w-4 h-4" />
+                  <p>You can safely close this window. Progress will continue in the background.</p>
+                </div>
+              )}
+
+              {/* Close Button (only show on completion or error) */}
+              {(progressData.status === 'completed' || progressData.status === 'error') && (
+                <button
+                  onClick={() => {
+                    setShowProgressModal(false);
+                    setProgressData(null);
+                    if (progressData.status === 'completed') {
+                      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+                    }
+                  }}
+                  className="btn-primary w-full mt-4"
+                >
+                  Close
+                </button>
+              )}
             </div>
           </div>
         </div>

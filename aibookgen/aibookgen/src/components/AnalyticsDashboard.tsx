@@ -63,7 +63,8 @@ export default function AnalyticsDashboard({ onClose, bookId, content }: Analyti
     setError(null);
 
     try {
-      const response = await fetch('/api/analytics/readability', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://aibook-9rbb.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/analytics/readability`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

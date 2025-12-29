@@ -1247,6 +1247,20 @@ async def auto_generate_book(
     generated_illustrations = []
     errors = []
 
+    # Broadcast start of auto-generation
+    await ws_manager.broadcast_auto_gen_progress(
+        user.license_key,
+        str(book_id),
+        {
+            "status": "started",
+            "current_page": 0,
+            "total_pages": remaining_pages,
+            "message": f"Starting auto-generation of {remaining_pages} page{'s' if remaining_pages != 1 else ''}{'  with illustrations' if request.with_illustrations else ''}...",
+            "percentage": 0,
+            "with_illustrations": request.with_illustrations
+        }
+    )
+
     try:
         # Initialize generator
         generator = BookGenerator(api_key=None, model_provider=preferred_model)
@@ -1401,6 +1415,22 @@ CRITICAL RULES:
 
                 print(f"[AUTO-GEN] Page {page_number} generated successfully (1 credit charged)", flush=True)
 
+                # Broadcast page generation progress (90% for pages, 10% reserved for cover)
+                pages_completed = len(generated_pages)
+                progress_percentage = int((pages_completed / remaining_pages) * 90)
+                await ws_manager.broadcast_auto_gen_progress(
+                    user.license_key,
+                    str(book_id),
+                    {
+                        "status": "generating_page",
+                        "current_page": page_number,
+                        "total_pages": book.target_pages,
+                        "message": f"Page {page_number} of {book.target_pages} completed",
+                        "percentage": progress_percentage,
+                        "with_illustrations": request.with_illustrations
+                    }
+                )
+
                 # Generate illustration if requested
                 print(f"[AUTO-GEN] Checking if illustrations requested: {request.with_illustrations}", flush=True)
                 if request.with_illustrations:
@@ -1479,6 +1509,20 @@ CRITICAL RULES:
 
                             print(f"[AUTO-GEN] ✓ Illustration for page {page_number} generated successfully (3 credits charged)", flush=True)
 
+                            # Broadcast illustration progress
+                            await ws_manager.broadcast_auto_gen_progress(
+                                user.license_key,
+                                str(book_id),
+                                {
+                                    "status": "generating_illustration",
+                                    "current_page": page_number,
+                                    "total_pages": book.target_pages,
+                                    "message": f"Illustration for page {page_number} completed",
+                                    "percentage": progress_percentage,
+                                    "with_illustrations": request.with_illustrations
+                                }
+                            )
+
                     except Exception as ill_error:
                         error_msg = str(ill_error)
                         print(f"[AUTO-GEN] ✗ Illustration error for page {page_number}: {error_msg}", flush=True)
@@ -1525,6 +1569,20 @@ CRITICAL RULES:
 
         # Now complete the book (generate cover)
         print(f"[AUTO-GEN] Completing book with cover generation...", flush=True)
+
+        # Broadcast cover generation start
+        await ws_manager.broadcast_auto_gen_progress(
+            user.license_key,
+            str(book_id),
+            {
+                "status": "generating_cover",
+                "current_page": remaining_pages,
+                "total_pages": remaining_pages,
+                "message": "Generating book cover...",
+                "percentage": 90,
+                "with_illustrations": request.with_illustrations
+            }
+        )
 
         book = book_repo.get_book(book_id, user_id)
         book_title = book.title
@@ -1601,6 +1659,20 @@ CRITICAL RULES:
 
         print(f"[AUTO-GEN] Book auto-generation complete!", flush=True)
 
+        # Broadcast completion
+        await ws_manager.broadcast_auto_gen_progress(
+            user.license_key,
+            str(book_id),
+            {
+                "status": "completed",
+                "current_page": remaining_pages,
+                "total_pages": remaining_pages,
+                "message": f"Book complete! Generated {len(generated_pages)} pages{' with illustrations' if request.with_illustrations else ''}",
+                "percentage": 100,
+                "with_illustrations": request.with_illustrations
+            }
+        )
+
         # Calculate actual credits consumed
         actual_credits = (len(generated_pages) * page_credits_per_page) + (len(generated_illustrations) * illustration_credits_per_page) + cover_credits
 
@@ -1618,6 +1690,21 @@ CRITICAL RULES:
         print(f"[AUTO-GEN] ERROR: {str(e)}", flush=True)
         import traceback
         print(f"[AUTO-GEN] Traceback: {traceback.format_exc()}", flush=True)
+
+        # Broadcast error to user
+        await ws_manager.broadcast_auto_gen_progress(
+            user.license_key,
+            str(book_id),
+            {
+                "status": "error",
+                "current_page": len(generated_pages),
+                "total_pages": remaining_pages,
+                "message": f"Error during generation. {len(generated_pages)} pages completed before failure.",
+                "percentage": int((len(generated_pages) / remaining_pages) * 90) if remaining_pages > 0 else 0,
+                "with_illustrations": request.with_illustrations,
+                "error": str(e)
+            }
+        )
 
         # Credits already charged per-page, so no refund needed
         # User only paid for what was actually generated before crash
